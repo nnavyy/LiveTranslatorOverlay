@@ -1,0 +1,17 @@
+# Build and binary outputs
+bin/
+obj/
+*.bin
+PublishOutput/
+publish-release/
+*.zip
+*.user
+*.suo
+
+# Local user configurations & secrets (keeps user API keys private)
+appsettings.json
+
+# Debug logs and local scratch files
+*_debug.txt
+check_audio.ps1
+TestTranslation.cs
