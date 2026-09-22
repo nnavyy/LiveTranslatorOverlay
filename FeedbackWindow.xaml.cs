@@ -16,6 +16,7 @@ public partial class FeedbackWindow : Window
     private const string TargetEmail = "nandazhafran@gmail.com";
     private const string FormSubmitEndpoint = "https://formsubmit.co/ajax/nandazhafran@gmail.com";
     private static readonly HttpClient HttpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+    private string? _lastStatusKey;
 
     public FeedbackWindow()
     {
@@ -43,7 +44,11 @@ public partial class FeedbackWindow : Window
         if (LblMessage != null) LblMessage.Text = loc.Get("FeedbackMessage");
         if (BtnSend != null) BtnSend.Content = loc.Get("FeedbackSend");
         if (BtnMailto != null) BtnMailto.Content = loc.Get("FeedbackMailto");
-        if (BtnClose != null) BtnClose.Content = loc.Get("BtnCloseApp");
+        if (BtnClose != null) BtnClose.Content = loc.Get("FeedbackClose");
+        if (!string.IsNullOrEmpty(_lastStatusKey) && TxtStatus != null)
+        {
+            TxtStatus.Text = loc.Get(_lastStatusKey);
+        }
     }
 
     private async void BtnSend_Click(object sender, RoutedEventArgs e)
@@ -56,12 +61,14 @@ public partial class FeedbackWindow : Window
 
         if (string.IsNullOrWhiteSpace(subject) || string.IsNullOrWhiteSpace(message))
         {
+            _lastStatusKey = "FeedbackEmpty";
             TxtStatus.Foreground = System.Windows.Media.Brushes.OrangeRed;
             TxtStatus.Text = loc.Get("FeedbackEmpty");
             return;
         }
 
         BtnSend.IsEnabled = false;
+        _lastStatusKey = "FeedbackSending";
         TxtStatus.Foreground = System.Windows.Media.Brushes.LightSkyBlue;
         TxtStatus.Text = loc.Get("FeedbackSending");
 
@@ -110,13 +117,16 @@ public partial class FeedbackWindow : Window
 
             if (response.IsSuccessStatusCode || responseBody.Contains("Activation", StringComparison.OrdinalIgnoreCase))
             {
+                _lastStatusKey = "FeedbackSuccess";
                 TxtStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
                 TxtStatus.Text = loc.Get("FeedbackSuccess");
-                await Task.Delay(2000);
-                this.Close();
+                TxtSubject.Text = "";
+                TxtMessage.Text = "";
+                BtnSend.IsEnabled = true;
             }
             else
             {
+                _lastStatusKey = "FeedbackError";
                 TxtStatus.Foreground = System.Windows.Media.Brushes.OrangeRed;
                 TxtStatus.Text = loc.Get("FeedbackError");
                 BtnSend.IsEnabled = true;
@@ -124,6 +134,7 @@ public partial class FeedbackWindow : Window
         }
         catch
         {
+            _lastStatusKey = "FeedbackError";
             TxtStatus.Foreground = System.Windows.Media.Brushes.OrangeRed;
             TxtStatus.Text = loc.Get("FeedbackError");
             BtnSend.IsEnabled = true;
@@ -132,6 +143,7 @@ public partial class FeedbackWindow : Window
 
     private void BtnMailto_Click(object sender, RoutedEventArgs e)
     {
+        var loc = LocalizationManager.Instance;
         string user = Environment.UserName;
         string device = Environment.MachineName;
         string deviceId = AppSettings.GetOrCreateDeviceId();
@@ -167,7 +179,7 @@ public partial class FeedbackWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to open email client: {ex.Message}", "Email", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(loc.Get("FeedbackMailtoError", ex.Message), "Email", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
