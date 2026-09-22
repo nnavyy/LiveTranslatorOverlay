@@ -300,6 +300,7 @@
 
                         <!-- Extras -->
                         <Button x:Name="BtnOpenHistory" Content="Open Translation History" Click="BtnOpenHistory_Click" Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
+                        <Button x:Name="BtnFeedback" Content="Report Bug / Feedback" Click="BtnFeedback_Click" Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
                         <Button x:Name="BtnCloseApp" Content="Close App" Click="CloseButton_Click" Style="{StaticResource ActionDangerButton}"/>
                     </StackPanel>
                 </ScrollViewer>
