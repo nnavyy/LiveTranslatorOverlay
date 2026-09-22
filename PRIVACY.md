@@ -46,7 +46,34 @@ All API keys entered in the application are saved exclusively on your local mach
 
 ---
 
-## 5. User Responsibilities and Lawful Use
+## 5. Voluntary Bug Reporting, Feedback, and Diagnostics
+
+The Software includes an optional in-app feedback dialog allowing users to submit bug reports, feature suggestions, and general feedback directly to the developer.
+
+- **Strictly User-Initiated**: No feedback or telemetry is ever gathered or transmitted in the background without explicit user action (clicking "Send Report").
+- **Data Transmitted Upon Submission**:
+  - **User Feedback**: Selected report type, subject, and description.
+  - **Contact Email (Optional)**: If provided by the user to receive reply updates. If left empty, submissions remain anonymous (`noreply@livetranslator.app`).
+  - **Anonymous Device ID**: A randomly generated local identifier (e.g. `ID-XXXX-XXXX-XXXX`), Windows username, and machine name, used solely to correlate reports and allow the user to track resolution progress (*Pending*, *In Progress*, *Fixed*) within the application.
+  - **Diagnostic Metadata**: Application version, Windows OS build (32/64-bit), .NET runtime version, and timestamp to assist in reproducing and resolving bugs.
+- **Local History Storage**:
+  - Reports submitted from your device are stored locally in `%LOCALAPPDATA%\LiveTranslatorOverlay\feedback_history.json`.
+  - This allows the user to review past submissions and verify whether reported issues have been marked as resolved in newer releases.
+- **Transmission Security**:
+  - Feedback is transmitted over TLS/HTTPS directly to the developer's mailbox (`nandazhafran@gmail.com`) via FormSubmit API or via the user's default email client (`mailto:`).
+- **No Third-Party Analytics**: The Software does not embed any tracking SDKs, advertising frameworks, or behavior analytics.
+
+---
+
+## 6. Screen Capture Exclusion (Privacy Mode)
+
+The Software incorporates Windows Graphic Capture Exclusion (`SetWindowDisplayAffinity` with `WDA_EXCLUDEFROMCAPTURE`):
+- When enabled, the overlay and all associated application dialogs are rendered invisible to third-party screen recording software, such as OBS Studio, Discord screen sharing, Zoom, and screen-capture tools.
+- This ensures personal translations and desktop subtitles are kept private during live broadcasts and meetings.
+
+---
+
+## 7. User Responsibilities and Lawful Use
 
 As a user of the Software, you agree to:
 - Comply with all applicable local, national, and international laws regarding audio recording, wiretapping, and privacy consent (including one-party or two-party consent laws where applicable).
@@ -55,7 +82,7 @@ As a user of the Software, you agree to:
 
 ---
 
-## 6. Disclaimer of Warranty and Limitation of Liability
+## 8. Disclaimer of Warranty and Limitation of Liability
 
 The Software is distributed under the **MIT License**.
 
@@ -63,7 +90,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ---
 
-## 7. Contact and Inquiries
+## 9. Contact and Inquiries
 
 For security inquiries, vulnerability reports, or questions regarding this document, please open an issue on the official GitHub repository:
 https://github.com/nnavyy/LiveTranslatorOverlay

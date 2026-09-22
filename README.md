@@ -30,8 +30,15 @@
 - **Non-Intrusive Desktop Overlay**
   - **Always-on-top transparent canvas**: Captions render cleanly above full-screen games, media players, and desktop applications.
   - **Freely repositionable**: Move the subtitle banner and settings dialog anywhere on your monitors via drag-and-drop.
-  - **OBS / Capture Exclusion**: Employs Windows Graphics Capture Exclusion (`SetWindowDisplayAffinity`) to keep the overlay hidden from stream recordings or screen shares.
-  - **Translation History**: Integrated history log to review past spoken and translated statements.
+  - **Screen Capture Exclusion (Privacy Mode)**: Employs Windows Graphics Capture Exclusion (`SetWindowDisplayAffinity`) to keep captions and all application windows completely hidden from OBS Studio, Discord screen sharing, Zoom, and screen recordings, with built-in Snipping Tool deadlock protection.
+  - **Translation History**: Integrated history log to review past spoken and translated statements with AI-powered conversation summaries.
+- **Multi-Language User Interface**
+  - Fully localized in **English** and **Indonesian (Bahasa Indonesia)**.
+  - Automatically matches your Windows display language by default, with dynamic in-app language switching.
+- **In-App Bug Reporting & Resolution Tracker**
+  - Report bugs, feature suggestions, and criticism directly inside the application without needing third-party accounts.
+  - **My Reports History**: Track previously submitted reports and monitor resolution progress (*Pending*, *In Progress*, *Fixed*) per device.
+  - Automatic status resolution sync when newer application updates are released.
 
 ---
 
@@ -126,9 +133,14 @@ Contributions, issues, and feature proposals are welcome:
 
 ---
 
-## Privacy and Terms of Service
-
-This application processes audio and screen captures strictly in-memory and does not host any telemetry or tracking servers. For complete details regarding data handling, third-party APIs, and user responsibilities, please review [PRIVACY.md](PRIVACY.md).
+## Privacy and Data Handling
+ 
+- **Local-First Audio & OCR**: Audio loopback buffers and desktop screen captures are processed strictly in volatile system memory (RAM) and immediately discarded. No recordings are ever written to disk or sent to developer servers.
+- **Zero Background Telemetry**: The application does not collect background metrics, analytics, or user behavior.
+- **Voluntary In-App Feedback**: When you choose to submit a bug report or suggestion:
+  - An anonymous local Device ID (`ID-XXXX-XXXX-XXXX`) and diagnostic metadata (OS build and app version) are included so you can monitor resolution status (*Pending*, *In Progress*, *Fixed*) directly within the app.
+  - Submitting contact email is completely optional for receiving developer replies.
+- For complete terms, data security policies, and third-party API disclosures, please consult our full [Privacy Policy and Terms of Service (PRIVACY.md)](PRIVACY.md).
 
 ---
 
