@@ -1,0 +1,7 @@
+{
+  "_comment": "Add report IDs and their status here (e.g. Fixed, InProgress) to automatically update users' report history status.",
+  "REP-SAMPLE": {
+    "status": "Fixed",
+    "note": "Resolved in latest update"
+  }
+}
