@@ -41,7 +41,6 @@ public partial class FeedbackWindow : Window
         if (LblContact != null) LblContact.Text = loc.Get("FeedbackContact");
         if (LblSubject != null) LblSubject.Text = loc.Get("FeedbackSubject");
         if (LblMessage != null) LblMessage.Text = loc.Get("FeedbackMessage");
-        if (ChkIncludeSystem != null) ChkIncludeSystem.Content = loc.Get("FeedbackIncludeSystem");
         if (BtnSend != null) BtnSend.Content = loc.Get("FeedbackSend");
         if (BtnMailto != null) BtnMailto.Content = loc.Get("FeedbackMailto");
         if (BtnClose != null) BtnClose.Content = loc.Get("BtnCloseApp");
@@ -68,24 +67,36 @@ public partial class FeedbackWindow : Window
 
         try
         {
-            string systemInfo = "";
-            if (ChkIncludeSystem.IsChecked == true)
-            {
-                systemInfo = $"\n\n--- System Diagnostics ---\nApp Version: v1.1.0\nOS: {Environment.OSVersion}\n64-bit OS: {Environment.Is64BitOperatingSystem}\n.NET: {Environment.Version}";
-            }
+            string user = Environment.UserName;
+            string device = Environment.MachineName;
+            string deviceId = AppSettings.GetOrCreateDeviceId();
+            string contactEmail = string.IsNullOrWhiteSpace(contact) ? "Not provided (Anonymous)" : contact;
+            string systemOs = $"{Environment.OSVersion} ({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})";
+            string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss 'UTC'");
 
-            var payload = new
+            var payload = new System.Collections.Generic.Dictionary<string, string>
             {
-                name = string.IsNullOrWhiteSpace(contact) ? "Anonymous User" : contact,
-                email = string.IsNullOrWhiteSpace(contact) ? "noreply@livetranslator.app" : contact,
-                _replyto = string.IsNullOrWhiteSpace(contact) ? "" : contact,
-                type = type,
-                subject = subject,
-                message = message + systemInfo,
-                _subject = $"[Live Translator] {type}: {subject}",
-                _template = "box",
-                _captcha = "false"
+                { "User", user },
+                { "Device", device },
+                { "Device ID", deviceId },
+                { "Report Type", type },
+                { "Contact Email", contactEmail },
+                { "Subject", subject },
+                { "Description", message },
+                { "App Version", "v1.1.0" },
+                { "OS Version", systemOs },
+                { ".NET Runtime", Environment.Version.ToString() },
+                { "Timestamp", timestamp },
+                { "email", string.IsNullOrWhiteSpace(contact) ? "noreply@livetranslator.app" : contact },
+                { "_subject", $"[Live Translator] {type} from {user} ({deviceId}): {subject}" },
+                { "_template", "table" },
+                { "_captcha", "false" }
             };
+
+            if (!string.IsNullOrWhiteSpace(contact))
+            {
+                payload["_replyto"] = contact;
+            }
 
             var request = new HttpRequestMessage(HttpMethod.Post, FormSubmitEndpoint)
             {
@@ -121,9 +132,30 @@ public partial class FeedbackWindow : Window
 
     private void BtnMailto_Click(object sender, RoutedEventArgs e)
     {
-        string subject = Uri.EscapeDataString($"[Live Translator] {TxtSubject.Text?.Trim()}");
-        string body = Uri.EscapeDataString(TxtMessage.Text?.Trim() + $"\n\nApp Version: v1.1.0\nOS: {Environment.OSVersion}");
-        string mailtoUrl = $"mailto:{TargetEmail}?subject={subject}&body={body}";
+        string user = Environment.UserName;
+        string device = Environment.MachineName;
+        string deviceId = AppSettings.GetOrCreateDeviceId();
+        string type = (CmbType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Feedback";
+        string subject = TxtSubject.Text?.Trim() ?? "";
+        string message = TxtMessage.Text?.Trim() ?? "";
+        string contact = TxtContact.Text?.Trim() ?? "";
+
+        string mailtoSubject = Uri.EscapeDataString($"[Live Translator] {type} from {user} ({deviceId}): {subject}");
+        string mailtoBody = Uri.EscapeDataString(
+            $"{message}\n\n" +
+            $"========================================\n" +
+            $"User & System Diagnostics (Auto-generated)\n" +
+            $"User: {user}\n" +
+            $"Device: {device}\n" +
+            $"Device ID: {deviceId}\n" +
+            $"Contact Email: {(string.IsNullOrWhiteSpace(contact) ? "Not provided" : contact)}\n" +
+            $"App Version: v1.1.0\n" +
+            $"OS: {Environment.OSVersion} ({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})\n" +
+            $".NET: {Environment.Version}\n" +
+            $"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n" +
+            $"========================================"
+        );
+        string mailtoUrl = $"mailto:{TargetEmail}?subject={mailtoSubject}&body={mailtoBody}";
 
         try
         {
