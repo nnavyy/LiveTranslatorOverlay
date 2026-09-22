@@ -17,12 +17,16 @@ public partial class App : Application
 
     private void App_DispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
     {
-        MessageBox.Show("Crash: " + e.Exception.ToString());
+        string msg = e.Exception.ToString();
+        try { File.AppendAllText("crash_log.txt", $"[{DateTime.Now}] DISPATCHER:\n{msg}\n\n"); } catch { }
+        MessageBox.Show("Error: " + e.Exception.Message + "\n\n(Detail disimpan di crash_log.txt)");
         e.Handled = true;
     }
 
     private void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
-        MessageBox.Show("Fatal Crash: " + e.ExceptionObject.ToString());
+        string msg = e.ExceptionObject.ToString();
+        try { File.AppendAllText("crash_log.txt", $"[{DateTime.Now}] FATAL:\n{msg}\n\n"); } catch { }
+        MessageBox.Show("Fatal: " + msg[..Math.Min(msg.Length, 300)]);
     }
 }

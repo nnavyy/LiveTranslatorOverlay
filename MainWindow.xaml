@@ -72,15 +72,22 @@
         <!-- Translated Text Box (OCR) -->
         <Border x:Name="TranslatedTextContainer" MaxWidth="800" MaxHeight="600" Background="#CC0A0A0A" BorderBrush="#33FFFFFF" BorderThickness="1" CornerRadius="8" Visibility="Collapsed" Padding="15">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <TextBlock x:Name="TranslatedTextBlock" Foreground="#E0E0E0" FontSize="16" FontFamily="Segoe UI" TextWrapping="Wrap" Text="[Terjemahan akan muncul di sini]"/>
+                <TextBlock x:Name="TranslatedTextBlock" Foreground="#E0E0E0" FontSize="16" FontFamily="Segoe UI" TextWrapping="Wrap" Text="[Translation will appear here]"/>
             </ScrollViewer>
         </Border>
 
         <!-- Audio Caption Bar (bottom center) -->
-        <Border x:Name="CaptionBar" Background="#B3000000" CornerRadius="12" Padding="20,12" Visibility="Collapsed" MinWidth="400" MaxWidth="900" Opacity="0">
+        <Border x:Name="CaptionBar" Background="#B3000000" CornerRadius="12" Padding="20,14" Visibility="Collapsed" 
+                MinWidth="400" MaxWidth="900" Opacity="0" Cursor="SizeAll"
+                MouseLeftButtonDown="CaptionBar_MouseLeftButtonDown"
+                MouseMove="CaptionBar_MouseMove"
+                MouseLeftButtonUp="CaptionBar_MouseLeftButtonUp">
             <StackPanel>
+                <!-- Speaker label (hidden in Groq mode, shown in Deepgram mode) -->
+                <TextBlock x:Name="CaptionSpeaker" Foreground="#00FF88" FontFamily="Segoe UI Semibold" FontSize="11"
+                           Text="" Visibility="Collapsed" Margin="0,0,0,4" Opacity="0.85"/>
                 <TextBlock x:Name="CaptionOriginal" Foreground="#999999" FontFamily="Segoe UI" FontSize="14" TextWrapping="Wrap" Text="" Margin="0,0,0,2"/>
-                <TextBlock x:Name="CaptionTranslated" Foreground="#00FF88" FontFamily="Segoe UI Semibold" FontSize="20" TextWrapping="Wrap" Text="[Menunggu audio...]">
+                <TextBlock x:Name="CaptionTranslated" Foreground="#00FF88" FontFamily="Segoe UI Semibold" FontSize="20" TextWrapping="Wrap" Text="[Waiting for audio...]">
                     <TextBlock.Effect>
                         <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Opacity="0.8"/>
                     </TextBlock.Effect>
@@ -90,8 +97,19 @@
 
         <!-- Control Panel Container -->
         <StackPanel x:Name="ControlPanelContainer" Canvas.Left="20" Canvas.Top="20">
-            <!-- Toggle Button -->
-            <Button x:Name="BtnTogglePanel" Content="⚙️ Settings" Style="{StaticResource ModernButton}" Click="BtnTogglePanel_Click" HorizontalAlignment="Left" Margin="0,0,0,10" Padding="10,6" FontSize="13"/>
+            <!-- Toggle Button & Drag Handle -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10" HorizontalAlignment="Left">
+                <Thumb DragDelta="ControlPanel_DragDelta" Width="24" Height="30" Cursor="SizeAll" Margin="0,0,5,0" ToolTip="Drag to move settings panel">
+                    <Thumb.Template>
+                        <ControlTemplate TargetType="Thumb">
+                            <Border Background="#333333" CornerRadius="6">
+                                <TextBlock Text="⠿" Foreground="#888" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="14" Margin="0,2,0,0"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Thumb.Template>
+                </Thumb>
+                <Button x:Name="BtnTogglePanel" Content="⚙️ Settings" Style="{StaticResource ModernButton}" Click="BtnTogglePanel_Click" Padding="10,6" FontSize="13"/>
+            </StackPanel>
             
             <!-- Control Panel -->
             <Border x:Name="ControlPanel" Background="#E61A1A1A" CornerRadius="12" BorderBrush="#33FFFFFF" BorderThickness="1" MaxWidth="320" MaxHeight="750">
@@ -103,7 +121,7 @@
                         <TextBlock Text="🌐 Live Translator" Foreground="White" FontFamily="Segoe UI Semibold" FontSize="20" Margin="0,0,0,15"/>
                         
                         <!-- Language Settings -->
-                        <TextBlock Text="Bahasa Asal:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
+                        <TextBlock Text="Source Language:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
                         <ComboBox x:Name="CmbSourceLang" SelectedIndex="0" Margin="0,0,0,12" Padding="5">
                             <ComboBoxItem Content="Auto Detect" Tag="auto"/>
                             <ComboBoxItem Content="English (en)" Tag="en"/>
@@ -118,7 +136,7 @@
                             <ComboBoxItem Content="Arabic (ar)" Tag="ar"/>
                         </ComboBox>
 
-                        <TextBlock Text="Bahasa Tujuan:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
+                        <TextBlock Text="Target Language:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
                         <ComboBox x:Name="CmbTargetLang" SelectedIndex="0" Margin="0,0,0,15" Padding="5">
                             <ComboBoxItem Content="Indonesia (id)" Tag="id"/>
                             <ComboBoxItem Content="English (en)" Tag="en"/>
@@ -133,14 +151,17 @@
                         </ComboBox>
 
                         <!-- Engine Settings -->
-                        <TextBlock Text="Engine Translate:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
-                        <ComboBox x:Name="CmbEngine" SelectedIndex="1" Margin="0,0,0,8" Padding="5" SelectionChanged="CmbEngine_SelectionChanged">
-                            <ComboBoxItem Content="Google Free (Slow, Free)" Tag="google"/>
-                            <ComboBoxItem Content="Groq AI (Fast, Smart)" Tag="groq"/>
+                        <TextBlock Text="Translation Engine:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="CmbEngine" SelectedIndex="0" Margin="0,0,0,8" Padding="5" SelectionChanged="CmbEngine_SelectionChanged">
+                            <ComboBoxItem Content="Google Translate (Gratis &amp; Cepat, Tanpa Kuota)" Tag="google"/>
+                            <ComboBoxItem Content="Groq AI (Perlu API Key, Kuota Terbatas)" Tag="groq"/>
                         </ComboBox>
                         
                         <TextBlock Text="API Key (Groq/DeepL):" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
                         <TextBox x:Name="TxtApiKey" Margin="0,0,0,8" Padding="5" Background="#2A2A2A" Foreground="White" BorderBrush="#555"/>
+
+                        <TextBlock Text="Deepgram API Key:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
+                        <TextBox x:Name="TxtDeepgramKey" Margin="0,0,0,8" Padding="5" Background="#2A2A2A" Foreground="White" BorderBrush="#555" ToolTip="Sign up for free at deepgram.com — 12,000 minutes/month"/>
                         
                         <TextBlock Text="Model Groq:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
                         <Grid Margin="0,0,0,15">
@@ -149,7 +170,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <ComboBox x:Name="CmbGroqModel" Grid.Column="0" IsEditable="True" MaxDropDownHeight="150" Padding="5">
-                                <ComboBoxItem Content="(Otomatis)" Tag="" IsSelected="True"/>
+                                <ComboBoxItem Content="(Auto)" Tag="" IsSelected="True"/>
                             </ComboBox>
                             <Button Grid.Column="1" Content="↻" Width="30" Margin="5,0,0,0" ToolTip="Refresh model list" Click="BtnRefreshModels_Click" Style="{StaticResource ModernButton}" Padding="0"/>
                         </Grid>
@@ -158,21 +179,48 @@
 
                         <!-- Screen OCR Section -->
                         <TextBlock Text="📷 Screen OCR" Foreground="White" FontFamily="Segoe UI Semibold" FontSize="15" Margin="0,0,0,10"/>
-                        <Button x:Name="BtnDrawArea" Content="✂️ Pilih Area Layar" Click="BtnDrawArea_Click" Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
-                        <Button x:Name="BtnStartLive" Content="▶ Mulai Live OCR" Click="BtnStartLive_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,15" IsEnabled="False"/>
+                        <Button x:Name="BtnDrawArea" Content="✂️ Select Screen Area" Click="BtnDrawArea_Click" Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
+                        <Button x:Name="BtnStartLive" Content="▶ Start Live OCR" Click="BtnStartLive_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,15" IsEnabled="False"/>
                         
                         <Separator Margin="0,5,0,15" Background="#333"/>
 
                         <!-- Audio STT Section -->
                         <TextBlock Text="🎙 Audio Transcription" Foreground="White" FontFamily="Segoe UI Semibold" FontSize="15" Margin="0,0,0,10"/>
-                        <TextBlock x:Name="TxtAudioStatus" Text="Model belum dimuat" Foreground="#888" FontSize="11" Margin="0,0,0,8" TextWrapping="Wrap"/>
-                        <Button x:Name="BtnStartAudio" Content="🔊 Mulai Audio Translate" Click="BtnStartAudio_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,20"/>
+
+                        <TextBlock Text="STT Mode:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="CmbSttMode" Margin="0,0,0,10" Padding="5" SelectedIndex="0">
+                            <ComboBoxItem Content="Deepgram (Streaming + Speaker)" Tag="deepgram"/>
+                            <ComboBoxItem Content="Groq Whisper (Batch, No Speaker)" Tag="groq"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Subtitle Font Size:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="CmbFontSize" Margin="0,0,0,10" Padding="5" SelectedIndex="1" SelectionChanged="CmbFontSize_SelectionChanged">
+                            <ComboBoxItem Content="Small (14px)" Tag="14"/>
+                            <ComboBoxItem Content="Medium (20px)" Tag="20"/>
+                            <ComboBoxItem Content="Large (26px)" Tag="26"/>
+                            <ComboBoxItem Content="Extra Large (36px)" Tag="36"/>
+                        </ComboBox>
+
+                        <TextBlock Text="Audio Capture Device:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="CmbAudioDevice" Grid.Column="0" IsEditable="False" Padding="5">
+                                <ComboBoxItem Content="Default System Playback" Tag="default" IsSelected="True"/>
+                            </ComboBox>
+                            <Button Grid.Column="1" Content="↻" Width="30" Margin="5,0,0,0" ToolTip="Refresh audio devices" Click="BtnRefreshAudioDevices_Click" Style="{StaticResource ModernButton}" Padding="0"/>
+                        </Grid>
+
+                        <TextBlock x:Name="TxtAudioStatus" Text="Ready. Select mode and press Start." Foreground="#888" FontSize="11" Margin="0,0,0,8" TextWrapping="Wrap"/>
+                        <Button x:Name="BtnStartAudio" Content="🔊 Start Audio Translate" Click="BtnStartAudio_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,20"/>
 
                         <Separator Margin="0,5,0,15" Background="#333"/>
                         
                         <!-- Extras -->
-                        <Button Content="📝 Buka Notepad History" Click="BtnOpenHistory_Click" Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
-                        <Button Content="✕ Tutup App" Click="CloseButton_Click" Style="{StaticResource ActionDangerButton}"/>
+                        <Button Content="📝 Open Translation History" Click="BtnOpenHistory_Click" Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
+                        <Button Content="✕ Close App" Click="CloseButton_Click" Style="{StaticResource ActionDangerButton}"/>
                     </StackPanel>
                 </ScrollViewer>
             </Border>

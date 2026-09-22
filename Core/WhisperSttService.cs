@@ -44,10 +44,23 @@ namespace LiveTranslatorOverlay.Core
 
         public async Task<string> ProcessAudioChunkAsync(float[] pcmData)
         {
-            // Cek apakah suara hening (silent) agar tidak buang-buang kuota API
+            // Cek energi audio (VAD): Abaikan audio hening / desisan mikrofon
+            // Suara manusia asli memiliki puncak (maxAmp) dan rata-rata (avgAmp) yang jelas.
             float sum = 0;
-            for(int i = 0; i < pcmData.Length; i++) sum += Math.Abs(pcmData[i]);
-            if (sum / pcmData.Length < 0.001f) return string.Empty;
+            float maxAmp = 0;
+            for(int i = 0; i < pcmData.Length; i++)
+            {
+                float abs = Math.Abs(pcmData[i]);
+                sum += abs;
+                if (abs > maxAmp) maxAmp = abs;
+            }
+            float avgAmp = sum / pcmData.Length;
+
+            // Jika suara terlalu kecil (hanya background hiss/silence), jangan kirim ke Groq.
+            // Ini menghemat token API Groq dan mencegah halusinasi Whisper seperti "spasiba" / "subtitle by".
+            if (maxAmp < 0.012f && avgAmp < 0.002f) {
+                return string.Empty;
+            }
 
             if (!await _processingLock.WaitAsync(0))
                 return string.Empty; // Skip jika masih sibuk (biar tidak numpuk delay)
@@ -57,7 +70,7 @@ namespace LiveTranslatorOverlay.Core
                 byte[] wavBytes = CreateWavBytes(pcmData, 16000);
 
                 var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/audio/transcriptions");
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey.Trim());
 
                 var content = new MultipartFormDataContent();
                 var fileContent = new ByteArrayContent(wavBytes);
@@ -65,6 +78,8 @@ namespace LiveTranslatorOverlay.Core
                 content.Add(fileContent, "file", "chunk.wav");
                 content.Add(new StringContent("whisper-large-v3"), "model");
                 content.Add(new StringContent("json"), "response_format");
+                content.Add(new StringContent("0.0"), "temperature"); // Temperature 0 mencegah halusinasi acak
+                content.Add(new StringContent("Transcribe spoken conversation directly."), "prompt");
                 
                 // Kalau sourceLanguage bukan auto, paksakan bahasanya agar 100% akurat
                 if (_currentLanguage != "auto")
@@ -77,7 +92,13 @@ namespace LiveTranslatorOverlay.Core
                 var response = await _httpClient.SendAsync(request);
                 if (!response.IsSuccessStatusCode)
                 {
-                    return "";
+                    string errJson = await response.Content.ReadAsStringAsync();
+                    try { System.IO.File.AppendAllText("groq_debug.txt", $"[HTTP ERROR] {response.StatusCode} - {errJson}\n"); } catch {}
+                    
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                        throw new Exception("API Key Groq tidak valid (Invalid API Key)!");
+                    else
+                        throw new Exception($"HTTP {response.StatusCode}");
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
@@ -85,24 +106,15 @@ namespace LiveTranslatorOverlay.Core
                 if (doc.RootElement.TryGetProperty("text", out var textEl))
                 {
                     string text = textEl.GetString()?.Trim() ?? "";
-                    string lowerText = text.ToLowerInvariant();
                     
-                    // Filter halusinasi umum dari Whisper untuk audio kosong/desisan
-                    if (string.IsNullOrWhiteSpace(text) ||
-                        text.Contains("[BLANK_AUDIO]") || 
-                        lowerText.Contains("amara.org") || 
-                        lowerText.Contains("subtitles by") ||
-                        lowerText == "thank you." || lowerText == "thank you" ||
-                        lowerText == "terima kasih." || lowerText == "terima kasih" ||
-                        lowerText == "bye." || lowerText == "bye" ||
-                        lowerText == "you" || lowerText == "you." ||
-                        lowerText == "." || lowerText == "..." ||
-                        lowerText.Contains("thanks for watching") ||
-                        lowerText.Contains("thank you for watching"))
+                    // Filter halusinasi umum dari Whisper (subtitle credits, spasiba, продолжение следует, dll)
+                    if (HallucinationDetector.IsHallucination(text))
                     {
+                        try { System.IO.File.AppendAllText("groq_debug.txt", $"[FILTERED] {text}\n"); } catch {}
                         return "";
                     }
-                        
+                    
+                    try { System.IO.File.AppendAllText("groq_debug.txt", $"[TRANSCRIPT] {text}\n"); } catch {}
                     return text;
                 }
 
@@ -110,6 +122,7 @@ namespace LiveTranslatorOverlay.Core
             }
             catch (Exception ex)
             {
+                try { System.IO.File.AppendAllText("groq_debug.txt", $"[EXCEPTION] {ex.Message}\n"); } catch {}
                 throw new Exception($"Whisper API Error: {ex.Message}");
             }
             finally

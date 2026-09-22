@@ -15,4 +15,13 @@
     <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" />
   </ItemGroup>
 
+  <!-- Exclude sub-projects from main project compilation -->
+  <ItemGroup>
+    <Compile Remove="AudioDiag\**" />
+    <None Include="AudioDiag\**" />
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

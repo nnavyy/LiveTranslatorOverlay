@@ -49,5 +49,12 @@ namespace LiveTranslatorOverlay.Core.Translation
                 return "[Error Translate] " + text;
             }
         }
+        
+        public async Task TranslateStreamAsync(string text, string targetLanguage, string sourceLanguage, System.Action<string> onTokenReceived)
+        {
+            // LibreTranslate API does not support streaming, so buffer it
+            string result = await TranslateAsync(text, targetLanguage, sourceLanguage);
+            onTokenReceived(result);
+        }
     }
 }

@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -14,6 +15,8 @@ using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using LiveTranslatorOverlay.Core;
 using LiveTranslatorOverlay.Core.Translation;
+using NAudio.CoreAudioApi;
+using System.Diagnostics;
 
 namespace LiveTranslatorOverlay;
 
@@ -31,8 +34,14 @@ public partial class MainWindow : Window
     // Audio STT
     private AudioCaptureService? _audioCaptureService;
     private WhisperSttService? _whisperSttService;
+    private DiarizedSttService? _diarizedSttService;
     private bool _isAudioMode = false;
     private CancellationTokenSource? _audioCts;
+    // Semaphore ensures only one translation runs at a time (prevents queued-up delays)
+    private readonly SemaphoreSlim _translateSemaphore = new SemaphoreSlim(1, 1);
+
+    // Speaker diarization colors (Deepgram mode)
+    private static readonly string[] SpeakerColors = { "#00FF88", "#88BBFF", "#FFDD44", "#FF88CC", "#BB88FF" };
 
     // Extras
     private HistoryWindow? _historyWindow;
@@ -43,24 +52,70 @@ public partial class MainWindow : Window
     private Storyboard _fadeOutStoryboard;
     private bool _isCaptionVisible = false;
 
+    private string _savedAudioDeviceName = "";
+
     public MainWindow()
     {
         InitializeComponent();
         _ocrService = new ScreenOcrService();
         
-        // Load API key dari appsettings.json (tidak di-commit ke GitHub)
-        string savedApiKey = LoadApiKeyFromSettings();
-        TxtApiKey.Text = savedApiKey;
+        var loadedSettings = LiveTranslatorOverlay.Core.AppSettings.Load();
+        TxtApiKey.Text = loadedSettings.GroqApiKey;
+        TxtDeepgramKey.Text = loadedSettings.DeepgramApiKey;
+        if (loadedSettings.SourceLangIndex >= 0 && loadedSettings.SourceLangIndex < CmbSourceLang.Items.Count) CmbSourceLang.SelectedIndex = loadedSettings.SourceLangIndex;
+        if (loadedSettings.TargetLangIndex >= 0 && loadedSettings.TargetLangIndex < CmbTargetLang.Items.Count) CmbTargetLang.SelectedIndex = loadedSettings.TargetLangIndex;
+        if (loadedSettings.EngineIndex >= 0 && loadedSettings.EngineIndex < CmbEngine.Items.Count) CmbEngine.SelectedIndex = loadedSettings.EngineIndex;
+        if (loadedSettings.SttModeIndex >= 0 && loadedSettings.SttModeIndex < CmbSttMode.Items.Count) CmbSttMode.SelectedIndex = loadedSettings.SttModeIndex;
+        if (loadedSettings.FontSizeIndex >= 0 && loadedSettings.FontSizeIndex < CmbFontSize.Items.Count) CmbFontSize.SelectedIndex = loadedSettings.FontSizeIndex;
+        _savedAudioDeviceName = loadedSettings.AudioDeviceName;
         
-        // Initialize with Groq as default (matches SelectedIndex=1 in XAML)
-        _translationProvider = new GroqTranslateProvider(TxtApiKey.Text);
+        // Initialize with Google Free as default (matches SelectedIndex=0 in XAML)
+        if (loadedSettings.EngineIndex == 1 && !string.IsNullOrWhiteSpace(TxtApiKey.Text))
+            _translationProvider = new GroqTranslateProvider(TxtApiKey.Text);
+        else
+            _translationProvider = new GoogleFreeTranslateProvider();
         
+        this.Closing += MainWindow_Closing;
         this.SourceInitialized += MainWindow_SourceInitialized;
 
         this.Loaded += async (s, e) =>
         {
-            Canvas.SetLeft(CaptionBar, (this.ActualWidth - 400) / 2);
-            Canvas.SetTop(CaptionBar, this.ActualHeight - 140); // Lifted slightly for better UX
+            var loadedSettings = LiveTranslatorOverlay.Core.AppSettings.Load();
+            if (loadedSettings.CaptionLeft != -1 && loadedSettings.CaptionTop != -1)
+            {
+                double maxAllowedLeft = this.ActualWidth - 400 - 20;
+                double safeLeft = Math.Max(20, Math.Min(loadedSettings.CaptionLeft, maxAllowedLeft));
+                double safeTop = Math.Max(20, Math.Min(loadedSettings.CaptionTop, this.ActualHeight - 60)); // Approximate height
+                Canvas.SetLeft(CaptionBar, safeLeft);
+                Canvas.SetTop(CaptionBar, safeTop);
+                CaptionBar.MaxWidth = Math.Max(400, Math.Min(900, this.ActualWidth - safeLeft - 20));
+            }
+            else
+            {
+                double defaultLeft = (this.ActualWidth - 400) / 2;
+                Canvas.SetLeft(CaptionBar, defaultLeft);
+                Canvas.SetTop(CaptionBar, this.ActualHeight - 140); // Lifted slightly for better UX
+                CaptionBar.MaxWidth = Math.Max(400, Math.Min(900, this.ActualWidth - defaultLeft - 20));
+            }
+            
+            // Populate processes synchronously first so UI doesn't reset if user interacts early
+            RefreshApplications();
+            
+            if (CmbAudioDevice.Items.Count > 0)
+            {
+                bool found = false;
+                for (int i = 0; i < CmbAudioDevice.Items.Count; i++)
+                {
+                    var item = CmbAudioDevice.Items[i] as System.Windows.Controls.ComboBoxItem;
+                    if (item?.Content?.ToString() == _savedAudioDeviceName)
+                    {
+                        CmbAudioDevice.SelectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) CmbAudioDevice.SelectedIndex = 0;
+            }
             
             // Auto-populate model list from Groq
             await RefreshGroqModelsAsync();
@@ -69,16 +124,17 @@ public partial class MainWindow : Window
             _fadeOutStoryboard = (Storyboard)this.Resources["FadeOutCaption"];
         };
         
-        // Timer for auto-hiding subtitle
+        // Timer for auto-hiding subtitle (Disabled per user request for STT)
         _subtitleHideTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(6) };
         _subtitleHideTimer.Tick += (s, e) => 
         {
             _subtitleHideTimer.Stop();
-            if (_isCaptionVisible && _isAudioMode)
-            {
-                _fadeOutStoryboard.Begin(this);
-                _isCaptionVisible = false;
-            }
+            // Disabled auto fade-out for Audio mode
+            // if (_isCaptionVisible && _isAudioMode)
+            // {
+            //     _fadeOutStoryboard.Begin(this);
+            //     _isCaptionVisible = false;
+            // }
         };
         
         // Pastikan container tidak meluber ke bawah layar
@@ -102,35 +158,79 @@ public partial class MainWindow : Window
         TxtApiKey.TextChanged += (s, e) => UpdateEngine();
     }
     
-    /// <summary>Load API key dari appsettings.json. File ini di-gitignore dan tidak ke-commit.</summary>
-    private string LoadApiKeyFromSettings()
+        private bool _isDraggingCaption = false;
+    private Point _captionDragStartPoint;
+
+    private void CaptionBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        try
+        _isDraggingCaption = true;
+        _captionDragStartPoint = e.GetPosition(CaptionBar);
+        CaptionBar.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void CaptionBar_MouseMove(object sender, MouseEventArgs e)
+    {
+        if (_isDraggingCaption)
         {
-            // Cari file di folder yang sama dengan .exe (bin/Debug/...)
-            string exeDir = AppDomain.CurrentDomain.BaseDirectory;
-            string settingsPath = System.IO.Path.Combine(exeDir, "appsettings.json");
+            var pos = e.GetPosition(OverlayCanvas);
+            double newLeft = pos.X - _captionDragStartPoint.X;
+            double newTop = pos.Y - _captionDragStartPoint.Y;
+            
+            // The box must always have at least 400px of space to grow on the right
+            double maxAllowedLeft = this.ActualWidth - 400 - 20; 
+            
+            newLeft = Math.Max(20, Math.Min(newLeft, maxAllowedLeft));
+            newTop = Math.Max(20, Math.Min(newTop, this.ActualHeight - CaptionBar.ActualHeight - 20));
 
-            // Fallback: cari di root project saat develop
-            if (!File.Exists(settingsPath))
+            Canvas.SetLeft(CaptionBar, newLeft);
+            Canvas.SetTop(CaptionBar, newTop);
+            
+            // Dynamically constrain the MaxWidth so it wraps instead of going off-screen
+            CaptionBar.MaxWidth = Math.Max(400, Math.Min(900, this.ActualWidth - newLeft - 20));
+            
+            e.Handled = true;
+        }
+    }
+
+    private void CaptionBar_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        if (_isDraggingCaption)
+        {
+            _isDraggingCaption = false;
+            CaptionBar.ReleaseMouseCapture();
+            e.Handled = true;
+        }
+    }
+
+    private void CmbFontSize_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CaptionTranslated != null && CmbFontSize.SelectedItem is System.Windows.Controls.ComboBoxItem item)
+        {
+            if (int.TryParse(item.Tag?.ToString(), out int size))
             {
-                string projectRoot = System.IO.Path.GetFullPath(System.IO.Path.Combine(exeDir, "..", "..", ".."));
-                settingsPath = System.IO.Path.Combine(projectRoot, "appsettings.json");
-            }
-
-            if (!File.Exists(settingsPath)) return string.Empty;
-
-            string json = File.ReadAllText(settingsPath);
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("GroqApiKey", out var keyEl))
-            {
-                string? key = keyEl.GetString();
-                if (!string.IsNullOrWhiteSpace(key) && key != "PASTE_API_KEY_GROQ_KAMU_DI_SINI")
-                    return key;
+                CaptionTranslated.FontSize = size;
+                CaptionOriginal.FontSize = Math.Max(12, size - 6);
             }
         }
-        catch { /* Abaikan error baca file, biarkan user isi manual */ }
-        return string.Empty;
+    }
+
+    private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        var settings = new LiveTranslatorOverlay.Core.AppSettings
+        {
+            GroqApiKey = TxtApiKey.Text,
+            DeepgramApiKey = TxtDeepgramKey.Text,
+            SourceLangIndex = CmbSourceLang.SelectedIndex,
+            TargetLangIndex = CmbTargetLang.SelectedIndex,
+            EngineIndex = CmbEngine.SelectedIndex,
+            SttModeIndex = CmbSttMode.SelectedIndex,
+            FontSizeIndex = CmbFontSize.SelectedIndex,
+            AudioDeviceName = (CmbAudioDevice.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
+            CaptionLeft = Canvas.GetLeft(CaptionBar),
+            CaptionTop = Canvas.GetTop(CaptionBar)
+        };
+        settings.Save();
     }
 
     private async Task RefreshGroqModelsAsync()
@@ -310,7 +410,7 @@ public partial class MainWindow : Window
             TranslatedTextContainer.MaxHeight = 250; // Batasi tinggi agar tidak menuhi layar
             
             TranslatedTextContainer.Visibility = Visibility.Visible;
-            TranslatedTextBlock.Text = "[Area dipilih. Klik 'Mulai' untuk OCR]";
+            TranslatedTextBlock.Text = "[Area selected. Click 'Start' for OCR]";
             BtnStartLive.IsEnabled = true;
         }
     }
@@ -319,7 +419,7 @@ public partial class MainWindow : Window
     {
         if (_selectedOcrRegion.Width == 0 || _selectedOcrRegion.Height == 0)
         {
-            MessageBox.Show("Silakan klik 'Pilih Area OCR' dan gambar area terlebih dahulu.");
+            MessageBox.Show("Please click 'Select Screen Area' and draw an area first.");
             return;
         }
 
@@ -328,7 +428,7 @@ public partial class MainWindow : Window
             _isLiveMode = true;
             SelectionRect.Stroke = new SolidColorBrush(Colors.Green);
             SelectionRect.Fill = null;
-            BtnStartLive.Content = "⏸ Berhenti OCR";
+            BtnStartLive.Content = "⏸ Stop OCR";
             BtnStartLive.Background = new SolidColorBrush(Color.FromRgb(255, 165, 0));
 
             _liveOcrCts = new CancellationTokenSource();
@@ -341,15 +441,15 @@ public partial class MainWindow : Window
 
             SelectionRect.Stroke = new SolidColorBrush(Colors.Red);
             SelectionRect.Fill = new SolidColorBrush(Color.FromArgb(0x20, 255, 0, 0));
-            TranslatedTextBlock.Text = "[OCR Berhenti]";
-            BtnStartLive.Content = "▶ Mulai Live OCR";
+            TranslatedTextBlock.Text = "[OCR Stopped]";
+            BtnStartLive.Content = "▶ Start Live OCR";
             BtnStartLive.ClearValue(Button.BackgroundProperty);
         }
     }
 
     private async Task RunLiveOcrLoopAsync(CancellationToken token)
     {
-        TranslatedTextBlock.Text = "Memulai OCR...";
+        TranslatedTextBlock.Text = "Starting OCR...";
 
         double dpiScale = GetDpiScale();
         int screenX = (int)(_selectedOcrRegion.X * dpiScale);
@@ -377,21 +477,37 @@ public partial class MainWindow : Window
                     if (cleanText != _lastOcrText)
                     {
                         _lastOcrText = cleanText;
-                        TranslatedTextBlock.Text = "Menerjemahkan...";
+                        TranslatedTextBlock.Text = "Translating...";
 
-                        string translated = await _translationProvider.TranslateAsync(cleanText, targetLang, sourceLang);
-
-                        // Sanity check: if result is empty or same as source, show warning
-                        if (string.IsNullOrWhiteSpace(translated) || translated.Trim() == text.Trim())
-                            translated = $"[Gagal terjemahkan] {text}";
+                        Dispatcher.Invoke(() => TranslatedTextBlock.Text = "");
+                        
+                        string finalTranslation = "";
+                        await _translationProvider.TranslateStreamAsync(cleanText, targetLang, sourceLang, chunk => 
+                        {
+                            finalTranslation = chunk;
+                            Dispatcher.Invoke(() =>
+                            {
+                                if (!token.IsCancellationRequested)
+                                    TranslatedTextBlock.Text = chunk;
+                            });
+                        });
 
                         if (!token.IsCancellationRequested)
                         {
-                            TranslatedTextBlock.Text = translated;
-                            if (_historyWindow != null && _historyWindow.IsVisible)
+                            // Sanity check: if result is empty or same as source, show warning
+                            if (string.IsNullOrWhiteSpace(finalTranslation) || finalTranslation.Trim() == text.Trim())
                             {
-                                _historyWindow.AppendText(text, translated);
+                                finalTranslation = $"[Failed to translate] {text}";
+                                Dispatcher.Invoke(() => TranslatedTextBlock.Text = finalTranslation);
                             }
+
+                            Dispatcher.Invoke(() =>
+                            {
+                                if (_historyWindow != null && _historyWindow.IsVisible)
+                                {
+                                    _historyWindow.AppendText(text, finalTranslation);
+                                }
+                            });
                         }
                     }
                 }
@@ -402,7 +518,7 @@ public partial class MainWindow : Window
                     // This prevents the translated text from disappearing too quickly
                     if (emptyCount >= 5)
                     {
-                        TranslatedTextBlock.Text = "[Tidak ada teks terdeteksi]";
+                        TranslatedTextBlock.Text = "[No text detected]";
                         _lastOcrText = string.Empty;
                     }
                 }
@@ -418,6 +534,13 @@ public partial class MainWindow : Window
         }
     }
 
+    private string GetSttMode()
+    {
+        if (CmbSttMode?.SelectedItem is ComboBoxItem item)
+            return item.Tag?.ToString() ?? "deepgram";
+        return "deepgram";
+    }
+
     // ===================== AUDIO STT =====================
 
     private async void BtnStartAudio_Click(object sender, RoutedEventArgs e)
@@ -425,110 +548,342 @@ public partial class MainWindow : Window
         if (!_isAudioMode)
         {
             _isAudioMode = true;
-            BtnStartAudio.Content = "⏹ Berhenti Audio";
-            BtnStartAudio.ClearValue(Button.BackgroundProperty); // Remove old style override
+            BtnStartAudio.Content = "⏹ Stop Audio";
+            BtnStartAudio.ClearValue(Button.BackgroundProperty);
             BtnStartAudio.Style = (Style)FindResource("ActionDangerButton");
-            
             CaptionBar.Visibility = Visibility.Visible;
-            CaptionTranslated.Text = "Memuat Whisper AI model...";
             ShowSubtitleWithAnimation();
 
-            // Initialize Whisper (lazy load)
-            if (_whisperSttService == null)
-            {
-                _whisperSttService = new WhisperSttService(TxtApiKey.Text);
-                bool ok = await _whisperSttService.InitializeAsync(msg =>
-                {
-                    Dispatcher.Invoke(() =>
-                    {
-                        TxtAudioStatus.Text = msg;
-                        CaptionTranslated.Text = msg;
-                    });
-                });
+            string sttMode = GetSttMode();
 
-                if (!ok)
-                {
-                    _isAudioMode = false;
-                    BtnStartAudio.Content = "🔊 Mulai Audio Translate";
-                    BtnStartAudio.Style = (Style)FindResource("ActionPrimaryButton");
-                    CaptionTranslated.Text = "Gagal memuat model Whisper.";
-                    return;
-                }
+            if (sttMode == "deepgram")
+            {
+                await StartDeepgramModeAsync();
             }
-
-            // Start audio capture
-            _audioCaptureService = new AudioCaptureService();
-            _audioCts = new CancellationTokenSource();
-
-            _audioCaptureService.AudioChunkReady += async (s, chunk) =>
+            else
             {
-                if (_audioCts?.IsCancellationRequested == true) return;
-
-                try
-                {
-                    string targetLang = "";
-                    string sourceLang = "";
-                    Dispatcher.Invoke(() =>
-                    {
-                        targetLang = GetTargetLanguage();
-                        sourceLang = GetSourceLanguage();
-                    });
-
-                    await _whisperSttService.ChangeLanguageAsync(sourceLang);
-
-                    // Jalankan STT dulu, lalu translate — keduanya async tapi sequential dalam satu chunk
-                    // (paralel antar chunk sudah dihandle oleh queue di AudioCaptureService)
-                    string transcribed = await _whisperSttService!.ProcessAudioChunkAsync(chunk);
-                    if (string.IsNullOrWhiteSpace(transcribed)) return;
-
-                    // Jalankan translate paralel — tampilkan teks asli dulu sambil nunggu terjemahan
-                    Dispatcher.Invoke(() =>
-                    {
-                        if (!_isAudioMode) return;
-                        CaptionOriginal.Text = transcribed;
-                        CaptionTranslated.Text = "Menerjemahkan...";
-                        ShowSubtitleWithAnimation();
-                    });
-
-                    string translated = await _translationProvider.TranslateAsync(transcribed, targetLang, sourceLang);
-
-                    Dispatcher.Invoke(() =>
-                    {
-                        if (!_isAudioMode) return;
-                        CaptionTranslated.Text = translated;
-                        ShowSubtitleWithAnimation();
-
-                        if (_historyWindow != null && _historyWindow.IsVisible)
-                            _historyWindow.AppendText(transcribed, translated);
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Dispatcher.Invoke(() => CaptionTranslated.Text = $"[Error: {ex.Message}]");
-                }
-            };
-
-            _audioCaptureService.Start();
-            TxtAudioStatus.Text = "🔴 Merekam audio sistem...";
-            CaptionTranslated.Text = "[Menunggu audio...]";
+                await StartGroqWhisperModeAsync();
+            }
         }
         else
         {
-            _isAudioMode = false;
-            _audioCts?.Cancel();
-            _audioCaptureService?.Stop();
-            _audioCaptureService?.Dispose();
-            _audioCaptureService = null;
-
-            _subtitleHideTimer.Stop();
-
-            BtnStartAudio.Content = "🔊 Mulai Audio Translate";
-            BtnStartAudio.Style = (Style)FindResource("ActionPrimaryButton");
-            CaptionBar.Visibility = Visibility.Collapsed;
-            CaptionBar.Opacity = 0;
-            _isCaptionVisible = false;
-            TxtAudioStatus.Text = "Model dimuat (siap)";
+            await StopAudioModeAsync();
         }
+    }
+
+    private async Task StartDeepgramModeAsync()
+    {
+        CaptionTranslated.Text = "Connecting to Deepgram...";
+        CaptionSpeaker.Visibility = Visibility.Visible;
+        CaptionSpeaker.Text = "🔵 Speaker Detection ON";
+
+        _diarizedSttService = new DiarizedSttService(TxtDeepgramKey.Text);
+        string sourceLang = GetSourceLanguage();
+        // Deepgram streaming doesn't support detect_language=true.
+        // But nova-2 supports "multi" which auto-detects across many languages.
+        _diarizedSttService.SetLanguage(sourceLang == "auto" ? "multi" : sourceLang);
+        
+        bool ok = await _diarizedSttService.ConnectAsync(msg =>
+            Dispatcher.Invoke(() => { TxtAudioStatus.Text = msg; CaptionTranslated.Text = msg; }));
+
+        if (!ok)
+        {
+            _isAudioMode = false;
+            BtnStartAudio.Content = "🔊 Start Audio Translate";
+            BtnStartAudio.Style = (Style)FindResource("ActionPrimaryButton");
+            CaptionSpeaker.Visibility = Visibility.Collapsed;
+            TxtAudioStatus.Text = "Failed to connect to Deepgram. Check API key.";
+            if (_diarizedSttService != null)
+            {
+                await _diarizedSttService.DisposeAsync();
+                _diarizedSttService = null;
+            }
+            return;
+        }
+
+        _diarizedSttService.TranscriptReady += async (s, args) =>
+        {
+            if (!_isAudioMode) return;
+
+            string color = SpeakerColors[args.SpeakerIndex % SpeakerColors.Length];
+
+            if (args.IsInterim)
+            {
+                // ── INTERIM: display raw transcript immediately, no translation ──
+                // This makes words appear in real-time as the person is speaking
+                Dispatcher.Invoke(() =>
+                {
+                    if (!_isAudioMode) return;
+                    CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+                    CaptionSpeaker.Text = $"Speaker {args.SpeakerIndex + 1}";
+                    CaptionSpeaker.Visibility = Visibility.Visible;
+                    CaptionOriginal.Text = args.Text + " ▌"; // blinking cursor effect
+                    ShowSubtitleWithAnimation();
+                });
+                return; // Don't translate interim — wait for final
+            }
+
+            // ── FINAL: sentence is complete, translate it ──
+            string targetLang = "", sourceLang = "";
+            Dispatcher.Invoke(() => { targetLang = GetTargetLanguage(); sourceLang = GetSourceLanguage(); });
+
+            // Show the finalized original text immediately (remove the blinking cursor)
+            Dispatcher.Invoke(() =>
+            {
+                if (!_isAudioMode) return;
+                CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+                CaptionSpeaker.Text = $"Speaker {args.SpeakerIndex + 1}";
+                CaptionSpeaker.Visibility = Visibility.Visible;
+                CaptionOriginal.Text = args.Text;
+                CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+                ShowSubtitleWithAnimation();
+            });
+
+            // Wait up to 5s for translation slot (queue instead of drop)
+            if (!await _translateSemaphore.WaitAsync(5000)) return;
+            try
+            {
+                Dispatcher.Invoke(() => CaptionTranslated.Text = "");
+                
+                string finalTranslation = "";
+                await _translationProvider.TranslateStreamAsync(args.Text, targetLang, sourceLang, chunk => 
+                {
+                    finalTranslation = chunk;
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (!_isAudioMode) return;
+                        if (IsWhisperHallucination(chunk))
+                        {
+                            CaptionTranslated.Text = "";
+                            return;
+                        }
+                        CaptionTranslated.Text = chunk;
+                        ShowSubtitleWithAnimation();
+                    });
+                });
+
+                Dispatcher.Invoke(() =>
+                {
+                    if (!_isAudioMode) return;
+                    // Always log to history if window is open
+                    if (_historyWindow?.IsVisible == true && !string.IsNullOrWhiteSpace(finalTranslation))
+                        _historyWindow.AppendText($"[Speaker {args.SpeakerIndex + 1}] {args.Text}", finalTranslation);
+                });
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.Invoke(() => CaptionTranslated.Text = $"[Error: {ex.Message}]");
+            }
+            finally
+            {
+                _translateSemaphore.Release();
+            }
+        };
+
+        _audioCaptureService = new AudioCaptureService();
+        _audioCaptureService.RawPcmBytesAvailable += async (s, pcmBytes) =>
+        {
+            if (_diarizedSttService != null && _isAudioMode)
+                await _diarizedSttService.SendAudioAsync(pcmBytes);
+        };
+        await _audioCaptureService.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId());
+        TxtAudioStatus.Text = " Deepgram Streaming + Speaker Detection active";
+        CaptionTranslated.Text = "[Waiting for audio...]";
+    }
+
+    private void RefreshApplications()
+    {
+        CmbAudioDevice.Items.Clear();
+        var defaultItem = new ComboBoxItem { Content = "System Audio (Default)", Tag = "default", IsSelected = true };
+        CmbAudioDevice.Items.Add(defaultItem);
+
+        try
+        {
+            var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
+            // Loopback (Speakers)
+            foreach (var device in enumerator.EnumerateAudioEndPoints(NAudio.CoreAudioApi.DataFlow.Render, NAudio.CoreAudioApi.DeviceState.Active))
+            {
+                CmbAudioDevice.Items.Add(new ComboBoxItem
+                {
+                    Content = $"🔊 {device.FriendlyName}",
+                    Tag = device.ID
+                });
+            }
+            // Microphones
+            foreach (var device in enumerator.EnumerateAudioEndPoints(NAudio.CoreAudioApi.DataFlow.Capture, NAudio.CoreAudioApi.DeviceState.Active))
+            {
+                CmbAudioDevice.Items.Add(new ComboBoxItem
+                {
+                    Content = $"🎤 {device.FriendlyName}",
+                    Tag = device.ID
+                });
+            }
+        }
+        catch { }
+
+        try
+        {
+            foreach (var p in Process.GetProcesses())
+            {
+                if (!string.IsNullOrEmpty(p.MainWindowTitle))
+                {
+                    var item = new ComboBoxItem
+                    {
+                        Content = $"📱 {p.ProcessName} - {p.MainWindowTitle}",
+                        Tag = p.Id
+                    };
+                    CmbAudioDevice.Items.Add(item);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Failed to enumerate processes: " + ex.Message);
+        }
+    }
+
+    private void BtnRefreshAudioDevices_Click(object sender, RoutedEventArgs e)
+    {
+        RefreshApplications();
+    }
+
+    private string? GetSelectedDeviceId()
+    {
+        string? deviceId = null;
+        Dispatcher.Invoke(() => {
+            if (CmbAudioDevice.SelectedItem is ComboBoxItem item && item.Tag is string id && id != "default")
+            {
+                deviceId = id;
+            }
+        });
+        return deviceId;
+    }
+
+    private int? GetSelectedProcessId()
+    {
+        int? pid = null;
+        Dispatcher.Invoke(() => {
+            if (CmbAudioDevice.SelectedItem is ComboBoxItem item && item.Tag is int id && id > 0)
+            {
+                pid = id;
+            }
+        });
+        return pid;
+    }
+
+    private bool IsWhisperHallucination(string text)
+    {
+        return HallucinationDetector.IsHallucination(text);
+    }
+
+    private async Task StartGroqWhisperModeAsync()
+    {
+        CaptionTranslated.Text = "Loading Groq Whisper...";
+        CaptionSpeaker.Visibility = Visibility.Collapsed;
+
+        if (_whisperSttService == null)
+        {
+            _whisperSttService = new WhisperSttService(TxtApiKey.Text);
+            bool ok = await _whisperSttService.InitializeAsync(msg =>
+                Dispatcher.Invoke(() => { TxtAudioStatus.Text = msg; CaptionTranslated.Text = msg; }));
+
+            if (!ok)
+            {
+                _isAudioMode = false;
+                BtnStartAudio.Content = "🔊 Start Audio Translate";
+                BtnStartAudio.Style = (Style)FindResource("ActionPrimaryButton");
+                CaptionTranslated.Text = "Failed to initialize Groq Whisper.";
+                return;
+            }
+        }
+
+        _audioCaptureService = new AudioCaptureService();
+        _audioCts = new CancellationTokenSource();
+
+        _audioCaptureService.AudioChunkReady += async (s, chunk) =>
+        {
+            if (_audioCts?.IsCancellationRequested == true) return;
+            try
+            {
+                string targetLang = "", sourceLang = "";
+                Dispatcher.Invoke(() => { targetLang = GetTargetLanguage(); sourceLang = GetSourceLanguage(); });
+
+                await _whisperSttService!.ChangeLanguageAsync(sourceLang);
+                string transcribed = await _whisperSttService!.ProcessAudioChunkAsync(chunk);
+                if (string.IsNullOrWhiteSpace(transcribed)) return;
+
+                // ── HALLUCINATION FILTER (same as Deepgram path) ──
+                // Groq Whisper also hallucinates "subtitles by...", "спасибо", etc. from noise
+                if (IsWhisperHallucination(transcribed)) return;
+
+                Dispatcher.Invoke(() =>
+                {
+                    if (!_isAudioMode) return;
+                    CaptionOriginal.Text = transcribed;
+                    ShowSubtitleWithAnimation();
+                });
+
+                Dispatcher.Invoke(() => CaptionTranslated.Text = "");
+                
+                string finalTranslation = "";
+                await _translationProvider.TranslateStreamAsync(transcribed, targetLang, sourceLang, chunk => 
+                {
+                    finalTranslation = chunk;
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (!_isAudioMode) return;
+                        if (IsWhisperHallucination(chunk))
+                        {
+                            CaptionTranslated.Text = "";
+                            return;
+                        }
+                        CaptionTranslated.Text = chunk;
+                        ShowSubtitleWithAnimation();
+                    });
+                });
+
+                Dispatcher.Invoke(() =>
+                {
+                    if (!_isAudioMode) return;
+                    if (_historyWindow?.IsVisible == true && !string.IsNullOrWhiteSpace(finalTranslation))
+                        _historyWindow.AppendText(transcribed, finalTranslation);
+                });
+            }
+            catch (Exception ex)
+            {
+                Dispatcher.Invoke(() => CaptionTranslated.Text = $"[Error: {ex.Message}]");
+            }
+        };
+
+        await _audioCaptureService.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId());
+        TxtAudioStatus.Text = "Groq Whisper active (Batch mode)";
+        CaptionTranslated.Text = "[Waiting for audio...]";
+    }
+
+    private async Task StopAudioModeAsync()
+    {
+        _isAudioMode = false;
+        _audioCts?.Cancel();
+        _audioCaptureService?.Stop();
+        _audioCaptureService?.Dispose();
+        _audioCaptureService = null;
+
+        if (_diarizedSttService != null)
+        {
+            await _diarizedSttService.DisposeAsync();
+            _diarizedSttService = null;
+        }
+
+        _subtitleHideTimer.Stop();
+        BtnStartAudio.Content = "🔊 Start Audio Translate";
+        BtnStartAudio.Style = (Style)FindResource("ActionPrimaryButton");
+        CaptionBar.Visibility = Visibility.Collapsed;
+        CaptionBar.Opacity = 0;
+        CaptionSpeaker.Visibility = Visibility.Collapsed;
+        // Reset translated color to default green
+        CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00FF88"));
+        _isCaptionVisible = false;
+        TxtAudioStatus.Text = "Ready. Select mode and press Start.";
     }
 
     private void ShowSubtitleWithAnimation()
@@ -557,6 +912,19 @@ public partial class MainWindow : Window
             ControlPanel.Visibility = Visibility.Visible;
             BtnTogglePanel.Content = "⚙️ Hide Settings";
         }
+    }
+
+    private void ControlPanel_DragDelta(object sender, DragDeltaEventArgs e)
+    {
+        double currentLeft = Canvas.GetLeft(ControlPanelContainer);
+        double currentTop = Canvas.GetTop(ControlPanelContainer);
+        
+        // Ensure values aren't NaN
+        if (double.IsNaN(currentLeft)) currentLeft = 20;
+        if (double.IsNaN(currentTop)) currentTop = 20;
+
+        Canvas.SetLeft(ControlPanelContainer, currentLeft + e.HorizontalChange);
+        Canvas.SetTop(ControlPanelContainer, currentTop + e.VerticalChange);
     }
 
     private void BtnOpenHistory_Click(object sender, RoutedEventArgs e)
@@ -602,3 +970,6 @@ public partial class MainWindow : Window
         return false;
     }
 }
+
+
+

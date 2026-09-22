@@ -266,6 +266,142 @@ namespace LiveTranslatorOverlay.Core.Translation
             }
         }
 
+        public async Task TranslateStreamAsync(string text, string targetLanguage, string sourceLanguage, System.Action<string> onTokenReceived)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return;
+            if (string.IsNullOrWhiteSpace(_apiKey))
+            {
+                onTokenReceived("[Error: Groq API Key kosong]");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(_model))
+            {
+                _model = await GetBestAvailableModelAsync();
+            }
+
+            try
+            {
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+
+                string targetLangFull = targetLanguage switch
+                {
+                    "en" => "English",
+                    "id" => "Indonesian",
+                    "ja" => "Japanese",
+                    "ko" => "Korean",
+                    "zh" => "Chinese",
+                    "es" => "Spanish",
+                    "fr" => "French",
+                    "de" => "German",
+                    "ru" => "Russian",
+                    "ar" => "Arabic",
+                    _ => targetLanguage
+                };
+
+                string sourceLangHint = sourceLanguage != "auto" ? $" Source language: {sourceLanguage}." : "";
+                
+                string contextStr = "";
+                if (_history.Count > 0)
+                {
+                    contextStr = "\n\nPrevious conversation context (use this ONLY to understand the flow, DO NOT translate this again):\n" + string.Join("\n", _history);
+                }
+
+                string systemPrompt = $"You are a highly accurate professional translator. Translate the text to {targetLangFull}.{sourceLangHint} If the text is already in {targetLangFull}, just return the exact text without any changes. Output ONLY the direct translation, nothing else. Do not add any notes, explanations, or hallucinate extra sentences.{contextStr}";
+
+                var payload = new
+                {
+                    model = _model,
+                    messages = new[]
+                    {
+                        new { role = "system", content = systemPrompt },
+                        new { role = "user", content = text }
+                    },
+                    temperature = 0.1,
+                    max_tokens = 1024,
+                    stream = true
+                };
+
+                request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+
+                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    string errBody = await response.Content.ReadAsStringAsync();
+                    onTokenReceived($"[Groq Error: {response.StatusCode}] {errBody}");
+                    return;
+                }
+
+                using var stream = await response.Content.ReadAsStreamAsync();
+                using var reader = new System.IO.StreamReader(stream);
+
+                string fullResult = "";
+                bool isThinking = false;
+
+                while (!reader.EndOfStream)
+                {
+                    string? line = await reader.ReadLineAsync();
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+                    
+                    if (line.StartsWith("data: "))
+                    {
+                        string data = line.Substring(6).Trim();
+                        if (data == "[DONE]") break;
+
+                        try
+                        {
+                            using var doc = JsonDocument.Parse(data);
+                            if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
+                            {
+                                var delta = choices[0].GetProperty("delta");
+                                if (delta.TryGetProperty("content", out var contentElement) && contentElement.ValueKind == JsonValueKind.String)
+                                {
+                                    string content = contentElement.GetString() ?? "";
+                                    
+                                    // Handle reasoning models <think> tags
+                                    if (content.Contains("<think>"))
+                                    {
+                                        isThinking = true;
+                                        content = content.Replace("<think>", "");
+                                    }
+                                    if (content.Contains("</think>"))
+                                    {
+                                        isThinking = false;
+                                        content = content.Substring(content.IndexOf("</think>") + 8);
+                                    }
+
+                                    if (!isThinking && !string.IsNullOrEmpty(content))
+                                    {
+                                        fullResult += content;
+                                        onTokenReceived(fullResult);
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                }
+
+                // Update history
+                if (!string.IsNullOrWhiteSpace(fullResult))
+                {
+                    _cachedInput = text;
+                    _cachedTarget = targetLanguage;
+                    _cachedSource = sourceLanguage;
+                    _cachedResult = fullResult.Trim();
+                    
+                    _history.Enqueue($"[{text}] -> [{_cachedResult}]");
+                    if (_history.Count > MaxHistory) _history.Dequeue();
+                }
+            }
+            catch (Exception ex)
+            {
+                onTokenReceived($"[Groq Streaming Error: {ex.Message}]");
+            }
+        }
+
         public string CurrentModel => _model;
 
         public void SetModel(string model)

@@ -59,6 +59,13 @@ namespace LiveTranslatorOverlay.Core.Translation
             return text; // Return original if all fail
         }
 
+        public async Task TranslateStreamAsync(string text, string targetLanguage, string sourceLanguage, System.Action<string> onTokenReceived)
+        {
+            // Google Free API tidak mendukung streaming, jadi kita panggil method biasa lalu kirim hasilnya sekaligus
+            string result = await TranslateAsync(text, targetLanguage, sourceLanguage);
+            onTokenReceived(result);
+        }
+
         private async Task<string> TryGoogleTranslateAsync(string text, string targetLang, string sourceLang)
         {
             try
@@ -92,9 +99,7 @@ namespace LiveTranslatorOverlay.Core.Translation
 
                     if (!string.IsNullOrWhiteSpace(translated))
                     {
-                        // Safety check: if source is specified (not auto), but detected language
-                        // is very different from expected, it might be a misread — log but keep result
-                        return translated;
+                        return System.Net.WebUtility.HtmlDecode(translated).Trim();
                     }
                 }
 
