@@ -149,7 +149,26 @@ namespace LiveTranslatorOverlay.Core.Localization
                 ["UiLangId"] = "Indonesian (Bahasa Indonesia)",
                 ["UiLangAuto"] = "Auto (System Default)",
                 ["BtnOpenHistory"] = "Open Translation History",
+                ["BtnFeedback"] = "Report Bug / Feedback",
                 ["BtnCloseApp"] = "Close App",
+
+                // Feedback & Bug Report
+                ["FeedbackTitle"] = "Report Bug & Feedback",
+                ["FeedbackSubtitle"] = "Send bug reports, suggestions, or feedback to developer",
+                ["FeedbackType"] = "Report Type:",
+                ["FeedbackTypeBug"] = "Bug Report",
+                ["FeedbackTypeFeature"] = "Feature Suggestion",
+                ["FeedbackTypeGeneral"] = "General Feedback",
+                ["FeedbackContact"] = "Your Email (Optional, for replies):",
+                ["FeedbackSubject"] = "Subject:",
+                ["FeedbackMessage"] = "Description / Details:",
+                ["FeedbackIncludeSystem"] = "Include app & OS version info",
+                ["FeedbackSend"] = "Send Report",
+                ["FeedbackMailto"] = "Open Email App",
+                ["FeedbackSending"] = "Sending report, please wait...",
+                ["FeedbackSuccess"] = "Thank you! Your report has been sent successfully to nandazhafran@gmail.com.",
+                ["FeedbackError"] = "Failed to send report. Please check your internet connection or use Open Email App.",
+                ["FeedbackEmpty"] = "Please fill in the Subject and Description.",
 
                 // History Window
                 ["HistoryTitle"] = "Live Transcript & Translator",
@@ -259,7 +278,26 @@ namespace LiveTranslatorOverlay.Core.Localization
                 ["UiLangId"] = "Bahasa Indonesia",
                 ["UiLangAuto"] = "Otomatis (Sesuai Sistem)",
                 ["BtnOpenHistory"] = "Buka Riwayat Terjemahan",
+                ["BtnFeedback"] = "Lapor Bug / Saran",
                 ["BtnCloseApp"] = "Tutup Aplikasi",
+
+                // Feedback & Bug Report
+                ["FeedbackTitle"] = "Lapor Bug & Saran",
+                ["FeedbackSubtitle"] = "Kirim laporan bug, saran, atau masukan ke developer",
+                ["FeedbackType"] = "Tipe Laporan:",
+                ["FeedbackTypeBug"] = "Laporan Bug",
+                ["FeedbackTypeFeature"] = "Saran Fitur",
+                ["FeedbackTypeGeneral"] = "Kritik & Masukan",
+                ["FeedbackContact"] = "Email Anda (Opsional, jika ingin dibalas):",
+                ["FeedbackSubject"] = "Judul / Subjek:",
+                ["FeedbackMessage"] = "Deskripsi / Detail:",
+                ["FeedbackIncludeSystem"] = "Sertakan info versi aplikasi & sistem",
+                ["FeedbackSend"] = "Kirim Laporan",
+                ["FeedbackMailto"] = "Buka Aplikasi Email",
+                ["FeedbackSending"] = "Sedang mengirim laporan, mohon tunggu...",
+                ["FeedbackSuccess"] = "Terima kasih! Laporan Anda berhasil dikirim ke nandazhafran@gmail.com.",
+                ["FeedbackError"] = "Gagal mengirim laporan. Periksa koneksi internet atau gunakan Buka Aplikasi Email.",
+                ["FeedbackEmpty"] = "Harap isi Judul dan Deskripsi terlebih dahulu.",
 
                 // History Window
                 ["HistoryTitle"] = "Transkrip Langsung & Terjemahan",

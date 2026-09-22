@@ -1076,6 +1076,7 @@ public partial class MainWindow : Window
 
         if (TxtTitleQuota != null) TxtTitleQuota.Text = loc.Get("TitleQuota");
         if (BtnOpenHistory != null) BtnOpenHistory.Content = loc.Get("BtnOpenHistory");
+        if (BtnFeedback != null) BtnFeedback.Content = loc.Get("BtnFeedback");
         if (BtnCloseApp != null) BtnCloseApp.Content = loc.Get("BtnCloseApp");
 
         // Combobox items text
@@ -1160,6 +1161,23 @@ public partial class MainWindow : Window
         }
     }
 
+    private FeedbackWindow? _feedbackWindow;
+
+    private void BtnFeedback_Click(object sender, RoutedEventArgs e)
+    {
+        if (_feedbackWindow == null || !_feedbackWindow.IsLoaded)
+        {
+            _feedbackWindow = new FeedbackWindow();
+            _feedbackWindow.Closed += (s, args) => _feedbackWindow = null;
+        }
+        _feedbackWindow.Show();
+        _feedbackWindow.Activate();
+        if (CaptureExclusion.IsExclusionEnabled)
+        {
+            CaptureExclusion.SetExclusion(_feedbackWindow, true);
+        }
+    }
+
     private async void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         _liveOcrCts?.Cancel();
@@ -1177,6 +1195,11 @@ public partial class MainWindow : Window
         if (_historyWindow != null)
         {
             _historyWindow.Close();
+        }
+
+        if (_feedbackWindow != null)
+        {
+            _feedbackWindow.Close();
         }
 
         this.Close();
