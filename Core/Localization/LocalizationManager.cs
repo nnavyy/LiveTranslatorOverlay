@@ -167,8 +167,9 @@ namespace LiveTranslatorOverlay.Core.Localization
 
                 // Japanese Script Style
                 ["LblJapaneseStyle"] = "Japanese Subtitle Style:",
-                ["ItemJpStandard"] = "Standard (Kanji + Kana)",
-                ["ItemJpHiragana"] = "Hiragana (ひらがな)",
+                ["ItemJpStandard"] = "Standard (Kanji + Kana Mix)",
+                ["ItemJpHiragana"] = "Hiragana / Kana Mix (ひらがな)",
+                ["ItemJpFurigana"] = "Furigana: 漢字(かんじ)",
                 ["ItemJpRomaji"] = "Romaji (Latin ABC)",
                 ["ItemJpKatakana"] = "Katakana (カタカナ)",
 
@@ -330,8 +331,9 @@ namespace LiveTranslatorOverlay.Core.Localization
 
                 // Japanese Script Style
                 ["LblJapaneseStyle"] = "Gaya Huruf Jepang:",
-                ["ItemJpStandard"] = "Standar (Kanji + Kana)",
-                ["ItemJpHiragana"] = "Hiragana (ひらがな)",
+                ["ItemJpStandard"] = "Standar (Kanji + Campuran Kana)",
+                ["ItemJpHiragana"] = "Hiragana / Campuran Kana (ひらがな)",
+                ["ItemJpFurigana"] = "Furigana: 漢字(かんじ)",
                 ["ItemJpRomaji"] = "Romaji (Alfabet Latin ABC)",
                 ["ItemJpKatakana"] = "Katakana (カタカナ)",
 
@@ -494,7 +496,8 @@ namespace LiveTranslatorOverlay.Core.Localization
                 // Japanese Script Style
                 ["LblJapaneseStyle"] = "Стиль японского текста:",
                 ["ItemJpStandard"] = "Стандартный (Кандзи + Кана)",
-                ["ItemJpHiragana"] = "Хирагана (ひらがな)",
+                ["ItemJpHiragana"] = "Хирагана / Смесь с Каной (ひらがな)",
+                ["ItemJpFurigana"] = "Фуригана: 漢字(かんじ)",
                 ["ItemJpRomaji"] = "Ромадзи (Латинский алфавит ABC)",
                 ["ItemJpKatakana"] = "Катакана (カタカナ)",
 

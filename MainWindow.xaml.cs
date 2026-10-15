@@ -384,6 +384,7 @@ public partial class MainWindow : Window
             return item.Tag?.ToString() switch
             {
                 "hiragana" => JapaneseScriptStyle.Hiragana,
+                "furigana" => JapaneseScriptStyle.Furigana,
                 "romaji" => JapaneseScriptStyle.Romaji,
                 "katakana" => JapaneseScriptStyle.Katakana,
                 _ => JapaneseScriptStyle.Standard
@@ -1460,6 +1461,7 @@ public partial class MainWindow : Window
         if (LblJapaneseStyle != null) LblJapaneseStyle.Text = loc.Get("LblJapaneseStyle");
         if (ItemJpStandard != null) ItemJpStandard.Content = loc.Get("ItemJpStandard");
         if (ItemJpHiragana != null) ItemJpHiragana.Content = loc.Get("ItemJpHiragana");
+        if (ItemJpFurigana != null) ItemJpFurigana.Content = loc.Get("ItemJpFurigana");
         if (ItemJpRomaji != null) ItemJpRomaji.Content = loc.Get("ItemJpRomaji");
         if (ItemJpKatakana != null) ItemJpKatakana.Content = loc.Get("ItemJpKatakana");
         if (LblEngine != null) LblEngine.Text = loc.Get("LblEngine");

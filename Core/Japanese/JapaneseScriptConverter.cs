@@ -12,9 +12,10 @@ namespace LiveTranslatorOverlay.Core.Japanese
     public enum JapaneseScriptStyle
     {
         Standard = 0,   // Kanji + Kana (Default, e.g. わかりました。少々お待ちください。)
-        Hiragana = 1,   // All Hiragana (e.g. わかりました。しょうしょう おまちください。)
+        Hiragana = 1,   // All Hiragana / Kana Mix (e.g. わかりました。しょうしょうおまちください。)
         Romaji = 2,     // Latin alphabet (e.g. Wakarimashita. Shoushou omachi kudasai.)
-        Katakana = 3    // All Katakana (e.g. ワカリマシタ。ショウショウ オマチクダサイ。)
+        Katakana = 3,   // All Katakana (e.g. ワカリマシタ。ショウショウ オマチクダサイ。)
+        Furigana = 4    // Kanji with Furigana reading in brackets (e.g. わかりました。少々(しょうしょう)お待ち(まち)ください。)
     }
 
     public static class JapaneseScriptConverter
@@ -22,6 +23,7 @@ namespace LiveTranslatorOverlay.Core.Japanese
         private static readonly ConcurrentDictionary<string, string> _hiraganaCache = new();
         private static readonly ConcurrentDictionary<string, string> _romajiCache = new();
         private static readonly ConcurrentDictionary<string, string> _katakanaCache = new();
+        private static readonly ConcurrentDictionary<string, string> _furiganaCache = new();
 
         private static readonly Dictionary<string, string> TwoCharRomaji = new()
         {
@@ -78,6 +80,8 @@ namespace LiveTranslatorOverlay.Core.Japanese
                     return await ToKatakanaAsync(text, apiKey);
                 case JapaneseScriptStyle.Romaji:
                     return await ToRomajiAsync(text, apiKey);
+                case JapaneseScriptStyle.Furigana:
+                    return await ToFuriganaAsync(text, apiKey);
                 default:
                     return text;
             }
@@ -127,6 +131,23 @@ namespace LiveTranslatorOverlay.Core.Japanese
             result = FormatRomaji(result);
 
             _romajiCache[text] = result;
+            return result;
+        }
+
+        public static async Task<string> ToFuriganaAsync(string text, string? apiKey = null)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            if (!HasKanji(text)) return text;
+            if (_furiganaCache.TryGetValue(text, out var cached)) return cached;
+
+            string result = text;
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                result = await QueryAiConversionAsync(text, "Furigana", apiKey);
+            }
+
+            if (string.IsNullOrWhiteSpace(result)) result = text;
+            _furiganaCache[text] = result;
             return result;
         }
 
@@ -311,8 +332,9 @@ namespace LiveTranslatorOverlay.Core.Japanese
                 string prompt = targetStyle switch
                 {
                     "Romaji" => "Convert the following Japanese text into standard Hepburn Romaji Latin alphabet. Output ONLY the Romaji text, nothing else.",
-                    "Hiragana" => "Convert the following Japanese text into pure Hiragana reading (replace all Kanji with their correct Hiragana reading). Output ONLY the pure Hiragana text, nothing else.",
+                    "Hiragana" => "Convert the following Japanese text into pure Hiragana reading (replace all Kanji with their correct Hiragana reading, but keep Katakana loanwords as Katakana). Output ONLY the converted text, nothing else.",
                     "Katakana" => "Convert the following Japanese text into pure Katakana reading. Output ONLY the Katakana text, nothing else.",
+                    "Furigana" => "Add Hiragana furigana in parentheses immediately after each Kanji word (e.g. 漢字(かんじ)). Keep original Kana and Katakana as is. Output ONLY the converted text, nothing else.",
                     _ => "Convert the text to " + targetStyle
                 };
 

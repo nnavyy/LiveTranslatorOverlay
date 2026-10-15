@@ -215,8 +215,9 @@
                         <!-- Japanese Script Style Selection -->
                         <TextBlock x:Name="LblJapaneseStyle" Text="Japanese Subtitle Style:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
                         <ComboBox x:Name="CmbJapaneseStyle" SelectedIndex="0" Margin="0,0,0,12" Padding="5" SelectionChanged="CmbJapaneseStyle_SelectionChanged">
-                            <ComboBoxItem x:Name="ItemJpStandard" Content="Standard (Kanji + Kana)" Tag="standard"/>
-                            <ComboBoxItem x:Name="ItemJpHiragana" Content="Hiragana (ひらがな)" Tag="hiragana"/>
+                            <ComboBoxItem x:Name="ItemJpStandard" Content="Standard (Kanji + Kana Mix)" Tag="standard"/>
+                            <ComboBoxItem x:Name="ItemJpHiragana" Content="Hiragana / Kana Mix (ひらがな)" Tag="hiragana"/>
+                            <ComboBoxItem x:Name="ItemJpFurigana" Content="Furigana: 漢字(かんじ)" Tag="furigana"/>
                             <ComboBoxItem x:Name="ItemJpRomaji" Content="Romaji (Latin ABC)" Tag="romaji"/>
                             <ComboBoxItem x:Name="ItemJpKatakana" Content="Katakana (カタカナ)" Tag="katakana"/>
                         </ComboBox>
