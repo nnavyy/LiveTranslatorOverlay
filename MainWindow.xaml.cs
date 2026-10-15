@@ -376,6 +376,9 @@ public partial class MainWindow : Window
 
     private JapaneseScriptStyle GetSelectedJapaneseScriptStyle()
     {
+        if (!Dispatcher.CheckAccess())
+            return Dispatcher.Invoke(GetSelectedJapaneseScriptStyle);
+
         if (CmbJapaneseStyle?.SelectedItem is ComboBoxItem item)
         {
             return item.Tag?.ToString() switch
@@ -397,7 +400,12 @@ public partial class MainWindow : Window
 
         if (langCode == "ja" || JapaneseScriptConverter.HasKanji(text) || ContainsJapaneseKana(text))
         {
-            string apiKey = TxtApiKey?.Text ?? "";
+            string apiKey = "";
+            if (Dispatcher.CheckAccess())
+                apiKey = TxtApiKey?.Text ?? "";
+            else
+                apiKey = Dispatcher.Invoke(() => TxtApiKey?.Text ?? "");
+
             return await JapaneseScriptConverter.ConvertAsync(text, style, apiKey);
         }
 
@@ -677,6 +685,9 @@ public partial class MainWindow : Window
 
     private string GetTargetLanguage()
     {
+        if (!Dispatcher.CheckAccess())
+            return Dispatcher.Invoke(GetTargetLanguage);
+
         if (CmbTargetLang.SelectedItem is ComboBoxItem item)
         {
             string tag = item.Tag?.ToString() ?? "id";
@@ -711,6 +722,9 @@ public partial class MainWindow : Window
 
     private string GetSourceLanguage()
     {
+        if (!Dispatcher.CheckAccess())
+            return Dispatcher.Invoke(GetSourceLanguage);
+
         if (CmbSourceLang.SelectedItem is ComboBoxItem item)
             return item.Tag?.ToString() ?? "auto";
         return "auto";

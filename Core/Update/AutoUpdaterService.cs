@@ -228,6 +228,7 @@ namespace LiveTranslatorOverlay.Core.Update
 
         private void CreateUpdateScript(string localAppDataDir)
         {
+            Directory.CreateDirectory(localAppDataDir);
             string scriptPath = Path.Combine(localAppDataDir, "apply_update.cmd");
             string scriptContent = @"@echo off
 chcp 65001 >nul
@@ -236,26 +237,32 @@ set ""SOURCE_DIR=%~2""
 set ""TARGET_EXE=%~3""
 set ""OLD_PID=%~4""
 
-:: Wait for application process to terminate
-if not ""%OLD_PID%""=="""" (
-    :waitloop
-    tasklist /fi ""PID eq %OLD_PID%"" 2>nul | find ""%OLD_PID%"" >nul
-    if not errorlevel 1 (
-        timeout /t 1 /nobreak >nul
-        goto waitloop
-    )
-)
+echo [%date% %time%] Updater started. Target=%TARGET_DIR% OldPID=%OLD_PID% > ""%~dp0updater.log""
+
+if ""%OLD_PID%""=="""" goto start_copy
+
+:waitloop
+tasklist /fi ""PID eq %OLD_PID%"" 2>nul | find ""%OLD_PID%"" >nul
+if errorlevel 1 goto start_copy
 timeout /t 1 /nobreak >nul
+goto waitloop
+
+:start_copy
+timeout /t 1 /nobreak >nul
+echo [%date% %time%] Process terminated. Starting file copy... >> ""%~dp0updater.log""
 
 :: Robocopy everything except user config
-robocopy ""%SOURCE_DIR%"" ""%TARGET_DIR%"" /E /IS /IT /XF appsettings.json >nul 2>&1
+robocopy ""%SOURCE_DIR%"" ""%TARGET_DIR%"" /E /IS /IT /XF appsettings.json >> ""%~dp0updater.log"" 2>&1
 
 :: Relaunch updated application
+echo [%date% %time%] Launching %TARGET_DIR%\%TARGET_EXE% >> ""%~dp0updater.log""
+cd /d ""%TARGET_DIR%""
 start """" ""%TARGET_DIR%\%TARGET_EXE%""
 
 :: Clean up staging folder
 timeout /t 2 /nobreak >nul
 rmdir /s /q ""%SOURCE_DIR%"" >nul 2>&1
+echo [%date% %time%] Update finished successfully. >> ""%~dp0updater.log""
 exit /b 0
 ";
             File.WriteAllText(scriptPath, scriptContent);
@@ -269,11 +276,8 @@ exit /b 0
             try
             {
                 string localAppData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiveTranslatorOverlay");
+                CreateUpdateScript(localAppData); // Always write fresh update script
                 string scriptPath = Path.Combine(localAppData, "apply_update.cmd");
-                if (!File.Exists(scriptPath))
-                {
-                    CreateUpdateScript(localAppData);
-                }
 
                 string currentDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string exeName = Process.GetCurrentProcess().MainModule?.ModuleName ?? "LiveTranslatorOverlay.exe";

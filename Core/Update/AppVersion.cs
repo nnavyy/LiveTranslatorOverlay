@@ -5,7 +5,7 @@ namespace LiveTranslatorOverlay.Core.Update
 {
     public static class AppVersion
     {
-        public static readonly Version Current = new Version(1, 2, 5);
+        public static readonly Version Current = new Version(1, 2, 6);
         public static string DisplayString => $"v{Current.Major}.{Current.Minor}.{Current.Build}";
 
         public static bool IsNewerThanCurrent(string tagOrVersion)
