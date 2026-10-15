@@ -121,9 +121,15 @@ public partial class MainWindow : Window
         
         // Initialize with Google Free as default (matches SelectedIndex=0 in XAML)
         if (loadedSettings.EngineIndex == 1 && !string.IsNullOrWhiteSpace(TxtApiKey.Text))
-            _translationProvider = new GroqTranslateProvider(TxtApiKey.Text);
+        {
+            var groq = new GroqTranslateProvider(TxtApiKey.Text);
+            groq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
+            _translationProvider = groq;
+        }
         else
+        {
             _translationProvider = new GoogleFreeTranslateProvider();
+        }
 
         QuotaTracker.Instance.QuotaChanged += (s, info) =>
         {
@@ -344,10 +350,27 @@ public partial class MainWindow : Window
 
     private async void CmbJapaneseStyle_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (_translationProvider is GroqTranslateProvider groq)
+        {
+            groq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
+        }
+
+        string sourceLang = GetSourceLanguage();
+        string targetLang = GetTargetLanguage();
+
         if (CaptionOriginal != null && !string.IsNullOrWhiteSpace(CaptionOriginal.Text))
         {
-            string sourceLang = GetSourceLanguage();
             CaptionOriginal.Text = await FormatJapaneseTextIfNeededAsync(CaptionOriginal.Text, sourceLang);
+        }
+
+        if (CaptionTranslated != null && !string.IsNullOrWhiteSpace(CaptionTranslated.Text) && (targetLang == "ja" || ContainsJapaneseKana(CaptionTranslated.Text) || JapaneseScriptConverter.HasKanji(CaptionTranslated.Text)))
+        {
+            CaptionTranslated.Text = await FormatJapaneseTextIfNeededAsync(CaptionTranslated.Text, targetLang);
+        }
+
+        if (TranslatedTextBlock != null && !string.IsNullOrWhiteSpace(TranslatedTextBlock.Text) && (targetLang == "ja" || ContainsJapaneseKana(TranslatedTextBlock.Text) || JapaneseScriptConverter.HasKanji(TranslatedTextBlock.Text)))
+        {
+            TranslatedTextBlock.Text = await FormatJapaneseTextIfNeededAsync(TranslatedTextBlock.Text, targetLang);
         }
     }
 
@@ -411,12 +434,14 @@ public partial class MainWindow : Window
             if (_translationProvider is GroqTranslateProvider groq)
             {
                 groq.UpdateApiKey(TxtApiKey.Text);
+                groq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
                 if (!string.IsNullOrEmpty(selectedModel))
                     groq.SetModel(selectedModel);
             }
             else
             {
                 var newGroq = new GroqTranslateProvider(TxtApiKey.Text);
+                newGroq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
                 if (!string.IsNullOrEmpty(selectedModel))
                     newGroq.SetModel(selectedModel);
                 _translationProvider = newGroq;
@@ -529,10 +554,13 @@ public partial class MainWindow : Window
             if (_translationProvider is GroqTranslateProvider groq)
             {
                 groq.UpdateApiKey(key);
+                groq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
             }
             else
             {
-                _translationProvider = new GroqTranslateProvider(key);
+                var newGroq = new GroqTranslateProvider(key);
+                newGroq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
+                _translationProvider = newGroq;
             }
 
             // Update Whisper STT if initialized
@@ -871,6 +899,20 @@ public partial class MainWindow : Window
 
                         if (!token.IsCancellationRequested)
                         {
+                            if (targetLang == "ja" && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
+                            {
+                                string formatted = await FormatJapaneseTextIfNeededAsync(finalTranslation, targetLang);
+                                if (!string.IsNullOrWhiteSpace(formatted) && formatted != finalTranslation)
+                                {
+                                    finalTranslation = formatted;
+                                    Dispatcher.Invoke(() =>
+                                    {
+                                        if (!token.IsCancellationRequested)
+                                            TranslatedTextBlock.Text = finalTranslation;
+                                    });
+                                }
+                            }
+
                             // Sanity check: if result is empty or same as source, show warning
                             if (string.IsNullOrWhiteSpace(finalTranslation) || finalTranslation.Trim() == text.Trim())
                             {
@@ -1038,6 +1080,20 @@ public partial class MainWindow : Window
                         ShowSubtitleWithAnimation();
                     });
                 });
+
+                if (targetLang == "ja" && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
+                {
+                    string formatted = await FormatJapaneseTextIfNeededAsync(finalTranslation, targetLang);
+                    if (!string.IsNullOrWhiteSpace(formatted) && formatted != finalTranslation)
+                    {
+                        finalTranslation = formatted;
+                        Dispatcher.Invoke(() =>
+                        {
+                            if (!_isAudioMode) return;
+                            CaptionTranslated.Text = finalTranslation;
+                        });
+                    }
+                }
 
                 Dispatcher.Invoke(() =>
                 {
@@ -1237,6 +1293,20 @@ public partial class MainWindow : Window
                         ShowSubtitleWithAnimation();
                     });
                 });
+
+                if (targetLang == "ja" && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
+                {
+                    string formatted = await FormatJapaneseTextIfNeededAsync(finalTranslation, targetLang);
+                    if (!string.IsNullOrWhiteSpace(formatted) && formatted != finalTranslation)
+                    {
+                        finalTranslation = formatted;
+                        Dispatcher.Invoke(() =>
+                        {
+                            if (!_isAudioMode) return;
+                            CaptionTranslated.Text = finalTranslation;
+                        });
+                    }
+                }
 
                 Dispatcher.Invoke(() =>
                 {
