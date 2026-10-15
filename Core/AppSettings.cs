@@ -12,6 +12,7 @@ namespace LiveTranslatorOverlay.Core
         public int TargetLangIndex { get; set; } = 0;
         public int EngineIndex { get; set; } = 0;
         public int SttModeIndex { get; set; } = 0;
+        public int JapaneseStyleIndex { get; set; } = 0;
         public string AudioDeviceName { get; set; } = "";
         public double CaptionLeft { get; set; } = -1;
         public double CaptionTop { get; set; } = -1;
