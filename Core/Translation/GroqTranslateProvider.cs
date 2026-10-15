@@ -16,12 +16,12 @@ namespace LiveTranslatorOverlay.Core.Translation
         // Preferred models in order of priority (fastest/most accurate multilingual first)
         private static readonly string[] PreferredModels =
         {
-            "llama-3.3-70b-versatile",    // Most accurate for Japanese, Russian, Asian & European languages
-            "llama-3.1-8b-instant",       // Super fast fallback
-            "mixtral-8x7b-32768",
-            "gemma2-9b-it",
-            "qwen/qwen3.6-27b",
-            "groq/compound-mini"
+            "qwen/qwen3.8-27b",         // Outstanding accuracy for Japanese, Russian, Asian & European languages
+            "openai/gpt-oss-120b",      // High accuracy large language model
+            "openai/gpt-oss-20b",       // Fast, high throughput text model
+            "llama-3.3-70b-versatile",  // Standard Groq models (if available in user tier)
+            "llama-3.1-8b-instant",
+            "allam-2-7b"
         };
 
         private string _cachedInput = "";
@@ -47,6 +47,25 @@ namespace LiveTranslatorOverlay.Core.Translation
         }
 
         /// <summary>
+        /// Validates that a model ID is a legitimate text generation model,
+        /// strictly excluding safeguard, moderation, audio, TTS, and whisper models
+        /// which have severe rate limits (e.g. 3 RPM) and are unsuitable for translation.
+        /// </summary>
+        public static bool IsValidTextModel(string? id)
+        {
+            if (string.IsNullOrWhiteSpace(id)) return false;
+            string lower = id.ToLowerInvariant();
+            if (lower.Contains("guard")) return false; // Excludes prompt-guard, safeguard
+            if (lower.Contains("whisper")) return false; // Audio STT
+            if (lower.Contains("vision")) return false;
+            if (lower.Contains("embed")) return false;
+            if (lower.Contains("orpheus")) return false; // Audio TTS
+            if (lower.Contains("audio")) return false;
+            if (lower.Contains("moderation")) return false;
+            return true;
+        }
+
+        /// <summary>
         /// Fetch available model list from Groq API and pick the best one
         /// </summary>
         public async Task<string> GetBestAvailableModelAsync()
@@ -63,27 +82,35 @@ namespace LiveTranslatorOverlay.Core.Translation
                 using var doc = JsonDocument.Parse(json);
 
                 var availableIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var validModels = new List<string>();
+
                 if (doc.RootElement.TryGetProperty("data", out var data))
                 {
                     foreach (var model in data.EnumerateArray())
                     {
                         if (model.TryGetProperty("id", out var idEl))
-                            availableIds.Add(idEl.GetString() ?? "");
+                        {
+                            string? id = idEl.GetString();
+                            if (IsValidTextModel(id))
+                            {
+                                availableIds.Add(id!);
+                                validModels.Add(id!);
+                            }
+                        }
                     }
                 }
 
-                // Pick first preferred model that is actually available
+                // 1. Pick first preferred model that is actually available
                 foreach (var preferred in PreferredModels)
                 {
                     if (availableIds.Contains(preferred))
                         return preferred;
                 }
 
-                // Fallback: return the first text model in the list
-                if (doc.RootElement.TryGetProperty("data", out var dataFallback) && dataFallback.GetArrayLength() > 0)
+                // 2. Fallback: return the first VALID text model (NEVER safeguard/guard/whisper)
+                if (validModels.Count > 0)
                 {
-                    if (dataFallback[0].TryGetProperty("id", out var fallbackId))
-                        return fallbackId.GetString() ?? PreferredModels[0];
+                    return validModels[0];
                 }
             }
             catch { }
@@ -112,9 +139,8 @@ namespace LiveTranslatorOverlay.Core.Translation
                         if (model.TryGetProperty("id", out var idEl))
                         {
                             string? id = idEl.GetString();
-                            // Only text models (skip whisper, guard etc.)
-                            if (id != null && !id.Contains("whisper") && !id.Contains("guard") && !id.Contains("vision"))
-                                models.Add(id);
+                            if (IsValidTextModel(id))
+                                models.Add(id!);
                         }
                     }
                 }
@@ -158,8 +184,8 @@ namespace LiveTranslatorOverlay.Core.Translation
                         if (model.TryGetProperty("id", out var idEl))
                         {
                             string? id = idEl.GetString();
-                            if (id != null && !id.Contains("whisper") && !id.Contains("guard") && !id.Contains("vision"))
-                                models.Add(id);
+                            if (IsValidTextModel(id))
+                                models.Add(id!);
                         }
                     }
                 }
@@ -172,7 +198,33 @@ namespace LiveTranslatorOverlay.Core.Translation
             }
         }
 
+        private async Task<string> GetFallbackModelAsync(string currentModel)
+        {
+            try
+            {
+                if (currentModel.Contains("qwen", StringComparison.OrdinalIgnoreCase))
+                    return "openai/gpt-oss-20b";
+                if (currentModel.Contains("gpt-oss", StringComparison.OrdinalIgnoreCase))
+                    return "qwen/qwen3.8-27b";
+
+                var models = await GetAvailableModelsAsync();
+                foreach (var m in models)
+                {
+                    if (!string.Equals(m, currentModel, StringComparison.OrdinalIgnoreCase) && IsValidTextModel(m))
+                        return m;
+                }
+            }
+            catch { }
+
+            return "openai/gpt-oss-20b";
+        }
+
         public async Task<string> TranslateAsync(string text, string targetLanguage = "id", string sourceLanguage = "auto")
+        {
+            return await TranslateInternalAsync(text, targetLanguage, sourceLanguage, isRetry: false);
+        }
+
+        private async Task<string> TranslateInternalAsync(string text, string targetLanguage, string sourceLanguage, bool isRetry)
         {
             if (string.IsNullOrWhiteSpace(text)) return string.Empty;
             if (string.IsNullOrWhiteSpace(_apiKey)) return "[Error: Groq API Key kosong]";
@@ -181,8 +233,8 @@ namespace LiveTranslatorOverlay.Core.Translation
             if (text == _cachedInput && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource)
                 return _cachedResult;
 
-            // Auto-select model if not set
-            if (string.IsNullOrEmpty(_model))
+            // Auto-select model if not set or invalid
+            if (string.IsNullOrEmpty(_model) || !IsValidTextModel(_model))
             {
                 _model = await GetBestAvailableModelAsync();
             }
@@ -240,8 +292,8 @@ namespace LiveTranslatorOverlay.Core.Translation
                         new { role = "system", content = systemPrompt },
                         new { role = "user", content = text }
                     },
-                    temperature = 0.1, // Kurangi halusinasi
-                    max_tokens = 1024 // Ditingkatkan agar model reasoning (seperti Qwen/DeepSeek yang pakai <think>) tidak terpotong sebelum memberikan terjemahan
+                    temperature = 0.1,
+                    max_tokens = 1024
                 };
 
                 request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
@@ -251,17 +303,18 @@ namespace LiveTranslatorOverlay.Core.Translation
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    string errBody = await response.Content.ReadAsStringAsync();
-                    
-                    // If model not found, reset and retry once with fresh model list
-                    if (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
-                        response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                    // Retry once with alternative model on 404, 400, or 429
+                    if (!isRetry && (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
+                                     response.StatusCode == System.Net.HttpStatusCode.BadRequest ||
+                                     response.StatusCode == (System.Net.HttpStatusCode)429))
                     {
-                        _model = await GetBestAvailableModelAsync();
-                        return await TranslateAsync(text, targetLanguage, sourceLanguage); // Retry once
+                        _model = await GetFallbackModelAsync(_model);
+                        return await TranslateInternalAsync(text, targetLanguage, sourceLanguage, isRetry: true);
                     }
                     
-                    return $"[Groq Error: {response.StatusCode}] {errBody}";
+                    // Seamless fallback to Google Free Translate so the live translation never breaks
+                    var googleFallback = new GoogleFreeTranslateProvider();
+                    return await googleFallback.TranslateAsync(text, targetLanguage, sourceLanguage);
                 }
 
                 var responseString = await response.Content.ReadAsStringAsync();
@@ -275,8 +328,6 @@ namespace LiveTranslatorOverlay.Core.Translation
                     {
                         string result = content.GetString()?.Trim() ?? text;
 
-                        // DeepSeek models usually wrap their thinking process in <think> tags.
-                        // We must strip this out so it doesn't show up in the live translation.
                         if (result.Contains("<think>"))
                         {
                             int endThinkIndex = result.IndexOf("</think>");
@@ -286,8 +337,6 @@ namespace LiveTranslatorOverlay.Core.Translation
                             }
                             else
                             {
-                                // If the token limit cut off the thinking process before it finished,
-                                // we just return the original text because the translation never happened.
                                 return text; 
                             }
                         }
@@ -297,7 +346,6 @@ namespace LiveTranslatorOverlay.Core.Translation
                         _cachedSource = sourceLanguage;
                         _cachedResult = result;
 
-                        // Tambahkan ke history
                         _history.Enqueue($"[{text}] -> [{result}]");
                         if (_history.Count > MaxHistory) _history.Dequeue();
 
@@ -307,13 +355,26 @@ namespace LiveTranslatorOverlay.Core.Translation
 
                 return text;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return $"[Groq Error: {ex.Message}]";
+                try
+                {
+                    var googleFallback = new GoogleFreeTranslateProvider();
+                    return await googleFallback.TranslateAsync(text, targetLanguage, sourceLanguage);
+                }
+                catch
+                {
+                    return text;
+                }
             }
         }
 
         public async Task TranslateStreamAsync(string text, string targetLanguage, string sourceLanguage, System.Action<string> onTokenReceived)
+        {
+            await TranslateStreamInternalAsync(text, targetLanguage, sourceLanguage, onTokenReceived, isRetry: false);
+        }
+
+        private async Task TranslateStreamInternalAsync(string text, string targetLanguage, string sourceLanguage, System.Action<string> onTokenReceived, bool isRetry)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             if (string.IsNullOrWhiteSpace(_apiKey))
@@ -322,7 +383,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                 return;
             }
 
-            if (string.IsNullOrEmpty(_model))
+            if (string.IsNullOrEmpty(_model) || !IsValidTextModel(_model))
             {
                 _model = await GetBestAvailableModelAsync();
             }
@@ -347,7 +408,22 @@ namespace LiveTranslatorOverlay.Core.Translation
                     _ => targetLanguage
                 };
 
-                string sourceLangHint = sourceLanguage != "auto" ? $" Source language: {sourceLanguage}." : "";
+                string sourceLangFull = sourceLanguage switch
+                {
+                    "en" => "English",
+                    "id" => "Indonesian",
+                    "ja" => "Japanese",
+                    "ko" => "Korean",
+                    "zh" => "Chinese",
+                    "es" => "Spanish",
+                    "fr" => "French",
+                    "de" => "German",
+                    "ru" => "Russian",
+                    "ar" => "Arabic",
+                    _ => sourceLanguage
+                };
+
+                string sourceLangHint = sourceLanguage != "auto" ? $" Source language: {sourceLangFull}." : "";
                 
                 string contextStr = "";
                 if (_history.Count > 0)
@@ -377,9 +453,28 @@ namespace LiveTranslatorOverlay.Core.Translation
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    string errBody = await response.Content.ReadAsStringAsync();
-                    onTokenReceived($"[Groq Error: {response.StatusCode}] {errBody}");
-                    return;
+                    // If model not found or rate limited, retry once with fallback model
+                    if (!isRetry && (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
+                                     response.StatusCode == System.Net.HttpStatusCode.BadRequest || 
+                                     response.StatusCode == (System.Net.HttpStatusCode)429))
+                    {
+                        _model = await GetFallbackModelAsync(_model);
+                        await TranslateStreamInternalAsync(text, targetLanguage, sourceLanguage, onTokenReceived, isRetry: true);
+                        return;
+                    }
+
+                    // Seamless fallback to Google Free Translate so the live subtitle never displays raw JSON errors
+                    try
+                    {
+                        var googleFallback = new GoogleFreeTranslateProvider();
+                        await googleFallback.TranslateStreamAsync(text, targetLanguage, sourceLanguage, onTokenReceived);
+                        return;
+                    }
+                    catch
+                    {
+                        onTokenReceived(text);
+                        return;
+                    }
                 }
 
                 using var stream = await response.Content.ReadAsStreamAsync();
@@ -444,9 +539,17 @@ namespace LiveTranslatorOverlay.Core.Translation
                     if (_history.Count > MaxHistory) _history.Dequeue();
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                onTokenReceived($"[Groq Streaming Error: {ex.Message}]");
+                try
+                {
+                    var googleFallback = new GoogleFreeTranslateProvider();
+                    await googleFallback.TranslateStreamAsync(text, targetLanguage, sourceLanguage, onTokenReceived);
+                }
+                catch
+                {
+                    onTokenReceived(text);
+                }
             }
         }
 
@@ -454,6 +557,12 @@ namespace LiveTranslatorOverlay.Core.Translation
 
         public void SetModel(string model)
         {
+            if (string.IsNullOrWhiteSpace(model) || !IsValidTextModel(model))
+            {
+                _model = "";
+                return;
+            }
+
             _model = model;
         }
     }
