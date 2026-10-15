@@ -310,34 +310,47 @@ namespace LiveTranslatorOverlay.Core.Japanese
 
                 string prompt = targetStyle switch
                 {
-                    "Romaji" => "Convert the following Japanese text into standard Hepburn Romaji. Output ONLY the Romaji text, nothing else.",
-                    "Hiragana" => "Convert the following Japanese text into pure Hiragana reading (no Kanji). Output ONLY the Hiragana text, nothing else.",
+                    "Romaji" => "Convert the following Japanese text into standard Hepburn Romaji Latin alphabet. Output ONLY the Romaji text, nothing else.",
+                    "Hiragana" => "Convert the following Japanese text into pure Hiragana reading (replace all Kanji with their correct Hiragana reading). Output ONLY the pure Hiragana text, nothing else.",
                     "Katakana" => "Convert the following Japanese text into pure Katakana reading. Output ONLY the Katakana text, nothing else.",
                     _ => "Convert the text to " + targetStyle
                 };
 
-                var payload = new
+                string[] modelsToTry = { "openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b" };
+
+                foreach (var modelName in modelsToTry)
                 {
-                    model = "openai/gpt-oss-20b",
-                    messages = new[]
+                    try
                     {
-                        new { role = "system", content = prompt },
-                        new { role = "user", content = text }
-                    },
-                    temperature = 0.0,
-                    max_tokens = 256
-                };
+                        var req = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions");
+                        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.Trim());
 
-                request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-                using var response = await client.SendAsync(request);
-                if (!response.IsSuccessStatusCode) return text;
+                        var payload = new
+                        {
+                            model = modelName,
+                            messages = new[]
+                            {
+                                new { role = "system", content = prompt },
+                                new { role = "user", content = text }
+                            },
+                            temperature = 0.0,
+                            max_tokens = 256
+                        };
 
-                var json = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
-                {
-                    var msg = choices[0].GetProperty("message").GetProperty("content").GetString();
-                    return msg?.Trim() ?? text;
+                        req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                        using var response = await client.SendAsync(req);
+                        if (!response.IsSuccessStatusCode) continue;
+
+                        var json = await response.Content.ReadAsStringAsync();
+                        using var doc = JsonDocument.Parse(json);
+                        if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
+                        {
+                            var msg = choices[0].GetProperty("message").GetProperty("content").GetString()?.Trim();
+                            if (!string.IsNullOrWhiteSpace(msg))
+                                return msg;
+                        }
+                    }
+                    catch { }
                 }
             }
             catch { }

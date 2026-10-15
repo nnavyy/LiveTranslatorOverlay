@@ -56,25 +56,37 @@ namespace LiveTranslatorOverlay.Core.Update
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
         }
 
+        private CancellationTokenSource? _periodicCheckCts;
+
         public async Task StartBackgroundCheckAsync(bool silent = true)
         {
-            try
+            if (!silent)
             {
-                // Small delay on app start so UI loads instantly without network contention
-                if (silent)
-                {
-                    await Task.Delay(4000);
-                }
+                await CheckAndDownloadAsync(silent: false);
+                return;
+            }
 
-                await CheckAndDownloadAsync(silent);
-            }
-            catch (Exception ex)
+            _periodicCheckCts?.Cancel();
+            _periodicCheckCts = new CancellationTokenSource();
+            var token = _periodicCheckCts.Token;
+
+            _ = Task.Run(async () =>
             {
-                if (!silent)
+                // Small initial delay on app start so UI loads instantly
+                await Task.Delay(3000, token).ConfigureAwait(false);
+                while (!token.IsCancellationRequested)
                 {
-                    StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Update check failed: {ex.Message}", 0, isError: true));
+                    try
+                    {
+                        if (IsUpdateReady) break;
+                        await CheckAndDownloadAsync(silent: true).ConfigureAwait(false);
+                    }
+                    catch { }
+
+                    // Periodically poll GitHub releases every 3 minutes
+                    await Task.Delay(TimeSpan.FromMinutes(3), token).ConfigureAwait(false);
                 }
-            }
+            }, token);
         }
 
         public async Task<bool> CheckAndDownloadAsync(bool silent = true)
