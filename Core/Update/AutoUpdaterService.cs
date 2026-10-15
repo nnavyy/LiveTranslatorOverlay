@@ -142,10 +142,22 @@ namespace LiveTranslatorOverlay.Core.Update
                     return false;
                 }
 
-                // Setup local temp directories
+                // Pre-clean: terminate any lingering robocopy from older update attempts
+                try
+                {
+                    foreach (var proc in Process.GetProcessesByName("robocopy"))
+                    {
+                        try { proc.Kill(); } catch { }
+                    }
+                }
+                catch { }
+
+                // Setup version-isolated local temp directories to prevent file locking collisions
+                string cleanTag = tagName.Replace("/", "_").Replace("\\", "_");
                 string localAppData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiveTranslatorOverlay");
                 string updateTempDir = Path.Combine(localAppData, "UpdateTemp");
-                string updateStagedDir = Path.Combine(localAppData, "UpdateStaged");
+                string updateStagedDir = Path.Combine(localAppData, $"Staged_{cleanTag}");
+
                 Directory.CreateDirectory(updateTempDir);
                 if (Directory.Exists(updateStagedDir))
                 {
@@ -153,7 +165,11 @@ namespace LiveTranslatorOverlay.Core.Update
                 }
                 Directory.CreateDirectory(updateStagedDir);
 
-                string zipFilePath = Path.Combine(updateTempDir, "update.zip");
+                string zipFilePath = Path.Combine(updateTempDir, $"update_{cleanTag}.zip");
+                if (File.Exists(zipFilePath))
+                {
+                    try { File.Delete(zipFilePath); } catch { }
+                }
 
                 // Download ZIP with progress
                 StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Downloading update {tagName}...", 5, newVersion: tagName));
@@ -164,7 +180,7 @@ namespace LiveTranslatorOverlay.Core.Update
                     long totalBytes = downloadResponse.Content.Headers.ContentLength ?? expectedSize;
 
                     using (var contentStream = await downloadResponse.Content.ReadAsStreamAsync())
-                    using (var fileStream = new FileStream(zipFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true))
+                    using (var fileStream = new FileStream(zipFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite, 81920, true))
                     {
                         var buffer = new byte[81920];
                         long totalRead = 0;
@@ -239,6 +255,9 @@ set ""OLD_PID=%~4""
 
 echo [%date% %time%] Updater started. Target=%TARGET_DIR% OldPID=%OLD_PID% > ""%~dp0updater.log""
 
+:: Kill any hanging robocopy processes
+taskkill /f /im robocopy.exe >nul 2>&1
+
 :: Kill old process by PID if still alive
 if not ""%OLD_PID%""=="""" (
     taskkill /f /pid %OLD_PID% >nul 2>&1
@@ -246,12 +265,12 @@ if not ""%OLD_PID%""=="""" (
 
 :: Terminate any duplicate instances to guarantee clean single-instance restart
 taskkill /f /im ""%TARGET_EXE%"" >nul 2>&1
-timeout /t 1 /nobreak >nul
+timeout /t 2 /nobreak >nul
 
 echo [%date% %time%] Starting file copy... >> ""%~dp0updater.log""
 
-:: Robocopy everything except user config
-robocopy ""%SOURCE_DIR%"" ""%TARGET_DIR%"" /E /IS /IT /XF appsettings.json >> ""%~dp0updater.log"" 2>&1
+:: Robocopy everything except user config with fast retry flags so it never hangs
+robocopy ""%SOURCE_DIR%"" ""%TARGET_DIR%"" /E /IS /IT /XF appsettings.json /R:1 /W:1 >> ""%~dp0updater.log"" 2>&1
 
 :: Relaunch updated application exactly once
 echo [%date% %time%] Launching updated %TARGET_DIR%\%TARGET_EXE% >> ""%~dp0updater.log""
@@ -259,7 +278,7 @@ cd /d ""%TARGET_DIR%""
 start """" ""%TARGET_DIR%\%TARGET_EXE%""
 
 :: Clean up staging folder
-timeout /t 2 /nobreak >nul
+timeout /t 3 /nobreak >nul
 rmdir /s /q ""%SOURCE_DIR%"" >nul 2>&1
 echo [%date% %time%] Update finished successfully. >> ""%~dp0updater.log""
 exit /b 0
@@ -303,8 +322,15 @@ exit /b 0
 
                 Process.Start(psi);
 
-                // Exit immediately so process terminates and frees file handles cleanly
-                Environment.Exit(0);
+                // Instantly kill process at kernel level to immediately unlock all files
+                try
+                {
+                    Process.GetCurrentProcess().Kill();
+                }
+                catch
+                {
+                    Environment.Exit(0);
+                }
             }
             catch (Exception ex)
             {
