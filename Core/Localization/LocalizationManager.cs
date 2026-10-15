@@ -165,6 +165,13 @@ namespace LiveTranslatorOverlay.Core.Localization
                 ["BtnFeedback"] = "Report Bug / Feedback",
                 ["BtnCloseApp"] = "Close App",
 
+                // Japanese Script Style
+                ["LblJapaneseStyle"] = "Japanese Subtitle Style:",
+                ["ItemJpStandard"] = "Standard (Kanji + Kana)",
+                ["ItemJpHiragana"] = "Hiragana (ひらがな)",
+                ["ItemJpRomaji"] = "Romaji (Latin ABC)",
+                ["ItemJpKatakana"] = "Katakana (カタカナ)",
+
                 // API Key & Auto Update
                 ["BtnVerifyKey"] = "Verify",
                 ["ApiKeyEmpty"] = "Free Google Translate active",
@@ -321,6 +328,13 @@ namespace LiveTranslatorOverlay.Core.Localization
                 ["BtnFeedback"] = "Lapor Bug / Saran",
                 ["BtnCloseApp"] = "Tutup Aplikasi",
 
+                // Japanese Script Style
+                ["LblJapaneseStyle"] = "Gaya Huruf Jepang:",
+                ["ItemJpStandard"] = "Standar (Kanji + Kana)",
+                ["ItemJpHiragana"] = "Hiragana (ひらがな)",
+                ["ItemJpRomaji"] = "Romaji (Alfabet Latin ABC)",
+                ["ItemJpKatakana"] = "Katakana (カタカナ)",
+
                 // API Key & Auto Update
                 ["BtnVerifyKey"] = "Verifikasi",
                 ["ApiKeyEmpty"] = "Google Translate gratis aktif",
@@ -476,6 +490,13 @@ namespace LiveTranslatorOverlay.Core.Localization
                 ["BtnOpenHistory"] = "Открыть историю переводов",
                 ["BtnFeedback"] = "Отчет об ошибке / Отзыв",
                 ["BtnCloseApp"] = "Закрыть приложение",
+
+                // Japanese Script Style
+                ["LblJapaneseStyle"] = "Стиль японского текста:",
+                ["ItemJpStandard"] = "Стандартный (Кандзи + Кана)",
+                ["ItemJpHiragana"] = "Хирагана (ひらがな)",
+                ["ItemJpRomaji"] = "Ромадзи (Латинский алфавит ABC)",
+                ["ItemJpKatakana"] = "Катакана (カタカナ)",
 
                 // API Key & Auto Update
                 ["BtnVerifyKey"] = "Проверить",

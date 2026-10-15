@@ -212,6 +212,15 @@
                             <ComboBoxItem x:Name="ItemTgtAr" Content="Arabic (ar)" Tag="ar"/>
                         </ComboBox>
 
+                        <!-- Japanese Script Style Selection -->
+                        <TextBlock x:Name="LblJapaneseStyle" Text="Japanese Subtitle Style:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
+                        <ComboBox x:Name="CmbJapaneseStyle" SelectedIndex="0" Margin="0,0,0,12" Padding="5" SelectionChanged="CmbJapaneseStyle_SelectionChanged">
+                            <ComboBoxItem x:Name="ItemJpStandard" Content="Standard (Kanji + Kana)" Tag="standard"/>
+                            <ComboBoxItem x:Name="ItemJpHiragana" Content="Hiragana (ひらがな)" Tag="hiragana"/>
+                            <ComboBoxItem x:Name="ItemJpRomaji" Content="Romaji (Latin ABC)" Tag="romaji"/>
+                            <ComboBoxItem x:Name="ItemJpKatakana" Content="Katakana (カタカナ)" Tag="katakana"/>
+                        </ComboBox>
+
                         <!-- Engine Settings -->
                         <TextBlock x:Name="LblEngine" Text="Translation Engine:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
                         <ComboBox x:Name="CmbEngine" SelectedIndex="0" Margin="0,0,0,8" Padding="5" SelectionChanged="CmbEngine_SelectionChanged">

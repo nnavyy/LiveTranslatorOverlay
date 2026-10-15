@@ -18,6 +18,7 @@ using LiveTranslatorOverlay.Core;
 using LiveTranslatorOverlay.Core.Translation;
 using LiveTranslatorOverlay.Core.Localization;
 using LiveTranslatorOverlay.Core.Update;
+using LiveTranslatorOverlay.Core.Japanese;
 using NAudio.CoreAudioApi;
 using System.Diagnostics;
 
@@ -94,6 +95,7 @@ public partial class MainWindow : Window
         TxtDeepgramKey.Text = loadedSettings.DeepgramApiKey;
         if (loadedSettings.SourceLangIndex >= 0 && loadedSettings.SourceLangIndex < CmbSourceLang.Items.Count) CmbSourceLang.SelectedIndex = loadedSettings.SourceLangIndex;
         if (loadedSettings.TargetLangIndex >= 0 && loadedSettings.TargetLangIndex < CmbTargetLang.Items.Count) CmbTargetLang.SelectedIndex = loadedSettings.TargetLangIndex;
+        if (loadedSettings.JapaneseStyleIndex >= 0 && loadedSettings.JapaneseStyleIndex < CmbJapaneseStyle.Items.Count) CmbJapaneseStyle.SelectedIndex = loadedSettings.JapaneseStyleIndex;
         if (loadedSettings.EngineIndex >= 0 && loadedSettings.EngineIndex < CmbEngine.Items.Count) CmbEngine.SelectedIndex = loadedSettings.EngineIndex;
         if (loadedSettings.SttModeIndex >= 0 && loadedSettings.SttModeIndex < CmbSttMode.Items.Count) CmbSttMode.SelectedIndex = loadedSettings.SttModeIndex;
         if (loadedSettings.FontSizeIndex >= 0 && loadedSettings.FontSizeIndex < CmbFontSize.Items.Count) CmbFontSize.SelectedIndex = loadedSettings.FontSizeIndex;
@@ -293,6 +295,7 @@ public partial class MainWindow : Window
             DeepgramApiKey = TxtDeepgramKey.Text,
             SourceLangIndex = CmbSourceLang.SelectedIndex,
             TargetLangIndex = CmbTargetLang.SelectedIndex,
+            JapaneseStyleIndex = CmbJapaneseStyle.SelectedIndex,
             EngineIndex = CmbEngine.SelectedIndex,
             SttModeIndex = CmbSttMode.SelectedIndex,
             FontSizeIndex = CmbFontSize.SelectedIndex,
@@ -337,6 +340,55 @@ public partial class MainWindow : Window
     {
         UpdateEngine();
         await RefreshGroqModelsAsync();
+    }
+
+    private async void CmbJapaneseStyle_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CaptionOriginal != null && !string.IsNullOrWhiteSpace(CaptionOriginal.Text))
+        {
+            string sourceLang = GetSourceLanguage();
+            CaptionOriginal.Text = await FormatJapaneseTextIfNeededAsync(CaptionOriginal.Text, sourceLang);
+        }
+    }
+
+    private JapaneseScriptStyle GetSelectedJapaneseScriptStyle()
+    {
+        if (CmbJapaneseStyle?.SelectedItem is ComboBoxItem item)
+        {
+            return item.Tag?.ToString() switch
+            {
+                "hiragana" => JapaneseScriptStyle.Hiragana,
+                "romaji" => JapaneseScriptStyle.Romaji,
+                "katakana" => JapaneseScriptStyle.Katakana,
+                _ => JapaneseScriptStyle.Standard
+            };
+        }
+        return JapaneseScriptStyle.Standard;
+    }
+
+    private async Task<string> FormatJapaneseTextIfNeededAsync(string text, string langCode)
+    {
+        var style = GetSelectedJapaneseScriptStyle();
+        if (style == JapaneseScriptStyle.Standard || string.IsNullOrWhiteSpace(text))
+            return text;
+
+        if (langCode == "ja" || JapaneseScriptConverter.HasKanji(text) || ContainsJapaneseKana(text))
+        {
+            string apiKey = TxtApiKey?.Text ?? "";
+            return await JapaneseScriptConverter.ConvertAsync(text, style, apiKey);
+        }
+
+        return text;
+    }
+
+    private static bool ContainsJapaneseKana(string text)
+    {
+        foreach (char c in text)
+        {
+            if ((c >= 0x3040 && c <= 0x309F) || (c >= 0x30A0 && c <= 0x30FF))
+                return true;
+        }
+        return false;
     }
     
     private void CmbEngine_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -950,6 +1002,8 @@ public partial class MainWindow : Window
             string targetLang = "", sourceLang = "";
             Dispatcher.Invoke(() => { targetLang = GetTargetLanguage(); sourceLang = GetSourceLanguage(); });
 
+            string displayOriginal = await FormatJapaneseTextIfNeededAsync(args.Text, sourceLang);
+
             // Show the finalized original text immediately (remove the blinking cursor)
             Dispatcher.Invoke(() =>
             {
@@ -957,7 +1011,7 @@ public partial class MainWindow : Window
                 CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
                 CaptionSpeaker.Text = LocalizationManager.Instance.Get("SpeakerLabel", args.SpeakerIndex + 1);
                 CaptionSpeaker.Visibility = Visibility.Visible;
-                CaptionOriginal.Text = args.Text;
+                CaptionOriginal.Text = displayOriginal;
                 CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
                 ShowSubtitleWithAnimation();
             });
@@ -1152,13 +1206,15 @@ public partial class MainWindow : Window
                 // Groq Whisper also hallucinates "subtitles by...", "спасибо", etc. from noise
                 if (IsWhisperHallucination(transcribed)) return;
 
+                string displayOriginal = await FormatJapaneseTextIfNeededAsync(transcribed, sourceLang);
+
                 Dispatcher.Invoke(() =>
                 {
                     if (!_isAudioMode) return;
                     CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(speaker.ColorHex));
                     CaptionSpeaker.Text = speaker.Label;
                     CaptionSpeaker.Visibility = Visibility.Visible;
-                    CaptionOriginal.Text = transcribed;
+                    CaptionOriginal.Text = displayOriginal;
                     CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(speaker.ColorHex));
                     ShowSubtitleWithAnimation();
                 });
@@ -1317,6 +1373,11 @@ public partial class MainWindow : Window
         // Labels
         if (LblSourceLang != null) LblSourceLang.Text = loc.Get("LblSourceLanguage");
         if (LblTargetLang != null) LblTargetLang.Text = loc.Get("LblTargetLanguage");
+        if (LblJapaneseStyle != null) LblJapaneseStyle.Text = loc.Get("LblJapaneseStyle");
+        if (ItemJpStandard != null) ItemJpStandard.Content = loc.Get("ItemJpStandard");
+        if (ItemJpHiragana != null) ItemJpHiragana.Content = loc.Get("ItemJpHiragana");
+        if (ItemJpRomaji != null) ItemJpRomaji.Content = loc.Get("ItemJpRomaji");
+        if (ItemJpKatakana != null) ItemJpKatakana.Content = loc.Get("ItemJpKatakana");
         if (LblEngine != null) LblEngine.Text = loc.Get("LblEngine");
         if (LblApiKey != null) LblApiKey.Text = loc.Get("LblApiKey");
         if (BtnVerifyApiKey != null) BtnVerifyApiKey.Content = loc.Get("BtnVerifyKey");
