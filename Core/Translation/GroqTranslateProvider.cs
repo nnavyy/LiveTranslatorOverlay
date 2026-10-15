@@ -282,7 +282,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                     contextStr = "\n\nPrevious conversation context (use this ONLY to understand the flow, DO NOT translate this again):\n" + string.Join("\n", _history);
                 }
 
-                string systemPrompt = $"You are a highly accurate professional translator. Translate the text to {targetLangFull}.{sourceLangHint} If the text is already in {targetLangFull}, just return the exact text without any changes. Output ONLY the direct translation, nothing else. Do not add any notes, explanations, or hallucinate extra sentences.{contextStr}";
+                string systemPrompt = $"You are an expert real-time subtitle and conversational dialogue translator. Translate the spoken conversation naturally, fluently, and idiomatically into {targetLangFull}. Accurately convey the speaker's tone, emotional nuance, and conversational context, avoiding stiff, overly literal, or robotic textbook phrasing.{sourceLangHint} If the text is already in {targetLangFull}, just return the exact text without any changes. Output ONLY the clean direct translation without any explanations, surrounding quotes, or commentary.{contextStr}";
 
                 var payload = new
                 {
@@ -431,7 +431,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                     contextStr = "\n\nPrevious conversation context (use this ONLY to understand the flow, DO NOT translate this again):\n" + string.Join("\n", _history);
                 }
 
-                string systemPrompt = $"You are a highly accurate professional translator. Translate the text to {targetLangFull}.{sourceLangHint} If the text is already in {targetLangFull}, just return the exact text without any changes. Output ONLY the direct translation, nothing else. Do not add any notes, explanations, or hallucinate extra sentences.{contextStr}";
+                string systemPrompt = $"You are an expert real-time subtitle and conversational dialogue translator. Translate the spoken conversation naturally, fluently, and idiomatically into {targetLangFull}. Accurately convey the speaker's tone, emotional nuance, and conversational context, avoiding stiff, overly literal, or robotic textbook phrasing.{sourceLangHint} If the text is already in {targetLangFull}, just return the exact text without any changes. Output ONLY the clean direct translation without any explanations, surrounding quotes, or commentary.{contextStr}";
 
                 var payload = new
                 {

@@ -531,8 +531,13 @@ public partial class MainWindow : Window
                 TxtUpdateStatus.Text = e.StatusMessage;
                 if (e.IsReadyToInstall)
                 {
+                    BannerUpdateReady.Visibility = Visibility.Visible;
+                    TxtBannerUpdateTitle.Text = LocalizationManager.Instance.Get("UpdateAvailable", e.NewVersion);
+                    TxtBannerUpdateDesc.Text = LocalizationManager.Instance.Get("BtnRestartUpdate");
+                    BtnBannerRestart.Content = LocalizationManager.Instance.Get("BtnRestartUpdate");
+
                     BtnApplyUpdateNow.Visibility = Visibility.Visible;
-                    BtnApplyUpdateNow.Content = LocalizationManager.Instance.Get("BtnRestartUpdate");
+                    BtnApplyUpdateNow.Content = $"{LocalizationManager.Instance.Get("BtnRestartUpdate")} ({e.NewVersion})";
                 }
             });
         };
@@ -541,6 +546,11 @@ public partial class MainWindow : Window
         {
             Dispatcher.Invoke(() =>
             {
+                BannerUpdateReady.Visibility = Visibility.Visible;
+                TxtBannerUpdateTitle.Text = LocalizationManager.Instance.Get("UpdateAvailable", version);
+                TxtBannerUpdateDesc.Text = LocalizationManager.Instance.Get("BtnRestartUpdate");
+                BtnBannerRestart.Content = LocalizationManager.Instance.Get("BtnRestartUpdate");
+
                 BtnApplyUpdateNow.Visibility = Visibility.Visible;
                 BtnApplyUpdateNow.Content = $"{LocalizationManager.Instance.Get("BtnRestartUpdate")} ({version})";
             });
@@ -1297,6 +1307,12 @@ public partial class MainWindow : Window
         if (BtnCheckUpdate != null) BtnCheckUpdate.Content = loc.Get("BtnCheckUpdate");
         if (BtnApplyUpdateNow != null && BtnApplyUpdateNow.Visibility == Visibility.Visible)
             BtnApplyUpdateNow.Content = loc.Get("BtnRestartUpdate");
+        if (BannerUpdateReady != null && BannerUpdateReady.Visibility == Visibility.Visible)
+        {
+            TxtBannerUpdateTitle.Text = loc.Get("UpdateAvailable", AutoUpdaterService.Instance.PendingVersion);
+            TxtBannerUpdateDesc.Text = loc.Get("BtnRestartUpdate");
+            BtnBannerRestart.Content = loc.Get("BtnRestartUpdate");
+        }
 
         // Labels
         if (LblSourceLang != null) LblSourceLang.Text = loc.Get("LblSourceLanguage");
