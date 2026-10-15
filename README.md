@@ -32,9 +32,14 @@
   - **Freely repositionable**: Move the subtitle banner and settings dialog anywhere on your monitors via drag-and-drop.
   - **Screen Capture Exclusion (Privacy Mode)**: Employs Windows Graphics Capture Exclusion (`SetWindowDisplayAffinity`) to keep captions and all application windows completely hidden from OBS Studio, Discord screen sharing, Zoom, and screen recordings, with built-in Snipping Tool deadlock protection.
   - **Translation History**: Integrated history log to review past spoken and translated statements with AI-powered conversation summaries.
-- **Multi-Language User Interface**
-  - Fully localized in **English** and **Indonesian (Bahasa Indonesia)**.
-  - Automatically matches your Windows display language by default, with dynamic in-app language switching.
+- **Silent Background Auto-Updater**
+  - Starting from v1.2.0, the app checks for new releases on GitHub and downloads updates silently in the background.
+  - Updates are applied automatically on application restart or exit while strictly preserving user API keys and configurations.
+- **Multi-Language User Interface & Target Translation**
+  - Fully localized in **English**, **Indonesian (Bahasa Indonesia)**, and **Russian (Русский)**.
+  - Automatically matches your Windows display language by default, with dynamic in-app language switching and auto target language detection.
+- **Instant Groq AI Key Verification & Engine Auto-Switching**
+  - Live API key verification with real-time connection feedback and automatic model population (powered by `llama-3.3-70b-versatile`).
 - **In-App Bug Reporting & Resolution Tracker**
   - Report bugs, feature suggestions, and criticism directly inside the application without needing third-party accounts.
   - **My Reports History**: Track previously submitted reports and monitor resolution progress (*Pending*, *In Progress*, *Fixed*) per device.

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
@@ -16,6 +17,7 @@ using System.Windows.Threading;
 using LiveTranslatorOverlay.Core;
 using LiveTranslatorOverlay.Core.Translation;
 using LiveTranslatorOverlay.Core.Localization;
+using LiveTranslatorOverlay.Core.Update;
 using NAudio.CoreAudioApi;
 using System.Diagnostics;
 
@@ -23,6 +25,7 @@ namespace LiveTranslatorOverlay;
 
 public partial class MainWindow : Window
 {
+    private DispatcherTimer? _apiKeyDebounceTimer;
     private Point _startPoint;
     private bool _isDrawing;
     private Rect _selectedOcrRegion;
@@ -182,6 +185,16 @@ public partial class MainWindow : Window
 
             _fadeInStoryboard = (Storyboard)this.Resources["FadeInCaption"];
             _fadeOutStoryboard = (Storyboard)this.Resources["FadeOutCaption"];
+
+            // Verify existing Groq key if loaded from settings
+            if (!string.IsNullOrWhiteSpace(TxtApiKey.Text))
+            {
+                _ = VerifyGroqApiKeyAsync(showNotification: false);
+            }
+            else
+            {
+                UpdateApiKeyStatusVisual();
+            }
         };
         
         // Timer for auto-hiding subtitle (Disabled per user request for STT)
@@ -189,12 +202,6 @@ public partial class MainWindow : Window
         _subtitleHideTimer.Tick += (s, e) => 
         {
             _subtitleHideTimer.Stop();
-            // Disabled auto fade-out for Audio mode
-            // if (_isCaptionVisible && _isAudioMode)
-            // {
-            //     _fadeOutStoryboard.Begin(this);
-            //     _isCaptionVisible = false;
-            // }
         };
         
         // Pastikan container tidak meluber ke bawah layar
@@ -215,7 +222,8 @@ public partial class MainWindow : Window
             }
         };
         
-        TxtApiKey.TextChanged += (s, e) => UpdateEngine();
+        SetupApiKeyVerification();
+        SetupAutoUpdater();
     }
     
         private bool _isDraggingCaption = false;
@@ -295,6 +303,12 @@ public partial class MainWindow : Window
             CaptionTop = Canvas.GetTop(CaptionBar)
         };
         settings.Save();
+
+        // If a silent update has finished downloading and staging, apply it seamlessly on close!
+        if (AutoUpdaterService.Instance.IsUpdateReady)
+        {
+            AutoUpdaterService.Instance.ApplyUpdateAndRestart();
+        }
     }
 
     private async Task RefreshGroqModelsAsync()
@@ -304,15 +318,19 @@ public partial class MainWindow : Window
         var models = await groqProvider.GetAvailableModelsAsync();
         if (models.Count == 0) return;
         
+        string prevSelected = (CmbGroqModel.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
         CmbGroqModel.Items.Clear();
-        CmbGroqModel.Items.Add(new ComboBoxItem { Content = "(Otomatis)", Tag = "" });
+        CmbGroqModel.Items.Add(new ComboBoxItem { Content = LocalizationManager.Instance.Get("ModelAuto"), Tag = "" });
         
-        foreach (var m in models)
+        int selectedIdx = 0;
+        for (int i = 0; i < models.Count; i++)
         {
-            CmbGroqModel.Items.Add(new ComboBoxItem { Content = m, Tag = m });
+            var item = new ComboBoxItem { Content = models[i], Tag = models[i] };
+            CmbGroqModel.Items.Add(item);
+            if (models[i] == prevSelected) selectedIdx = i + 1;
         }
         
-        CmbGroqModel.SelectedIndex = 0;
+        CmbGroqModel.SelectedIndex = selectedIdx;
     }
     
     private async void BtnRefreshModels_Click(object sender, RoutedEventArgs e)
@@ -324,6 +342,7 @@ public partial class MainWindow : Window
     private void CmbEngine_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         UpdateEngine();
+        UpdateApiKeyStatusVisual();
     }
     
     private void UpdateEngine()
@@ -359,6 +378,196 @@ public partial class MainWindow : Window
         }
     }
 
+    // ===================== GROQ API KEY VALIDATION & FEEDBACK =====================
+
+    private void SetupApiKeyVerification()
+    {
+        _apiKeyDebounceTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
+        _apiKeyDebounceTimer.Tick += async (s, e) =>
+        {
+            _apiKeyDebounceTimer.Stop();
+            await VerifyGroqApiKeyAsync(showNotification: false);
+        };
+
+        TxtApiKey.TextChanged += (s, e) =>
+        {
+            UpdateEngine();
+            _apiKeyDebounceTimer.Stop();
+            _apiKeyDebounceTimer.Start();
+        };
+    }
+
+    private void UpdateApiKeyStatusVisual()
+    {
+        if (TxtApiKeyStatus == null || DotApiKeyStatus == null) return;
+        var loc = LocalizationManager.Instance;
+        string key = TxtApiKey?.Text?.Trim() ?? "";
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            DotApiKeyStatus.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#71717A"));
+            TxtApiKeyStatus.Text = loc.Get("ApiKeyEmpty");
+            TxtApiKeyStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#71717A"));
+            return;
+        }
+
+        bool isGroqSelected = (CmbEngine?.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "groq";
+        if (isGroqSelected)
+        {
+            DotApiKeyStatus.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+            TxtApiKeyStatus.Text = loc.Get("ApiKeyValid");
+            TxtApiKeyStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+        }
+        else
+        {
+            DotApiKeyStatus.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#60A5FA"));
+            TxtApiKeyStatus.Text = "Key stored — Google Translate active";
+            TxtApiKeyStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#93C5FD"));
+        }
+    }
+
+    private async Task VerifyGroqApiKeyAsync(bool showNotification = false)
+    {
+        if (TxtApiKey == null || TxtApiKeyStatus == null || DotApiKeyStatus == null) return;
+        string key = TxtApiKey.Text.Trim();
+        var loc = LocalizationManager.Instance;
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            UpdateApiKeyStatusVisual();
+            return;
+        }
+
+        // Show verifying pulse
+        DotApiKeyStatus.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FBBF24")); // Amber
+        TxtApiKeyStatus.Text = loc.Get("ApiKeyChecking");
+        TxtApiKeyStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#FBBF24"));
+
+        var (isValid, message, models) = await GroqTranslateProvider.ValidateKeyAsync(key);
+
+        if (isValid)
+        {
+            DotApiKeyStatus.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981")); // Emerald
+            TxtApiKeyStatus.Text = loc.Get("ApiKeyValid");
+            TxtApiKeyStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
+
+            // Auto-switch engine to Groq
+            if (CmbEngine.SelectedIndex != 1)
+            {
+                CmbEngine.SelectedIndex = 1;
+            }
+
+            // Populate Groq Models
+            if (models.Count > 0)
+            {
+                string prevSelected = (CmbGroqModel.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
+                CmbGroqModel.Items.Clear();
+                CmbGroqModel.Items.Add(new ComboBoxItem { Content = loc.Get("ModelAuto"), Tag = "" });
+                int selectedIdx = 0;
+                for (int i = 0; i < models.Count; i++)
+                {
+                    var item = new ComboBoxItem { Content = models[i], Tag = models[i] };
+                    CmbGroqModel.Items.Add(item);
+                    if (models[i] == prevSelected) selectedIdx = i + 1;
+                }
+                CmbGroqModel.SelectedIndex = selectedIdx;
+            }
+
+            // Update translation provider
+            if (_translationProvider is GroqTranslateProvider groq)
+            {
+                groq.UpdateApiKey(key);
+            }
+            else
+            {
+                _translationProvider = new GroqTranslateProvider(key);
+            }
+
+            // Update Whisper STT if initialized
+            if (_whisperSttService != null)
+            {
+                _whisperSttService = new WhisperSttService(key);
+            }
+
+            // Save key to settings immediately
+            var settings = LiveTranslatorOverlay.Core.AppSettings.Load();
+            settings.GroqApiKey = key;
+            settings.EngineIndex = 1;
+            settings.Save();
+
+            QuotaTracker.Instance.NotifyCurrentGroq();
+        }
+        else
+        {
+            DotApiKeyStatus.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444")); // Red
+            TxtApiKeyStatus.Text = $"{loc.Get("ApiKeyInvalid")}: {message}";
+            TxtApiKeyStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#EF4444"));
+        }
+    }
+
+    private async void BtnVerifyApiKey_Click(object sender, RoutedEventArgs e)
+    {
+        BtnVerifyApiKey.IsEnabled = false;
+        try
+        {
+            await VerifyGroqApiKeyAsync(showNotification: true);
+        }
+        finally
+        {
+            BtnVerifyApiKey.IsEnabled = true;
+        }
+    }
+
+    // ===================== SILENT AUTO UPDATER =====================
+
+    private void SetupAutoUpdater()
+    {
+        TxtUpdateStatus.Text = $"v{AppVersion.Current} (Up to date)";
+
+        AutoUpdaterService.Instance.StatusChanged += (s, e) =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                TxtUpdateStatus.Text = e.StatusMessage;
+                if (e.IsReadyToInstall)
+                {
+                    BtnApplyUpdateNow.Visibility = Visibility.Visible;
+                    BtnApplyUpdateNow.Content = LocalizationManager.Instance.Get("BtnRestartUpdate");
+                }
+            });
+        };
+
+        AutoUpdaterService.Instance.UpdateReadyToInstall += (s, version) =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                BtnApplyUpdateNow.Visibility = Visibility.Visible;
+                BtnApplyUpdateNow.Content = $"{LocalizationManager.Instance.Get("BtnRestartUpdate")} ({version})";
+            });
+        };
+
+        // Start background silent check
+        _ = AutoUpdaterService.Instance.StartBackgroundCheckAsync(silent: true);
+    }
+
+    private async void BtnCheckUpdate_Click(object sender, RoutedEventArgs e)
+    {
+        BtnCheckUpdate.IsEnabled = false;
+        try
+        {
+            await AutoUpdaterService.Instance.CheckAndDownloadAsync(silent: false);
+        }
+        finally
+        {
+            BtnCheckUpdate.IsEnabled = true;
+        }
+    }
+
+    private void BtnApplyUpdateNow_Click(object sender, RoutedEventArgs e)
+    {
+        AutoUpdaterService.Instance.ApplyUpdateAndRestart();
+    }
+
     private void UpdateQuotaUi(QuotaInfo info)
     {
         try
@@ -379,7 +588,34 @@ public partial class MainWindow : Window
     private string GetTargetLanguage()
     {
         if (CmbTargetLang.SelectedItem is ComboBoxItem item)
-            return item.Tag?.ToString() ?? "id";
+        {
+            string tag = item.Tag?.ToString() ?? "id";
+            if (tag == "auto")
+            {
+                string sys = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+                string installedSys = CultureInfo.InstalledUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+                return sys switch
+                {
+                    "ru" => "ru",
+                    "id" => "id",
+                    "ja" => "ja",
+                    "ko" => "ko",
+                    "zh" => "zh",
+                    "es" => "es",
+                    "fr" => "fr",
+                    "de" => "de",
+                    "ar" => "ar",
+                    _ => installedSys switch
+                    {
+                        "ru" => "ru",
+                        "id" => "id",
+                        "ja" => "ja",
+                        _ => "en"
+                    }
+                };
+            }
+            return tag;
+        }
         return "id";
     }
 
@@ -1030,6 +1266,7 @@ public partial class MainWindow : Window
             settings.UiLanguage = tag;
             settings.UiLanguageIndex = CmbUiLanguage.SelectedIndex;
             settings.Save();
+            ApplyLocalization();
         }
     }
 
@@ -1052,13 +1289,21 @@ public partial class MainWindow : Window
         if (LblUiLanguage != null) LblUiLanguage.Text = loc.Get("LblUiLanguage");
         if (ItemUiLangEn != null) ItemUiLangEn.Content = loc.Get("UiLangEn");
         if (ItemUiLangId != null) ItemUiLangId.Content = loc.Get("UiLangId");
+        if (ItemUiLangRu != null) ItemUiLangRu.Content = loc.Get("UiLangRu");
         if (ItemUiLangAuto != null) ItemUiLangAuto.Content = loc.Get("UiLangAuto");
+
+        // Silent Auto Update
+        if (LblAutoUpdate != null) LblAutoUpdate.Text = loc.Get("LblUpdates");
+        if (BtnCheckUpdate != null) BtnCheckUpdate.Content = loc.Get("BtnCheckUpdate");
+        if (BtnApplyUpdateNow != null && BtnApplyUpdateNow.Visibility == Visibility.Visible)
+            BtnApplyUpdateNow.Content = loc.Get("BtnRestartUpdate");
 
         // Labels
         if (LblSourceLang != null) LblSourceLang.Text = loc.Get("LblSourceLanguage");
         if (LblTargetLang != null) LblTargetLang.Text = loc.Get("LblTargetLanguage");
         if (LblEngine != null) LblEngine.Text = loc.Get("LblEngine");
         if (LblApiKey != null) LblApiKey.Text = loc.Get("LblApiKey");
+        if (BtnVerifyApiKey != null) BtnVerifyApiKey.Content = loc.Get("BtnVerifyKey");
         if (LblDeepgramKey != null) LblDeepgramKey.Text = loc.Get("LblDeepgramKey");
         if (LblGroqModel != null) LblGroqModel.Text = loc.Get("LblGroqModel");
         if (BtnRefreshModels != null) BtnRefreshModels.Content = loc.Get("BtnRefresh");
@@ -1092,6 +1337,7 @@ public partial class MainWindow : Window
         if (ItemSrcRu != null) ItemSrcRu.Content = loc.Get("LangRussian");
         if (ItemSrcAr != null) ItemSrcAr.Content = loc.Get("LangArabic");
 
+        if (ItemTgtAuto != null) ItemTgtAuto.Content = loc.Get("TargetAuto");
         if (ItemTgtId != null) ItemTgtId.Content = loc.Get("LangIndonesian");
         if (ItemTgtEn != null) ItemTgtEn.Content = loc.Get("LangEnglish");
         if (ItemTgtJa != null) ItemTgtJa.Content = loc.Get("LangJapanese");
@@ -1126,6 +1372,8 @@ public partial class MainWindow : Window
         {
             TranslatedTextBlock.Text = loc.Get("OcrPlaceholder");
         }
+
+        UpdateApiKeyStatusVisual();
     }
 
     private void ControlPanel_DragDelta(object sender, DragDeltaEventArgs e)
