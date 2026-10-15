@@ -239,23 +239,22 @@ set ""OLD_PID=%~4""
 
 echo [%date% %time%] Updater started. Target=%TARGET_DIR% OldPID=%OLD_PID% > ""%~dp0updater.log""
 
-if ""%OLD_PID%""=="""" goto start_copy
+:: Kill old process by PID if still alive
+if not ""%OLD_PID%""=="""" (
+    taskkill /f /pid %OLD_PID% >nul 2>&1
+)
 
-:waitloop
-tasklist /fi ""PID eq %OLD_PID%"" 2>nul | find ""%OLD_PID%"" >nul
-if errorlevel 1 goto start_copy
+:: Terminate any duplicate instances to guarantee clean single-instance restart
+taskkill /f /im ""%TARGET_EXE%"" >nul 2>&1
 timeout /t 1 /nobreak >nul
-goto waitloop
 
-:start_copy
-timeout /t 1 /nobreak >nul
-echo [%date% %time%] Process terminated. Starting file copy... >> ""%~dp0updater.log""
+echo [%date% %time%] Starting file copy... >> ""%~dp0updater.log""
 
 :: Robocopy everything except user config
 robocopy ""%SOURCE_DIR%"" ""%TARGET_DIR%"" /E /IS /IT /XF appsettings.json >> ""%~dp0updater.log"" 2>&1
 
-:: Relaunch updated application
-echo [%date% %time%] Launching %TARGET_DIR%\%TARGET_EXE% >> ""%~dp0updater.log""
+:: Relaunch updated application exactly once
+echo [%date% %time%] Launching updated %TARGET_DIR%\%TARGET_EXE% >> ""%~dp0updater.log""
 cd /d ""%TARGET_DIR%""
 start """" ""%TARGET_DIR%\%TARGET_EXE%""
 
@@ -268,10 +267,20 @@ exit /b 0
             File.WriteAllText(scriptPath, scriptContent);
         }
 
+        private bool _isApplyingUpdate = false;
+
         public void ApplyUpdateAndRestart()
         {
+            if (_isApplyingUpdate) return;
+            _isApplyingUpdate = true;
+
             if (!IsUpdateReady || string.IsNullOrWhiteSpace(StagedDirectory) || !Directory.Exists(StagedDirectory))
+            {
+                _isApplyingUpdate = false;
                 return;
+            }
+
+            IsUpdateReady = false;
 
             try
             {
@@ -294,14 +303,12 @@ exit /b 0
 
                 Process.Start(psi);
 
-                // Gracefully shutdown
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    Application.Current.Shutdown();
-                });
+                // Exit immediately so process terminates and frees file handles cleanly
+                Environment.Exit(0);
             }
             catch (Exception ex)
             {
+                _isApplyingUpdate = false;
                 MessageBox.Show($"Failed to apply update: {ex.Message}", "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
