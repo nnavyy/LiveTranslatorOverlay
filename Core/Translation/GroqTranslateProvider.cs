@@ -292,7 +292,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                     contextStr = "\n\nPrevious conversation context (use this ONLY to understand the flow, DO NOT translate this again):\n" + string.Join("\n", _history);
                 }
 
-                string systemPrompt = $"You are an expert real-time subtitle and conversational dialogue translator. Translate the spoken conversation naturally, fluently, and idiomatically into {targetLangFull}. Accurately convey the speaker's tone, emotional nuance, and conversational context, avoiding stiff, overly literal, or robotic textbook phrasing.{sourceLangHint} If the text is already in {targetLangFull}, just return the exact text without any changes. Output ONLY the clean direct translation without any explanations, surrounding quotes, or commentary.{contextStr}";
+                string systemPrompt = $"You are an expert real-time subtitle and dialogue translator. Translate conversational speech naturally, fluently, and idiomatically into {targetLangFull}. Accurately convey the speaker's tone, politeness level, and conversational intent, avoiding stiff, overly literal, or robotic textbook phrasing. Translate common cultural phrases, service speech, idioms, and greetings (such as Japanese keigo: わかりました, 少々お待ちください, お疲れ様, etc.) into their natural conversational equivalent in {targetLangFull} (e.g., in Russian: 'Хорошо, минуточку, пожалуйста', NOT stiff machine-like words).{sourceLangHint} If the text is already in {targetLangFull}, return it as is. Output ONLY the clean direct translation without any explanations, surrounding quotes, or commentary.{contextStr}";
 
                 var payload = new
                 {
@@ -447,7 +447,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                     contextStr = "\n\nPrevious conversation context (use this ONLY to understand the flow, DO NOT translate this again):\n" + string.Join("\n", _history);
                 }
 
-                string systemPrompt = $"You are an expert real-time subtitle and conversational dialogue translator. Translate the spoken conversation naturally, fluently, and idiomatically into {targetLangFull}. Accurately convey the speaker's tone, emotional nuance, and conversational context, avoiding stiff, overly literal, or robotic textbook phrasing.{sourceLangHint} If the text is already in {targetLangFull}, just return the exact text without any changes. Output ONLY the clean direct translation without any explanations, surrounding quotes, or commentary.{contextStr}";
+                string systemPrompt = $"You are an expert real-time subtitle and dialogue translator. Translate conversational speech naturally, fluently, and idiomatically into {targetLangFull}. Accurately convey the speaker's tone, politeness level, and conversational intent, avoiding stiff, overly literal, or robotic textbook phrasing. Translate common cultural phrases, service speech, idioms, and greetings (such as Japanese keigo: わかりました, 少々お待ちください, お疲れ様, etc.) into their natural conversational equivalent in {targetLangFull} (e.g., in Russian: 'Хорошо, минуточку, пожалуйста', NOT stiff machine-like words).{sourceLangHint} If the text is already in {targetLangFull}, return it as is. Output ONLY the clean direct translation without any explanations, surrounding quotes, or commentary.{contextStr}";
 
                 var payload = new
                 {
