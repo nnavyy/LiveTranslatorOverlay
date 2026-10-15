@@ -5,6 +5,8 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
 
+using LiveTranslatorOverlay.Core.Japanese;
+
 namespace LiveTranslatorOverlay.Core.Translation
 {
     public class GroqTranslateProvider : ITranslationProvider
@@ -12,6 +14,8 @@ namespace LiveTranslatorOverlay.Core.Translation
         private readonly HttpClient _httpClient;
         private string _apiKey;
         private string _model = ""; // Will be auto-set after fetching available models
+
+        public JapaneseScriptStyle JapaneseStyle { get; set; } = JapaneseScriptStyle.Standard;
 
         // Preferred models in order of priority (fastest/most accurate multilingual first)
         private static readonly string[] PreferredModels =
@@ -248,7 +252,13 @@ namespace LiveTranslatorOverlay.Core.Translation
                 {
                     "en" => "English",
                     "id" => "Indonesian",
-                    "ja" => "Japanese",
+                    "ja" => JapaneseStyle switch
+                    {
+                        JapaneseScriptStyle.Hiragana => "Japanese (written exclusively in pure Hiragana without Kanji)",
+                        JapaneseScriptStyle.Romaji => "Japanese (written in standard Hepburn Romaji Latin alphabet)",
+                        JapaneseScriptStyle.Katakana => "Japanese (written exclusively in Katakana)",
+                        _ => "Japanese"
+                    },
                     "ko" => "Korean",
                     "zh" => "Chinese",
                     "es" => "Spanish",
@@ -397,7 +407,13 @@ namespace LiveTranslatorOverlay.Core.Translation
                 {
                     "en" => "English",
                     "id" => "Indonesian",
-                    "ja" => "Japanese",
+                    "ja" => JapaneseStyle switch
+                    {
+                        JapaneseScriptStyle.Hiragana => "Japanese (written exclusively in pure Hiragana without Kanji)",
+                        JapaneseScriptStyle.Romaji => "Japanese (written in standard Hepburn Romaji Latin alphabet)",
+                        JapaneseScriptStyle.Katakana => "Japanese (written exclusively in Katakana)",
+                        _ => "Japanese"
+                    },
                     "ko" => "Korean",
                     "zh" => "Chinese",
                     "es" => "Spanish",
