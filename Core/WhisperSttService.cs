@@ -23,7 +23,7 @@ namespace LiveTranslatorOverlay.Core
         {
             _apiKey = apiKey;
             _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromSeconds(15);
+            _httpClient.Timeout = TimeSpan.FromSeconds(45);
         }
 
         public async Task<bool> InitializeAsync(Action<string>? onProgress)
@@ -165,6 +165,11 @@ namespace LiveTranslatorOverlay.Core
                 {
                     _rateLimitCooldownUntil = DateTime.UtcNow.AddSeconds(8);
                     RateLimitCooldownStarted?.Invoke(this, 8);
+                    return string.Empty;
+                }
+                if (ex is TaskCanceledException || ex is OperationCanceledException || ex.Message.Contains("Timeout") || ex.Message.Contains("canceled"))
+                {
+                    // Network latency transient hiccup - return empty to let next audio chunk proceed smoothly
                     return string.Empty;
                 }
                 throw new Exception($"Whisper API Error: {ex.Message}");

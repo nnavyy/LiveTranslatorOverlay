@@ -254,7 +254,8 @@ namespace LiveTranslatorOverlay.Core.Translation
                     "id" => "Indonesian",
                     "ja" => JapaneseStyle switch
                     {
-                        JapaneseScriptStyle.Hiragana => "Japanese (written exclusively in pure Hiragana without Kanji)",
+                        JapaneseScriptStyle.Hiragana => "Japanese (written in pure Hiragana and Katakana without Kanji)",
+                        JapaneseScriptStyle.Furigana => "Japanese (with Hiragana furigana in parentheses immediately following each Kanji, e.g. 漢字(かんじ))",
                         JapaneseScriptStyle.Romaji => "Japanese (written in standard Hepburn Romaji Latin alphabet)",
                         JapaneseScriptStyle.Katakana => "Japanese (written exclusively in Katakana)",
                         _ => "Japanese"
@@ -409,7 +410,8 @@ namespace LiveTranslatorOverlay.Core.Translation
                     "id" => "Indonesian",
                     "ja" => JapaneseStyle switch
                     {
-                        JapaneseScriptStyle.Hiragana => "Japanese (written exclusively in pure Hiragana without Kanji)",
+                        JapaneseScriptStyle.Hiragana => "Japanese (written in pure Hiragana and Katakana without Kanji)",
+                        JapaneseScriptStyle.Furigana => "Japanese (with Hiragana furigana in parentheses immediately following each Kanji, e.g. 漢字(かんじ))",
                         JapaneseScriptStyle.Romaji => "Japanese (written in standard Hepburn Romaji Latin alphabet)",
                         JapaneseScriptStyle.Katakana => "Japanese (written exclusively in Katakana)",
                         _ => "Japanese"
