@@ -312,12 +312,6 @@ public partial class MainWindow : Window
             CaptionTop = Canvas.GetTop(CaptionBar)
         };
         settings.Save();
-
-        // If a silent update has finished downloading and staging, apply it seamlessly on close!
-        if (AutoUpdaterService.Instance.IsUpdateReady)
-        {
-            AutoUpdaterService.Instance.ApplyUpdateAndRestart();
-        }
     }
 
     private async Task RefreshGroqModelsAsync()
