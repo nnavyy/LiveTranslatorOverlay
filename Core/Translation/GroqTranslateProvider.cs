@@ -13,17 +13,15 @@ namespace LiveTranslatorOverlay.Core.Translation
         private string _apiKey;
         private string _model = ""; // Will be auto-set after fetching available models
 
-        // Preferred models in order of priority (fastest/cheapest first)
+        // Preferred models in order of priority (fastest/most accurate multilingual first)
         private static readonly string[] PreferredModels =
         {
-            "openai/gpt-oss-20b",         // Model utama (sangat cepat, reasoning terpisah jadi tidak error <think>)
-            "llama-3.1-8b-instant",       
-            "gemma2-9b-it",               
-            "llama-3.3-70b-versatile",    
+            "llama-3.3-70b-versatile",    // Most accurate for Japanese, Russian, Asian & European languages
+            "llama-3.1-8b-instant",       // Super fast fallback
             "mixtral-8x7b-32768",
-            "qwen/qwen3.6-27b",           
-            "groq/compound-mini",
-            "openai/gpt-oss-120b"
+            "gemma2-9b-it",
+            "qwen/qwen3.6-27b",
+            "groq/compound-mini"
         };
 
         private string _cachedInput = "";
@@ -124,6 +122,54 @@ namespace LiveTranslatorOverlay.Core.Translation
             catch { }
 
             return models;
+        }
+
+        public static async Task<(bool IsValid, string Message, List<string> Models)> ValidateKeyAsync(string apiKey)
+        {
+            if (string.IsNullOrWhiteSpace(apiKey))
+                return (false, "API Key is empty", new List<string>());
+
+            string cleanKey = apiKey.Trim();
+            try
+            {
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.groq.com/openai/v1/models");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", cleanKey);
+
+                using var response = await client.SendAsync(request);
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    return (false, "Invalid API Key (HTTP 401 Unauthorized)", new List<string>());
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    return (false, $"Groq error: {response.StatusCode}", new List<string>());
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(json);
+                var models = new List<string>();
+
+                if (doc.RootElement.TryGetProperty("data", out var data))
+                {
+                    foreach (var model in data.EnumerateArray())
+                    {
+                        if (model.TryGetProperty("id", out var idEl))
+                        {
+                            string? id = idEl.GetString();
+                            if (id != null && !id.Contains("whisper") && !id.Contains("guard") && !id.Contains("vision"))
+                                models.Add(id);
+                        }
+                    }
+                }
+
+                return (true, "Key is valid & connected to Groq", models);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Connection error: {ex.Message}", new List<string>());
+            }
         }
 
         public async Task<string> TranslateAsync(string text, string targetLanguage = "id", string sourceLanguage = "auto")
@@ -342,9 +388,9 @@ namespace LiveTranslatorOverlay.Core.Translation
                 string fullResult = "";
                 bool isThinking = false;
 
-                while (!reader.EndOfStream)
+                string? line;
+                while ((line = await reader.ReadLineAsync()) != null)
                 {
-                    string? line = await reader.ReadLineAsync();
                     if (string.IsNullOrWhiteSpace(line)) continue;
                     
                     if (line.StartsWith("data: "))

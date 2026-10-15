@@ -12,7 +12,7 @@ namespace LiveTranslatorOverlay.Core.Localization
         public event EventHandler? LanguageChanged;
 
         private string _configuredLang = "en"; // "en", "id", or "auto"
-        private string _activeLang = "en";     // "en" or "id"
+        private string _activeLang = "en";     // "en", "id", or "ru"
 
         public string ConfiguredLanguage => _configuredLang;
         public string ActiveLanguage => _activeLang;
@@ -28,8 +28,19 @@ namespace LiveTranslatorOverlay.Core.Localization
 
             if (_configuredLang == "auto")
             {
-                string sysTwoLetter = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
-                _activeLang = sysTwoLetter == "id" ? "id" : "en";
+                string sys = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+                string sysInstalled = CultureInfo.InstalledUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+                
+                if (sys == "ru" || sysInstalled == "ru")
+                    _activeLang = "ru";
+                else if (sys == "id" || sysInstalled == "id")
+                    _activeLang = "id";
+                else
+                    _activeLang = "en";
+            }
+            else if (_configuredLang == "ru")
+            {
+                _activeLang = "ru";
             }
             else if (_configuredLang == "id")
             {
@@ -147,10 +158,25 @@ namespace LiveTranslatorOverlay.Core.Localization
                 ["TxtTitlePreferences"] = "App Preferences",
                 ["UiLangEn"] = "English (Default)",
                 ["UiLangId"] = "Indonesian (Bahasa Indonesia)",
+                ["UiLangRu"] = "Russian (Русский)",
                 ["UiLangAuto"] = "Auto (System Default)",
+                ["TargetAuto"] = "Auto (System Language)",
                 ["BtnOpenHistory"] = "Open Translation History",
                 ["BtnFeedback"] = "Report Bug / Feedback",
                 ["BtnCloseApp"] = "Close App",
+
+                // API Key & Auto Update
+                ["BtnVerifyKey"] = "Verify",
+                ["ApiKeyEmpty"] = "Free Google Translate active",
+                ["ApiKeyChecking"] = "Verifying key with Groq...",
+                ["ApiKeyValid"] = "Groq AI connected and active",
+                ["ApiKeyInvalid"] = "Invalid Groq API key",
+                ["LblUpdates"] = "App Updates:",
+                ["BtnCheckUpdate"] = "Check",
+                ["UpdateChecking"] = "Checking for updates...",
+                ["UpdateUpToDate"] = "Up to date ({0})",
+                ["UpdateAvailable"] = "Update {0} ready",
+                ["BtnRestartUpdate"] = "Restart to apply",
 
                 // Feedback & Bug Report
                 ["FeedbackTitle"] = "Report Bug & Feedback",
@@ -288,10 +314,25 @@ namespace LiveTranslatorOverlay.Core.Localization
                 ["TxtTitlePreferences"] = "Preferensi Aplikasi",
                 ["UiLangEn"] = "Inggris (Default)",
                 ["UiLangId"] = "Bahasa Indonesia",
+                ["UiLangRu"] = "Rusia (Русский)",
                 ["UiLangAuto"] = "Otomatis (Sesuai Sistem)",
+                ["TargetAuto"] = "Otomatis (Sesuai Sistem)",
                 ["BtnOpenHistory"] = "Buka Riwayat Terjemahan",
                 ["BtnFeedback"] = "Lapor Bug / Saran",
                 ["BtnCloseApp"] = "Tutup Aplikasi",
+
+                // API Key & Auto Update
+                ["BtnVerifyKey"] = "Verifikasi",
+                ["ApiKeyEmpty"] = "Google Translate gratis aktif",
+                ["ApiKeyChecking"] = "Memverifikasi key ke Groq...",
+                ["ApiKeyValid"] = "Groq AI terhubung dan aktif",
+                ["ApiKeyInvalid"] = "API Key Groq tidak valid",
+                ["LblUpdates"] = "Pembaruan:",
+                ["BtnCheckUpdate"] = "Periksa",
+                ["UpdateChecking"] = "Memeriksa pembaruan...",
+                ["UpdateUpToDate"] = "Versi terbaru ({0})",
+                ["UpdateAvailable"] = "Pembaruan {0} siap",
+                ["BtnRestartUpdate"] = "Restart untuk pasang",
 
                 // Feedback & Bug Report
                 ["FeedbackTitle"] = "Lapor Bug & Saran",
@@ -339,6 +380,162 @@ namespace LiveTranslatorOverlay.Core.Localization
                 ["TitleSuccess"] = "Berhasil",
                 ["MsgSaveFailed"] = "Gagal menyimpan: {0}",
                 ["AiSummaryPrompt"] = "Kamu adalah AI Assistant profesional. Berikut adalah transkrip percakapan/audio/terjemahan langsung. Tugasmu: 1. Buat Ringkasan Inti (Summary) yang padat, jelas, dan akurat. 2. Tulis Poin-Poin Penting (Key Highlights). 3. Tulis detail penting atau aksi lanjutan jika ada. Format output dengan rapi, profesional, dan mudah dipahami dalam bahasa Indonesia."
+            },
+            ["ru"] = new Dictionary<string, string>
+            {
+                // Top Header
+                ["BtnSettings"] = "Настройки",
+                ["BtnShowSettings"] = "Показать настройки",
+                ["BtnHideSettings"] = "Скрыть настройки",
+                ["BtnHideAllWindows"] = "Скрыть все окна",
+                ["BtnShowAllWindows"] = "Показать все окна",
+                ["DragTooltip"] = "Потяните для перемещения панели",
+                ["HideAllTooltip"] = "Скрыть или показать все окна",
+                ["AppTitle"] = "Live Translator",
+
+                // Language & UI Settings
+                ["LblUiLanguage"] = "Язык интерфейса:",
+                ["LblSourceLanguage"] = "Исходный язык:",
+                ["LblTargetLanguage"] = "Язык перевода:",
+                ["AutoDetect"] = "Автоопределение",
+                ["TargetAuto"] = "Авто (Язык системы)",
+                ["LangEnglish"] = "Английский (en)",
+                ["LangJapanese"] = "Японский (ja)",
+                ["LangKorean"] = "Корейский (ko)",
+                ["LangChinese"] = "Китайский (zh)",
+                ["LangChineseSimp"] = "Китайский упрощённый (zh)",
+                ["LangIndonesian"] = "Индонезийский (id)",
+                ["LangSpanish"] = "Испанский (es)",
+                ["LangFrench"] = "Французский (fr)",
+                ["LangGerman"] = "Немецкий (de)",
+                ["LangRussian"] = "Русский (ru)",
+                ["LangArabic"] = "Арабский (ar)",
+
+                // Engine
+                ["LblEngine"] = "Движок перевода:",
+                ["EngineGoogle"] = "Google Translate (Бесплатно, без квоты)",
+                ["EngineGroq"] = "Groq AI (Нужен API-ключ, точный перевод)",
+                ["LblApiKey"] = "API-ключ (Groq):",
+                ["LblDeepgramKey"] = "API-ключ Deepgram:",
+                ["DeepgramTooltip"] = "Бесплатная регистрация на deepgram.com - 12 000 мин/месяц",
+                ["LblGroqModel"] = "Модель Groq:",
+                ["ModelAuto"] = "(Авто)",
+                ["BtnRefresh"] = "Обновить",
+                ["RefreshModelsTooltip"] = "Обновить список моделей",
+
+                // Screen OCR
+                ["TitleOcr"] = "Экранный OCR",
+                ["BtnSelectArea"] = "Выбрать область экрана",
+                ["BtnStartOcr"] = "Запустить Live OCR",
+                ["BtnStopOcr"] = "Остановить Live OCR",
+                ["OcrPlaceholder"] = "[Перевод появится здесь]",
+                ["OcrStarting"] = "Запуск OCR...",
+                ["OcrStopped"] = "[OCR остановлен]",
+                ["OcrSelectPrompt"] = "Нажмите «Выбрать область экрана» и выделите область.",
+
+                // Audio STT
+                ["TitleAudio"] = "Транскрипция аудио",
+                ["LblSttMode"] = "Режим STT:",
+                ["SttDeepgram"] = "Deepgram (Потоковый + Спикеры)",
+                ["SttGroq"] = "Groq Whisper (Пакетный + Спикеры)",
+                ["LblFontSize"] = "Размер шрифта субтитров:",
+                ["FontSmall"] = "Маленький (14px)",
+                ["FontMedium"] = "Средний (20px)",
+                ["FontLarge"] = "Большой (26px)",
+                ["FontExtraLarge"] = "Очень большой (36px)",
+                ["LblAudioDevice"] = "Устройство аудиозахвата:",
+                ["DefaultAudioDevice"] = "Системный звук (по умолчанию)",
+                ["RefreshAudioTooltip"] = "Обновить аудиоустройства",
+                ["BtnStartAudio"] = "Начать перевод аудио",
+                ["BtnStopAudio"] = "Остановить перевод аудио",
+                ["SpeakerDetectionOn"] = "Определение спикеров: ВКЛ",
+                ["WaitingForAudio"] = "[Ожидание аудио...]",
+                ["ConnectingDeepgram"] = "Подключение к Deepgram...",
+                ["FailedDeepgram"] = "Ошибка подключения к Deepgram. Проверьте API-ключ.",
+                ["FailedWhisper"] = "Не удалось инициализировать Groq Whisper.",
+                ["RateLimitCooldown"] = "Лимит Groq исчерпан (пауза {0}с)...",
+                ["DeviceOutput"] = "Вывод: {0}",
+                ["DeviceMic"] = "Микрофон: {0}",
+                ["DeviceApp"] = "Приложение: {0} - {1}",
+                ["SpeakerLabel"] = "Спикер {0}",
+
+                // API Quota
+                ["TitleQuota"] = "Квота API",
+                ["QuotaUnlimited"] = "Безлимитно",
+                ["QuotaTracking"] = "Отслеживание...",
+                ["QuotaCooldown"] = "Пауза: {0}с",
+
+                // Extras & Preferences
+                ["TxtToggleHideTitle"] = "Скрыть все окна",
+                ["TxtToggleHideDesc"] = "Скрыть оверлей и все окна приложения",
+                ["TxtTitlePreferences"] = "Настройки приложения",
+                ["UiLangEn"] = "English (Английский)",
+                ["UiLangId"] = "Bahasa Indonesia (Индонезийский)",
+                ["UiLangRu"] = "Русский (Russian)",
+                ["UiLangAuto"] = "Авто (Язык системы)",
+                ["BtnOpenHistory"] = "Открыть историю переводов",
+                ["BtnFeedback"] = "Отчет об ошибке / Отзыв",
+                ["BtnCloseApp"] = "Закрыть приложение",
+
+                // API Key & Auto Update
+                ["BtnVerifyKey"] = "Проверить",
+                ["ApiKeyEmpty"] = "Используется бесплатный Google Translate",
+                ["ApiKeyChecking"] = "Проверка ключа в сети Groq...",
+                ["ApiKeyValid"] = "Groq AI подключен и активен",
+                ["ApiKeyInvalid"] = "Недействительный API-ключ Groq",
+                ["LblUpdates"] = "Обновления:",
+                ["BtnCheckUpdate"] = "Проверить",
+                ["UpdateChecking"] = "Проверка обновлений...",
+                ["UpdateUpToDate"] = "Установлена последняя версия ({0})",
+                ["UpdateAvailable"] = "Обновление {0} готово",
+                ["BtnRestartUpdate"] = "Перезапустить",
+
+                // Feedback & Bug Report
+                ["FeedbackTitle"] = "Отчет об ошибке и отзывы",
+                ["FeedbackSubtitle"] = "Отправьте отчет об ошибке или предложение разработчику",
+                ["FeedbackType"] = "Тип обращения:",
+                ["FeedbackTypeBug"] = "Ошибка в приложении",
+                ["FeedbackTypeFeature"] = "Предложение функции",
+                ["FeedbackTypeGeneral"] = "Общий отзыв",
+                ["FeedbackContact"] = "Ваш Email (необязательно):",
+                ["FeedbackSubject"] = "Тема:",
+                ["FeedbackMessage"] = "Описание / Подробности:",
+                ["FeedbackSend"] = "Отправить",
+                ["FeedbackMailto"] = "Открыть почтовую программу",
+                ["FeedbackClose"] = "Закрыть",
+                ["FeedbackSending"] = "Отправка сообщения, пожалуйста, подождите...",
+                ["FeedbackSuccess"] = "Сообщение успешно отправлено.",
+                ["FeedbackError"] = "Не удалось отправить. Проверьте интернет или откройте почтовую программу.",
+                ["FeedbackEmpty"] = "Пожалуйста, заполните Тему и Описание.",
+                ["FeedbackMailtoError"] = "Не удалось открыть почтовую программу: {0}",
+                ["FeedbackTabSubmit"] = "Новый отчет",
+                ["FeedbackTabHistory"] = "Мои обращения ({0})",
+                ["FeedbackHistoryEmpty"] = "С этого устройства пока не отправлено отчетов.",
+                ["FeedbackStatusPending"] = "В ожидании",
+                ["FeedbackStatusInProgress"] = "В обработке",
+                ["FeedbackStatusFixed"] = "Решено",
+                ["FeedbackRefreshStatus"] = "Обновить статус",
+                ["FeedbackRefreshing"] = "Проверка статуса...",
+                ["FeedbackRefreshed"] = "Статус актуален.",
+                ["FeedbackReportId"] = "ID: {0}",
+                ["FeedbackReportDate"] = "Отправлено: {0}",
+
+                // History Window
+                ["HistoryTitle"] = "Живой транскрипт и перевод",
+                ["BtnSummarize"] = "AI-саммари",
+                ["BtnClear"] = "Очистить",
+                ["BtnSave"] = "Сохранить в файл",
+                ["MsgEmptyHistory"] = "История диалога пуста.",
+                ["TitleEmpty"] = "Пусто",
+                ["MsgMissingApiKey"] = "API-ключ Groq не указан в главном окне.",
+                ["TitleError"] = "Ошибка",
+                ["WindowSummarizingTitle"] = "AI формирует саммари...",
+                ["TxtSummarizing"] = "Создание краткого содержания транскрипта...\nПожалуйста, подождите.",
+                ["WindowSummaryTitle"] = "Краткое содержание (AI Summary)",
+                ["MsgSavedSuccess"] = "Сохранено в:\n{0}",
+                ["TitleSuccess"] = "Успешно",
+                ["MsgSaveFailed"] = "Ошибка сохранения: {0}",
+                ["AiSummaryPrompt"] = "Вы профессиональный AI-ассистент. Ниже приведён транскрипт живого разговора. Ваша задача: 1. Составить краткое и ёмкое содержание (Executive Summary). 2. Выделить ключевые тезисы (Key Highlights). 3. Указать дальнейшие действия (Action Items), если они есть. Оформите аккуратно и на понятном русском языке."
             }
         };
     }

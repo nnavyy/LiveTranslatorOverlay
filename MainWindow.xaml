@@ -184,6 +184,7 @@
 
                         <TextBlock x:Name="LblTargetLang" Text="Target Language:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
                         <ComboBox x:Name="CmbTargetLang" SelectedIndex="0" Margin="0,0,0,15" Padding="5">
+                            <ComboBoxItem x:Name="ItemTgtAuto" Content="Auto (System Language)" Tag="auto"/>
                             <ComboBoxItem x:Name="ItemTgtId" Content="Indonesian (id)" Tag="id"/>
                             <ComboBoxItem x:Name="ItemTgtEn" Content="English (en)" Tag="en"/>
                             <ComboBoxItem x:Name="ItemTgtJa" Content="Japanese (ja)" Tag="ja"/>
@@ -204,7 +205,18 @@
                         </ComboBox>
                         
                         <TextBlock x:Name="LblApiKey" Text="API Key (Groq):" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
-                        <TextBox x:Name="TxtApiKey" Margin="0,0,0,8" Padding="5" Background="#2A2A2A" Foreground="White" BorderBrush="#555"/>
+                        <Grid Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="TxtApiKey" Grid.Column="0" Padding="5" Background="#2A2A2A" Foreground="White" BorderBrush="#555"/>
+                            <Button x:Name="BtnVerifyApiKey" Grid.Column="1" Content="Verify" Width="60" Margin="5,0,0,0" ToolTip="Test and verify API key with Groq" Click="BtnVerifyApiKey_Click" Style="{StaticResource ModernButton}" Padding="4,0"/>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="2,2,0,10">
+                            <Ellipse x:Name="DotApiKeyStatus" Width="6" Height="6" Fill="#71717A" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtApiKeyStatus" Text="Free Google Translate active" Foreground="#71717A" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
 
                         <TextBlock x:Name="LblDeepgramKey" Text="Deepgram API Key:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
                         <TextBox x:Name="TxtDeepgramKey" Margin="0,0,0,8" Padding="5" Background="#2A2A2A" Foreground="White" BorderBrush="#555" ToolTip="Sign up for free at deepgram.com - 12,000 minutes/month"/>
@@ -290,11 +302,24 @@
                             <StackPanel>
                                 <TextBlock x:Name="TxtTitlePreferences" Text="App Preferences" Foreground="White" FontFamily="Segoe UI Semibold" FontSize="12" Margin="0,0,0,8"/>
                                 <TextBlock x:Name="LblUiLanguage" Text="UI Language:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
-                                <ComboBox x:Name="CmbUiLanguage" SelectedIndex="0" Padding="5" SelectionChanged="CmbUiLanguage_SelectionChanged">
+                                <ComboBox x:Name="CmbUiLanguage" SelectedIndex="0" Padding="5" SelectionChanged="CmbUiLanguage_SelectionChanged" Margin="0,0,0,10">
                                     <ComboBoxItem x:Name="ItemUiLangEn" Content="English (Default)" Tag="en"/>
                                     <ComboBoxItem x:Name="ItemUiLangId" Content="Indonesian (Bahasa Indonesia)" Tag="id"/>
+                                    <ComboBoxItem x:Name="ItemUiLangRu" Content="Russian (Русский)" Tag="ru"/>
                                     <ComboBoxItem x:Name="ItemUiLangAuto" Content="Auto (System Default)" Tag="auto"/>
                                 </ComboBox>
+
+                                <!-- Silent Auto Update -->
+                                <TextBlock x:Name="LblAutoUpdate" Text="App Updates:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
+                                <Grid Margin="0,0,0,6">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock x:Name="TxtUpdateStatus" Grid.Column="0" Text="App is up to date (v1.2.0)" Foreground="#888888" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <Button x:Name="BtnCheckUpdate" Grid.Column="1" Content="Check" Width="55" Margin="6,0,0,0" Click="BtnCheckUpdate_Click" Style="{StaticResource ModernButton}" Padding="4,2"/>
+                                </Grid>
+                                <Button x:Name="BtnApplyUpdateNow" Visibility="Collapsed" Content="Restart to Apply Update" Click="BtnApplyUpdateNow_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,4" Padding="6,4"/>
                             </StackPanel>
                         </Border>
 
