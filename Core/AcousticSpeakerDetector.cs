@@ -157,13 +157,14 @@ namespace LiveTranslatorOverlay.Core
                 if (frameEnergy < 0.04f) continue;
 
                 float pitch = EstimateFramePitch(audio, i, frameSize, sampleRate);
-                if (pitch > 70f && pitch < 380f)
+                if (pitch >= 95f && pitch <= 420f)
                 {
                     pitchEstimates.Add(pitch);
                 }
             }
 
-            if (pitchEstimates.Count == 0) return 0f;
+            // Require at least 3 consistent voiced frames to avoid mistaking isolated music notes for a speaker
+            if (pitchEstimates.Count < 3) return 0f;
 
             // Use median pitch to filter out octave jumps
             pitchEstimates.Sort();
@@ -171,12 +172,13 @@ namespace LiveTranslatorOverlay.Core
         }
 
         /// <summary>
-        /// Computes normalized autocorrelation for lag range [42, 220] (~73Hz to 380Hz).
+        /// Computes normalized autocorrelation for vocal pitch range [95Hz, 420Hz]
+        /// (filters out deep sub-bass instruments, bass guitars, and kick drums below 95Hz).
         /// </summary>
         private static float EstimateFramePitch(float[] audio, int start, int length, int sampleRate)
         {
-            int minLag = sampleRate / 380; // ~42 samples
-            int maxLag = sampleRate / 73;  // ~219 samples
+            int minLag = sampleRate / 420; // ~38 samples (high female / singing pitch)
+            int maxLag = sampleRate / 95;  // ~168 samples (filters out sub-bass below 95Hz)
 
             if (length <= maxLag) return 0f;
 
@@ -208,8 +210,8 @@ namespace LiveTranslatorOverlay.Core
                 }
             }
 
-            // Confidence threshold: correlation peak > 0.4 indicates strong harmonic periodicity
-            if (bestCorr > 0.40f && bestLag > 0)
+            // Stricter confidence threshold: correlation peak > 0.52 indicates genuine voiced periodic speech
+            if (bestCorr > 0.52f && bestLag > 0)
             {
                 return (float)sampleRate / bestLag;
             }

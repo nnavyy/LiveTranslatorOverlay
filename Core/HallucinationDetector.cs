@@ -41,9 +41,30 @@ namespace LiveTranslatorOverlay.Core
             "\u8acb\u8a02\u95b1",                     // 請訂閱 (Chinese Traditional: subscribe)
             "\u8bf7\u8ba2\u9605",                     // 请订阅 (Chinese Simplified: subscribe)
 
-            // Noise tags & markers
+            // Prompt & instruction echoes (Whisper hallucinating instructions during songs/music)
+            "日本語の会話を正確に書き起こしてください",
+            "会話の書き起こし",
+            "書き起こし",
+            "正確に書き起こして",
+            "transcribe spoken conversation directly",
+            "accurate transcription of spoken conversation",
+            "please transcribe the japanese conversation accurately",
+            "please transcribe",
+            "accurate transcription",
+            "transcribe the conversation",
+            "transcribe spoken conversation",
+            "transkripsikan percakapan",
+            "точная транскрипция",
+            "请准确转录",
+            "대화를 정확하게",
+            "نسخ المحادثة",
+
+            // Noise tags, music, and song markers
             "[blank_audio]", "[music]", "(music)", "music playing", "applause",
             "[silence]", "[noise]", "(applause)", "[inaudible]",
+            "[singing]", "(singing)", "[instrumental]", "(instrumental)",
+            "[音楽]", "(音楽)", "【音楽】", "[bgm]", "(bgm)",
+            "[歌]", "(歌)", "歌唱", "演奏", "効果音", "歓声",
 
             // Musical note hallucinations (common Whisper artifact on background music)
             "\u266a", "\u266b", "\u266c", "\u266d", "\u266e", "\u266f",
@@ -88,10 +109,11 @@ namespace LiveTranslatorOverlay.Core
             "\u3042\u308a\u304c\u3068\u3046\u3054\u3056\u3044\u307e\u3059", // ありがとうございます
             "\u306f\u3044",                           // はい (hai - yes)
             "\u3044\u3044\u3048",                     // いいえ (iie - no)
-            "\u8c22\u8c22",                           // 谢谢 (xièxiè - thank you)
-            "\u5bf9",                                 // 对 (duì - yes/right)
-            "\u597d",                                 // 好 (hǎo - good/ok)
-            "\ub124",                                 // 네 (ne - yes Korean)
+            "音楽", "music", "bgm", "singing", "song",
+            "日本語の会話を正確に書き起こしてください",
+            "会話の書き起こし",
+            "書き起こし",
+            "正確に書き起こしてください",
         };
 
         public static bool IsHallucination(string? text)

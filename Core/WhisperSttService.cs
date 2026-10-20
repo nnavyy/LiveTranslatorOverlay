@@ -103,22 +103,9 @@ namespace LiveTranslatorOverlay.Core
                 content.Add(new StringContent("json"), "response_format");
                 content.Add(new StringContent("0.0"), "temperature"); // Temperature 0 mencegah halusinasi acak
                 
-                // Language-specific prompt hints reduce hallucinations by priming the decoder
-                // with expected vocabulary patterns for the target language
-                string whisperPrompt = _currentLanguage switch
-                {
-                    "ja" => "会話の書き起こし。日本語の会話を正確に書き起こしてください。",
-                    "ko" => "대화를 정확하게 받아적어 주세요.",
-                    "zh" => "请准确转录对话内容。",
-                    "ru" => "Точная транскрипция разговора.",
-                    "id" => "Transkripsikan percakapan dengan akurat.",
-                    "es" => "Transcripción precisa de la conversación.",
-                    "fr" => "Transcription précise de la conversation.",
-                    "de" => "Genaue Transkription des Gesprächs.",
-                    "ar" => "نسخ المحادثة بدقة.",
-                    _ => "Accurate transcription of spoken conversation."
-                };
-                content.Add(new StringContent(whisperPrompt), "prompt");
+                // Do not inject instruction prompts into Whisper.
+                // Whisper is an acoustic model, not an instruction-follower; passing instructions
+                // causes Whisper to echo the prompt text whenever music, songs, or pauses occur.
                 
                 // Kalau sourceLanguage bukan auto, paksakan bahasanya agar 100% akurat
                 if (_currentLanguage != "auto")
