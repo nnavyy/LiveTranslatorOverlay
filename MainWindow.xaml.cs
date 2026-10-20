@@ -35,6 +35,8 @@ public partial class MainWindow : Window
     private ScreenOcrService _ocrService;
     private ITranslationProvider _translationProvider;
     private string _lastOcrText = string.Empty;
+    private DateTime _lastUserActivity = DateTime.UtcNow;
+    private System.Windows.Threading.DispatcherTimer? _idleUpdateTimer;
 
     // Audio STT
     private AudioCaptureService? _audioCaptureService;
@@ -291,27 +293,41 @@ public partial class MainWindow : Window
         }
     }
 
+    private void SaveCurrentSettings()
+    {
+        try
+        {
+            var settings = new LiveTranslatorOverlay.Core.AppSettings
+            {
+                GroqApiKey = TxtApiKey.Text,
+                DeepgramApiKey = TxtDeepgramKey.Text,
+                SourceLangIndex = CmbSourceLang.SelectedIndex,
+                TargetLangIndex = CmbTargetLang.SelectedIndex,
+                JapaneseStyleIndex = CmbJapaneseStyle.SelectedIndex,
+                EngineIndex = CmbEngine.SelectedIndex,
+                SttModeIndex = CmbSttMode.SelectedIndex,
+                FontSizeIndex = CmbFontSize.SelectedIndex,
+                UiLanguage = LocalizationManager.Instance.ConfiguredLanguage,
+                UiLanguageIndex = CmbUiLanguage.SelectedIndex,
+                AudioDeviceName = (CmbAudioDevice.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
+                CaptionLeft = Canvas.GetLeft(CaptionBar),
+                CaptionTop = Canvas.GetTop(CaptionBar)
+            };
+            settings.Save();
+        }
+        catch { }
+    }
+
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         CaptureExclusion.Shutdown();
+        SaveCurrentSettings();
 
-        var settings = new LiveTranslatorOverlay.Core.AppSettings
+        // Opsi A: Seamlessly apply update when closing window
+        if (AutoUpdaterService.Instance.IsUpdateReady)
         {
-            GroqApiKey = TxtApiKey.Text,
-            DeepgramApiKey = TxtDeepgramKey.Text,
-            SourceLangIndex = CmbSourceLang.SelectedIndex,
-            TargetLangIndex = CmbTargetLang.SelectedIndex,
-            JapaneseStyleIndex = CmbJapaneseStyle.SelectedIndex,
-            EngineIndex = CmbEngine.SelectedIndex,
-            SttModeIndex = CmbSttMode.SelectedIndex,
-            FontSizeIndex = CmbFontSize.SelectedIndex,
-            UiLanguage = LocalizationManager.Instance.ConfiguredLanguage,
-            UiLanguageIndex = CmbUiLanguage.SelectedIndex,
-            AudioDeviceName = (CmbAudioDevice.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "",
-            CaptionLeft = Canvas.GetLeft(CaptionBar),
-            CaptionTop = Canvas.GetTop(CaptionBar)
-        };
-        settings.Save();
+            AutoUpdaterService.Instance.ApplyUpdateAndRestart();
+        }
     }
 
     private async Task RefreshGroqModelsAsync()
@@ -617,10 +633,10 @@ public partial class MainWindow : Window
                     BannerUpdateReady.Visibility = Visibility.Visible;
                     TxtBannerUpdateTitle.Text = LocalizationManager.Instance.Get("UpdateAvailable", e.NewVersion);
                     TxtBannerUpdateDesc.Text = LocalizationManager.Instance.Get("BtnRestartUpdate");
-                    BtnBannerRestart.Content = LocalizationManager.Instance.Get("BtnRestartUpdate");
-
                     BtnApplyUpdateNow.Visibility = Visibility.Visible;
                     BtnApplyUpdateNow.Content = $"{LocalizationManager.Instance.Get("BtnRestartUpdate")} ({e.NewVersion})";
+
+                    StartIdleUpdateWatcher();
                 }
             });
         };
@@ -636,11 +652,40 @@ public partial class MainWindow : Window
 
                 BtnApplyUpdateNow.Visibility = Visibility.Visible;
                 BtnApplyUpdateNow.Content = $"{LocalizationManager.Instance.Get("BtnRestartUpdate")} ({version})";
+
+                StartIdleUpdateWatcher();
             });
         };
 
         // Start background silent check
         _ = AutoUpdaterService.Instance.StartBackgroundCheckAsync(silent: true);
+    }
+
+    private void StartIdleUpdateWatcher()
+    {
+        if (_idleUpdateTimer != null) return;
+        _idleUpdateTimer = new System.Windows.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromSeconds(5)
+        };
+        _idleUpdateTimer.Tick += (s, ev) =>
+        {
+            if (!AutoUpdaterService.Instance.IsUpdateReady) return;
+
+            // Opsi A: Auto-apply silent update when idle
+            // 1. Audio recording is NOT active (!_isAudioMode)
+            // 2. Screen Live OCR is NOT running (!_isLiveMode)
+            // 3. No user activity or ongoing translations in the last 15 seconds
+            bool isIdle = !_isAudioMode && !_isLiveMode && (DateTime.UtcNow - _lastUserActivity).TotalSeconds >= 15;
+            if (isIdle)
+            {
+                _idleUpdateTimer.Stop();
+                TxtUpdateStatus.Text = "App idle. Applying update...";
+                SaveCurrentSettings();
+                AutoUpdaterService.Instance.ApplyUpdateAndRestart();
+            }
+        };
+        _idleUpdateTimer.Start();
     }
 
     private async void BtnCheckUpdate_Click(object sender, RoutedEventArgs e)
@@ -861,6 +906,18 @@ public partial class MainWindow : Window
         }
     }
 
+    private void TxtOcrPackHint_MouseDown(object sender, MouseButtonEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("ms-settings:regionlanguage") { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Buka Windows Settings -> Time & Language -> Language untuk memasang paket bahasa OCR.\n\nDetail: {ex.Message}", "OCR Language Settings", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
     private async Task RunLiveOcrLoopAsync(CancellationToken token)
     {
         TranslatedTextBlock.Text = LocalizationManager.Instance.Get("OcrStarting");
@@ -888,6 +945,16 @@ public partial class MainWindow : Window
                 {
                     emptyCount = 0;
                     string cleanText = text.Trim();
+
+                    // If text is an OCR system warning/error (e.g. language pack missing), display it directly
+                    if (cleanText.StartsWith("[OCR:"))
+                    {
+                        Dispatcher.Invoke(() => TranslatedTextBlock.Text = cleanText);
+                        continue;
+                    }
+
+                    _lastUserActivity = DateTime.UtcNow;
+
                     if (cleanText != _lastOcrText)
                     {
                         _lastOcrText = cleanText;
@@ -1605,6 +1672,15 @@ public partial class MainWindow : Window
         if (_feedbackWindow != null)
         {
             _feedbackWindow.Close();
+        }
+
+        SaveCurrentSettings();
+
+        // Opsi A: Seamlessly apply update when closing window
+        if (AutoUpdaterService.Instance.IsUpdateReady)
+        {
+            AutoUpdaterService.Instance.ApplyUpdateAndRestart();
+            return;
         }
 
         this.Close();

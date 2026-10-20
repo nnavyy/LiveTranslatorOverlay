@@ -11,7 +11,7 @@ public class FeedbackRecord
     public string Subject { get; set; } = "";
     public string Description { get; set; } = "";
     public string ContactEmail { get; set; } = "";
-    public string AppVersion { get; set; } = "v1.1.0";
+    public string AppVersion { get; set; } = LiveTranslatorOverlay.Core.Update.AppVersion.DisplayString;
     public string Status { get; set; } = "Pending"; // "Pending", "InProgress", "Fixed"
     public string ResolutionNote { get; set; } = "";
 }

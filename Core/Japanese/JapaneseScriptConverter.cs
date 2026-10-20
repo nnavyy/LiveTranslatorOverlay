@@ -338,7 +338,7 @@ namespace LiveTranslatorOverlay.Core.Japanese
                     _ => "Convert the text to " + targetStyle
                 };
 
-                string[] modelsToTry = { "openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b" };
+                string[] modelsToTry = { "llama-3.3-70b-versatile", "llama-3.1-8b-instant" };
 
                 foreach (var modelName in modelsToTry)
                 {

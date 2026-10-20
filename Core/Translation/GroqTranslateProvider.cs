@@ -20,12 +20,8 @@ namespace LiveTranslatorOverlay.Core.Translation
         // Preferred models in order of priority (fastest/most accurate multilingual first)
         private static readonly string[] PreferredModels =
         {
-            "qwen/qwen3.8-27b",         // Outstanding accuracy for Japanese, Russian, Asian & European languages
-            "openai/gpt-oss-120b",      // High accuracy large language model
-            "openai/gpt-oss-20b",       // Fast, high throughput text model
-            "llama-3.3-70b-versatile",  // Standard Groq models (if available in user tier)
-            "llama-3.1-8b-instant",
-            "allam-2-7b"
+            "llama-3.3-70b-versatile",  // Best accuracy, tone nuance & idiom handling for Japanese, Russian, Asian & European languages
+            "llama-3.1-8b-instant"       // High speed fallback
         };
 
         private string _cachedInput = "";
@@ -33,9 +29,12 @@ namespace LiveTranslatorOverlay.Core.Translation
         private string _cachedSource = "";
         private string _cachedResult = "";
 
-        // Menyimpan history 3 kalimat terakhir untuk konteks terjemahan
+        // Menyimpan history 5 kalimat terakhir untuk konteks terjemahan (deeper context improves coherence)
         private readonly Queue<string> _history = new Queue<string>();
-        private const int MaxHistory = 3;
+        private const int MaxHistory = 5;
+
+        // Deduplication: track the last translated input to avoid redundant API calls
+        private string _lastTranslatedInput = "";
 
         public GroqTranslateProvider(string apiKey)
         {
@@ -237,6 +236,10 @@ namespace LiveTranslatorOverlay.Core.Translation
             if (text == _cachedInput && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource)
                 return _cachedResult;
 
+            // Deduplication: skip if new text is >85% similar to last translated text
+            if (!string.IsNullOrEmpty(_lastTranslatedInput) && StringSimilarity(text, _lastTranslatedInput) > 0.85)
+                return _cachedResult;
+
             // Auto-select model if not set or invalid
             if (string.IsNullOrEmpty(_model) || !IsValidTextModel(_model))
             {
@@ -293,7 +296,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                     contextStr = "\n\nPrevious conversation context (use this ONLY to understand the flow, DO NOT translate this again):\n" + string.Join("\n", _history);
                 }
 
-                string systemPrompt = $"You are an expert real-time subtitle and dialogue translator. Translate conversational speech naturally, fluently, and idiomatically into {targetLangFull}. Accurately convey the speaker's tone, politeness level, and conversational intent, avoiding stiff, overly literal, or robotic textbook phrasing. Translate common cultural phrases, service speech, idioms, and greetings (such as Japanese keigo: わかりました, 少々お待ちください, お疲れ様, etc.) into their natural conversational equivalent in {targetLangFull} (e.g., in Russian: 'Хорошо, минуточку, пожалуйста', NOT stiff machine-like words).{sourceLangHint} If the text is already in {targetLangFull}, return it as is. Output ONLY the clean direct translation without any explanations, surrounding quotes, or commentary.{contextStr}";
+                string systemPrompt = BuildSystemPrompt(targetLangFull, sourceLangHint, contextStr);
 
                 var payload = new
                 {
@@ -356,6 +359,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                         _cachedTarget = targetLanguage;
                         _cachedSource = sourceLanguage;
                         _cachedResult = result;
+                        _lastTranslatedInput = text;
 
                         _history.Enqueue($"[{text}] -> [{result}]");
                         if (_history.Count > MaxHistory) _history.Dequeue();
@@ -449,7 +453,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                     contextStr = "\n\nPrevious conversation context (use this ONLY to understand the flow, DO NOT translate this again):\n" + string.Join("\n", _history);
                 }
 
-                string systemPrompt = $"You are an expert real-time subtitle and dialogue translator. Translate conversational speech naturally, fluently, and idiomatically into {targetLangFull}. Accurately convey the speaker's tone, politeness level, and conversational intent, avoiding stiff, overly literal, or robotic textbook phrasing. Translate common cultural phrases, service speech, idioms, and greetings (such as Japanese keigo: わかりました, 少々お待ちください, お疲れ様, etc.) into their natural conversational equivalent in {targetLangFull} (e.g., in Russian: 'Хорошо, минуточку, пожалуйста', NOT stiff machine-like words).{sourceLangHint} If the text is already in {targetLangFull}, return it as is. Output ONLY the clean direct translation without any explanations, surrounding quotes, or commentary.{contextStr}";
+                string systemPrompt = BuildSystemPrompt(targetLangFull, sourceLangHint, contextStr);
 
                 var payload = new
                 {
@@ -582,6 +586,63 @@ namespace LiveTranslatorOverlay.Core.Translation
             }
 
             _model = model;
+        }
+
+        private static string BuildSystemPrompt(string targetLangFull, string sourceLangHint, string contextStr)
+        {
+            return $"You are an expert subtitle, dialogue, and live speech translator. Translate spoken conversation into {targetLangFull} with high accuracy, natural phrasing, and authentic conversational flow.\n\n" +
+                   $"Key translation guidelines:\n" +
+                   $"1. Natural Tone & Idioms: Avoid stiff, word-for-word machine translation. Convey politeness, casualness, slang, emotion, and speaker intent naturally in {targetLangFull}.\n" +
+                   $"2. Service & Courtesy Phrases:\n" +
+                   $"   - Polite acknowledgements (e.g. わかりました, かしこまりました, 了解): translate as natural conversational acknowledgements (e.g. into Russian: 'Хорошо' / 'Понятно' / 'Договорились'; into Indonesian: 'Baiklah' / 'Dimengerti'; into English: 'Understood' / 'Got it').\n" +
+                   $"   - Service/waiting phrases (e.g. 少々お待ちください, お待ちください): translate naturally (e.g. into Russian: 'Минуточку, пожалуйста' / 'Подождите секунду'; into Indonesian: 'Mohon tunggu sebentar'; into English: 'Please wait a moment').\n" +
+                   $"   - Reassurance phrases (e.g. 大丈夫, 問題ない): translate as 'Всё в порядке' / 'Tidak apa-apa' / 'It's all right'.\n" +
+                   $"3. Mixed Script & OCR Robustness: If the input contains mixed Kanji, Hiragana, Katakana, Romaji, or minor OCR noise/spacing artifacts, correctly understand the intended sentence and translate accurately without error.\n" +
+                   $"4. Same-language passthrough: If the input text is ALREADY in {targetLangFull}, return it EXACTLY as-is without any modifications, rephrasing, or corrections. Do NOT paraphrase same-language text.\n" +
+                   $"5. Incomplete utterances: If the input is a short, incomplete fragment (e.g. 'Yeah', 'Hmm', 'OK'), translate it directly without inventing additional context or expanding it into a full sentence.\n" +
+                   $"6. Format: Output ONLY the final direct translation in {targetLangFull}. Never output quotes, notes, pronunciation guides, asterisks, brackets, markdown, or explanations. Never add translator's notes, footnotes, or commentary.{sourceLangHint}{contextStr}";
+        }
+
+        /// <summary>
+        /// Simple Levenshtein-based string similarity ratio (0.0 = completely different, 1.0 = identical).
+        /// Used for deduplication to avoid re-translating near-identical STT outputs.
+        /// </summary>
+        private static double StringSimilarity(string a, string b)
+        {
+            if (string.IsNullOrEmpty(a) && string.IsNullOrEmpty(b)) return 1.0;
+            if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return 0.0;
+
+            int maxLen = Math.Max(a.Length, b.Length);
+            if (maxLen == 0) return 1.0;
+
+            int dist = LevenshteinDistance(a, b);
+            return 1.0 - ((double)dist / maxLen);
+        }
+
+        private static int LevenshteinDistance(string s, string t)
+        {
+            int n = s.Length, m = t.Length;
+            if (n == 0) return m;
+            if (m == 0) return n;
+
+            // Use single-row optimization for memory efficiency
+            var prev = new int[m + 1];
+            var curr = new int[m + 1];
+
+            for (int j = 0; j <= m; j++) prev[j] = j;
+
+            for (int i = 1; i <= n; i++)
+            {
+                curr[0] = i;
+                for (int j = 1; j <= m; j++)
+                {
+                    int cost = s[i - 1] == t[j - 1] ? 0 : 1;
+                    curr[j] = Math.Min(Math.Min(curr[j - 1] + 1, prev[j] + 1), prev[j - 1] + cost);
+                }
+                (prev, curr) = (curr, prev);
+            }
+
+            return prev[m];
         }
     }
 }
