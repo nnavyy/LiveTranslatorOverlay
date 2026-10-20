@@ -26,10 +26,14 @@ namespace LiveTranslatorOverlay.Core
         private readonly SemaphoreSlim _chunkQueue = new SemaphoreSlim(2, 2);
 
         // VAD settings
-        private const float SilenceThreshold = 0.003f;  // Level suara dianggap hening
-        private const int SilenceWindowMs = 500;         // Jeda hening (ms) untuk memotong kalimat lebih cepat
-        private const int MinChunkMs = 3200;             // Minimum chunk 3.2 detik (mencegah melebihi limit 20 RPM Groq Free Tier)
-        private const int MaxChunkMs = 7000;             // Maximum chunk 7 detik (potong jika terlalu panjang)
+        private const float SilenceThreshold = 0.0025f;  // Level suara dianggap hening (lowered to catch quiet speech)
+        private const int SilenceWindowMs = 800;         // Jeda hening (ms) — 800ms gives more natural sentence boundaries
+        private const int MinChunkMs = 4000;             // Minimum chunk 4 detik (Whisper works best with 5-15s context)
+        private const int MaxChunkMs = 12000;            // Maximum chunk 12 detik (Whisper sweet spot, better accuracy)
+
+        // Overlap buffer: carry last 0.5s of previous chunk into next chunk to prevent mid-word cuts
+        private const int OverlapMs = 500;
+        private float[]? _overlapBuffer = null;
 
         public async Task StartAsync(string? deviceId = null, int? processId = null)
         {
@@ -149,24 +153,44 @@ namespace LiveTranslatorOverlay.Core
                 mono[i] = sum / channels;
             }
 
-            // Step 3: Downsample to 16kHz
+            // Step 3: Downsample to 16kHz using linear interpolation (prevents aliasing artifacts)
             double ratio = (double)sampleRate / 16000.0;
             int targetSamples = (int)(monoSamples / ratio);
             for (int i = 0; i < targetSamples; i++)
             {
-                int srcIndex = (int)(i * ratio);
-                if (srcIndex < mono.Length)
-                    _audioBuffer.Enqueue(mono[srcIndex]);
+                double srcPos = i * ratio;
+                int srcIndex = (int)srcPos;
+                double frac = srcPos - srcIndex;
+                
+                float sample;
+                if (srcIndex + 1 < mono.Length)
+                    sample = (float)(mono[srcIndex] * (1.0 - frac) + mono[srcIndex + 1] * frac);
+                else if (srcIndex < mono.Length)
+                    sample = mono[srcIndex];
+                else
+                    continue;
+                
+                _audioBuffer.Enqueue(sample);
             }
 
-            // Also stream raw PCM16 bytes directly for Deepgram WebSocket mode
+            // Also stream raw PCM16 bytes directly for Deepgram WebSocket mode (with linear interpolation)
             if (RawPcmBytesAvailable != null)
             {
                 byte[] pcm16 = new byte[targetSamples * 2];
                 for (int i = 0; i < targetSamples; i++)
                 {
-                    int srcIndex = (int)(i * ratio);
-                    float s = srcIndex < mono.Length ? mono[srcIndex] * 32767f : 0f;
+                    double srcPos = i * ratio;
+                    int srcIdx = (int)srcPos;
+                    double frac = srcPos - srcIdx;
+                    
+                    float s;
+                    if (srcIdx + 1 < mono.Length)
+                        s = (float)(mono[srcIdx] * (1.0 - frac) + mono[srcIdx + 1] * frac) * 32767f;
+                    else if (srcIdx < mono.Length)
+                        s = mono[srcIdx] * 32767f;
+                    else
+                        s = 0f;
+                    
                     if (s > 32767f) s = 32767f;
                     if (s < -32768f) s = -32768f;
                     short sample = (short)s;
@@ -183,8 +207,16 @@ namespace LiveTranslatorOverlay.Core
             int minChunkSamples = sampleRate * MinChunkMs / 1000;
             int maxChunkSamples = sampleRate * MaxChunkMs / 1000;
             int silenceWindowSamples = sampleRate * SilenceWindowMs / 1000;
+            int overlapSamples = sampleRate * OverlapMs / 1000;
 
             var currentChunk = new List<float>(maxChunkSamples);
+
+            // Prepend overlap from previous chunk if available
+            if (_overlapBuffer != null && _overlapBuffer.Length > 0)
+            {
+                currentChunk.AddRange(_overlapBuffer);
+                _overlapBuffer = null;
+            }
 
             int stagnantLoops = 0;
 
@@ -221,10 +253,10 @@ namespace LiveTranslatorOverlay.Core
                     {
                         shouldEmit = true;
                     }
-                    else if (stagnantLoops > 10) // ~500ms without new data
+                    else if (stagnantLoops > 16) // ~800ms without new data
                     {
                         // WASAPI Loopback stops sending data when audio stops.
-                        // If we haven't received data for 500ms, force emit what we have.
+                        // If we haven't received data for 800ms, force emit what we have.
                         shouldEmit = true;
                     }
                 }
@@ -242,16 +274,33 @@ namespace LiveTranslatorOverlay.Core
                     }
                     float avgChunkEnergy = totalEnergy / currentChunk.Count;
 
-                    if (maxAmp < 0.012f && avgChunkEnergy < 0.002f)
+                    if (maxAmp < 0.008f && avgChunkEnergy < 0.0015f)
                     {
                         // Hening total, kosongkan buffer tanpa mengirim ke STT
                         currentChunk.Clear();
+                        _overlapBuffer = null;
                         await Task.Delay(50);
                         continue;
                     }
 
+                    // Save overlap buffer: last 0.5s of this chunk for continuity with next chunk
+                    if (currentChunk.Count > overlapSamples)
+                    {
+                        _overlapBuffer = currentChunk.GetRange(currentChunk.Count - overlapSamples, overlapSamples).ToArray();
+                    }
+                    else
+                    {
+                        _overlapBuffer = null;
+                    }
+
                     float[] chunkToEmit = currentChunk.ToArray();
                     currentChunk.Clear();
+
+                    // Prepend overlap from previous chunk into next chunk
+                    if (_overlapBuffer != null)
+                    {
+                        currentChunk.AddRange(_overlapBuffer);
+                    }
 
                     // Coba ambil slot queue (non-blocking), kalau penuh skip chunk ini
                     // tapi jangan buang lebih dari 1 slot — tunggu sebentar dulu
@@ -261,7 +310,7 @@ namespace LiveTranslatorOverlay.Core
                         {
                             try
                             {
-                                try { System.IO.File.AppendAllText("chunk_debug.txt", $"[{DateTime.Now:HH:mm:ss.fff}] Emitting chunk with {chunkToEmit.Length} samples\n"); } catch {}
+                                try { System.IO.File.AppendAllText("chunk_debug.txt", $"[{DateTime.Now:HH:mm:ss.fff}] Emitting chunk with {chunkToEmit.Length} samples (~{chunkToEmit.Length / 16000.0:F1}s)\n"); } catch {}
                                 AudioChunkReady?.Invoke(this, chunkToEmit);
                             }
                             finally

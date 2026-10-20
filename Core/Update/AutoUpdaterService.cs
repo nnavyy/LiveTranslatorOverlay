@@ -83,8 +83,8 @@ namespace LiveTranslatorOverlay.Core.Update
                     }
                     catch { }
 
-                    // Periodically poll GitHub releases every 3 minutes
-                    await Task.Delay(TimeSpan.FromMinutes(3), token).ConfigureAwait(false);
+                    // Periodically poll GitHub releases every 15 minutes (protects against GitHub API 60 req/hr rate limit)
+                    await Task.Delay(TimeSpan.FromMinutes(15), token).ConfigureAwait(false);
                 }
             }, token);
         }
@@ -267,20 +267,21 @@ if not ""%OLD_PID%""=="""" (
 taskkill /f /im ""%TARGET_EXE%"" >nul 2>&1
 timeout /t 2 /nobreak >nul
 
-echo [%date% %time%] Starting file copy... >> ""%~dp0updater.log""
+echo [%date% %time%] Starting file copy from %SOURCE_DIR% to %TARGET_DIR%... >> ""%~dp0updater.log""
 
-:: Robocopy everything except user config with fast retry flags so it never hangs
-robocopy ""%SOURCE_DIR%"" ""%TARGET_DIR%"" /E /IS /IT /XF appsettings.json /R:1 /W:1 >> ""%~dp0updater.log"" 2>&1
+:: Robocopy everything except user config with fast retry flags
+robocopy ""%SOURCE_DIR%"" ""%TARGET_DIR%"" /E /IS /IT /XF appsettings.json /R:2 /W:1 >> ""%~dp0updater.log"" 2>&1
+set ROBO_ERR=%ERRORLEVEL%
+echo [%date% %time%] Robocopy finished with exit code %ROBO_ERR% >> ""%~dp0updater.log""
+
+:: Clean up staging folder
+timeout /t 1 /nobreak >nul
+rmdir /s /q ""%SOURCE_DIR%"" >nul 2>&1
 
 :: Relaunch updated application exactly once
 echo [%date% %time%] Launching updated %TARGET_DIR%\%TARGET_EXE% >> ""%~dp0updater.log""
 cd /d ""%TARGET_DIR%""
 start """" ""%TARGET_DIR%\%TARGET_EXE%""
-
-:: Clean up staging folder
-timeout /t 3 /nobreak >nul
-rmdir /s /q ""%SOURCE_DIR%"" >nul 2>&1
-echo [%date% %time%] Update finished successfully. >> ""%~dp0updater.log""
 exit /b 0
 ";
             File.WriteAllText(scriptPath, scriptContent);

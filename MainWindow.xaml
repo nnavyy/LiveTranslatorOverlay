@@ -263,7 +263,8 @@
                         <!-- Screen OCR Section -->
                         <TextBlock x:Name="TxtTitleOcr" Text="Screen OCR" Foreground="White" FontFamily="Segoe UI Semibold" FontSize="15" Margin="0,0,0,10"/>
                         <Button x:Name="BtnDrawArea" Content="Select Screen Area" Click="BtnDrawArea_Click" Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
-                        <Button x:Name="BtnStartLive" Content="Start Live OCR" Click="BtnStartLive_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,15" IsEnabled="False"/>
+                        <Button x:Name="BtnStartLive" Content="Start Live OCR" Click="BtnStartLive_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,6" IsEnabled="False"/>
+                        <TextBlock x:Name="TxtOcrPackHint" Text="Need Japanese / other OCR? Open Windows Settings" Foreground="#4DABF7" FontSize="11" Margin="0,0,0,15" Cursor="Hand" MouseDown="TxtOcrPackHint_MouseDown" TextDecorations="Underline" ToolTip="Install Japanese or other Language Pack with OCR in Windows Settings"/>
                         
                         <Separator Margin="0,5,0,15" Background="#333"/>
 

@@ -59,7 +59,7 @@ public static class FeedbackHistoryManager
         catch { }
     }
 
-    public static FeedbackRecord AddRecord(string type, string subject, string description, string contactEmail, string appVersion = "v1.1.0")
+    public static FeedbackRecord AddRecord(string type, string subject, string description, string contactEmail, string? appVersion = null)
     {
         string raw = Guid.NewGuid().ToString("N").ToUpperInvariant();
         string id = $"REP-{raw.Substring(0, 6)}";
@@ -73,7 +73,7 @@ public static class FeedbackHistoryManager
             Subject = subject,
             Description = description,
             ContactEmail = contactEmail,
-            AppVersion = appVersion,
+            AppVersion = appVersion ?? LiveTranslatorOverlay.Core.Update.AppVersion.DisplayString,
             Status = "Pending",
             ResolutionNote = ""
         };
@@ -84,8 +84,9 @@ public static class FeedbackHistoryManager
         return record;
     }
 
-    public static async Task<bool> RefreshStatusesAsync(string currentAppVersion = "v1.1.0")
+    public static async Task<bool> RefreshStatusesAsync(string? currentAppVersion = null)
     {
+        currentAppVersion ??= LiveTranslatorOverlay.Core.Update.AppVersion.DisplayString;
         var records = Load();
         if (records.Count == 0) return false;
 

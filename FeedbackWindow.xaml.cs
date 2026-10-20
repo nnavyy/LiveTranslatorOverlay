@@ -10,6 +10,7 @@ using System.Windows.Media;
 using LiveTranslatorOverlay.Core;
 using LiveTranslatorOverlay.Core.Feedback;
 using LiveTranslatorOverlay.Core.Localization;
+using LiveTranslatorOverlay.Core.Update;
 
 namespace LiveTranslatorOverlay;
 
@@ -280,7 +281,7 @@ public partial class FeedbackWindow : Window
 
         try
         {
-            await FeedbackHistoryManager.RefreshStatusesAsync("v1.1.0");
+            await FeedbackHistoryManager.RefreshStatusesAsync(AppVersion.DisplayString);
             RenderHistoryList();
             TxtStatus.Foreground = Brushes.LightGreen;
             TxtStatus.Text = loc.Get("FeedbackRefreshed");
@@ -322,7 +323,7 @@ public partial class FeedbackWindow : Window
         try
         {
             // Create local history record first
-            var record = FeedbackHistoryManager.AddRecord(type, subject, message, contact, "v1.1.0");
+            var record = FeedbackHistoryManager.AddRecord(type, subject, message, contact, AppVersion.DisplayString);
 
             string user = Environment.UserName;
             string device = Environment.MachineName;
@@ -404,7 +405,7 @@ public partial class FeedbackWindow : Window
         string message = TxtMessage.Text?.Trim() ?? "";
         string contact = TxtContact.Text?.Trim() ?? "";
 
-        var record = FeedbackHistoryManager.AddRecord(type, subject, message, contact, "v1.1.0");
+        var record = FeedbackHistoryManager.AddRecord(type, subject, message, contact, AppVersion.DisplayString);
         UpdateTabCounts();
 
         string mailtoSubject = Uri.EscapeDataString($"[Live Translator] {type} from {user} ({record.Id}): {subject}");
@@ -417,7 +418,7 @@ public partial class FeedbackWindow : Window
             $"Device: {device}\n" +
             $"Device ID: {deviceId}\n" +
             $"Contact Email: {(string.IsNullOrWhiteSpace(contact) ? "Not provided" : contact)}\n" +
-            $"App Version: v1.1.0\n" +
+            $"App Version: {AppVersion.DisplayString}\n" +
             $"OS: {Environment.OSVersion} ({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})\n" +
             $".NET: {Environment.Version}\n" +
             $"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}\n" +

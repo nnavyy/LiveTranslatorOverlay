@@ -62,7 +62,7 @@ namespace LiveTranslatorOverlay.Core
 
             // Jika suara terlalu kecil (hanya background hiss/silence), jangan kirim ke Groq.
             // Ini menghemat token API Groq dan mencegah halusinasi Whisper seperti "spasiba" / "subtitle by".
-            if (maxAmp < 0.012f && avgAmp < 0.002f) {
+            if (maxAmp < 0.008f && avgAmp < 0.0015f) {
                 return string.Empty;
             }
 
@@ -80,12 +80,12 @@ namespace LiveTranslatorOverlay.Core
             try
             {
                 // Pacing: Groq Free Tier Whisper dibatasi max 20 Request Per Menit (RPM).
-                // Jaga jarak minimal 3.2 detik antar request agar aman dari batas 20 RPM.
+                // Jaga jarak minimal 3.5 detik antar request (wider chunks = fewer requests anyway).
                 double msSinceLast = (DateTime.UtcNow - _lastRequestTime).TotalMilliseconds;
-                if (msSinceLast < 3200)
+                if (msSinceLast < 3500)
                 {
-                    int waitMs = (int)(3200 - msSinceLast);
-                    if (waitMs > 0 && waitMs <= 3200)
+                    int waitMs = (int)(3500 - msSinceLast);
+                    if (waitMs > 0 && waitMs <= 3500)
                         await Task.Delay(waitMs);
                 }
 
@@ -102,7 +102,23 @@ namespace LiveTranslatorOverlay.Core
                 content.Add(new StringContent("whisper-large-v3"), "model");
                 content.Add(new StringContent("json"), "response_format");
                 content.Add(new StringContent("0.0"), "temperature"); // Temperature 0 mencegah halusinasi acak
-                content.Add(new StringContent("Transcribe spoken conversation directly."), "prompt");
+                
+                // Language-specific prompt hints reduce hallucinations by priming the decoder
+                // with expected vocabulary patterns for the target language
+                string whisperPrompt = _currentLanguage switch
+                {
+                    "ja" => "会話の書き起こし。日本語の会話を正確に書き起こしてください。",
+                    "ko" => "대화를 정확하게 받아적어 주세요.",
+                    "zh" => "请准确转录对话内容。",
+                    "ru" => "Точная транскрипция разговора.",
+                    "id" => "Transkripsikan percakapan dengan akurat.",
+                    "es" => "Transcripción precisa de la conversación.",
+                    "fr" => "Transcription précise de la conversation.",
+                    "de" => "Genaue Transkription des Gesprächs.",
+                    "ar" => "نسخ المحادثة بدقة.",
+                    _ => "Accurate transcription of spoken conversation."
+                };
+                content.Add(new StringContent(whisperPrompt), "prompt");
                 
                 // Kalau sourceLanguage bukan auto, paksakan bahasanya agar 100% akurat
                 if (_currentLanguage != "auto")
