@@ -44,6 +44,8 @@ public partial class MainWindow : Window
     private DiarizedSttService? _diarizedSttService;
     private bool _isAudioMode = false;
     private CancellationTokenSource? _audioCts;
+    private string _lastWhisperTranscript = string.Empty;
+    private DateTime _lastWhisperTranscriptTime = DateTime.MinValue;
     // Semaphore ensures only one translation runs at a time (prevents queued-up delays)
     private readonly SemaphoreSlim _translateSemaphore = new SemaphoreSlim(1, 1);
 
@@ -1315,6 +1317,7 @@ public partial class MainWindow : Window
             }
         }
 
+        _lastWhisperTranscript = string.Empty;
         AcousticSpeakerDetector.Reset();
         _audioCaptureService = new AudioCaptureService();
         _audioCts = new CancellationTokenSource();
@@ -1337,6 +1340,15 @@ public partial class MainWindow : Window
                 // ── HALLUCINATION FILTER (same as Deepgram path) ──
                 // Groq Whisper also hallucinates "subtitles by...", "спасибо", etc. from noise
                 if (IsWhisperHallucination(transcribed)) return;
+
+                // Suppress consecutive identical transcripts within 20s (e.g. repeated music/pause hallucinations)
+                string cleanTrimmed = transcribed.Trim();
+                if (cleanTrimmed == _lastWhisperTranscript && (DateTime.UtcNow - _lastWhisperTranscriptTime).TotalSeconds < 20)
+                {
+                    return;
+                }
+                _lastWhisperTranscript = cleanTrimmed;
+                _lastWhisperTranscriptTime = DateTime.UtcNow;
 
                 string displayOriginal = await FormatJapaneseTextIfNeededAsync(transcribed, sourceLang);
 
