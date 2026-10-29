@@ -9,17 +9,72 @@
         Topmost="True" 
         ShowInTaskbar="True">
     <Window.Resources>
+        <!-- Apple-Style Slim Pill ScrollBar -->
+        <Style x:Key="SlimScrollBarThumb" TargetType="{x:Type Thumb}">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Thumb}">
+                        <Border x:Name="ThumbBorder" Background="#45FFFFFF" CornerRadius="3" Margin="1,0"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="#75FFFFFF"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="#99FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="{x:Type ScrollBar}">
+            <Setter Property="Stylus.IsPressAndHoldEnabled" Value="False"/>
+            <Setter Property="Stylus.IsFlicksEnabled" Value="False"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Width" Value="7"/>
+            <Setter Property="MinWidth" Value="7"/>
+            <Setter Property="Margin" Value="2,4,2,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ScrollBar}">
+                        <Grid Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource SlimScrollBarThumb}"/>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Apple-Style Tactile Button (Immediate Pointer-Down Response) -->
         <Style TargetType="Button" x:Key="ModernButton">
-            <Setter Property="Background" Value="#333333"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="Padding" Value="10,8"/>
-            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="#2C2C31"/>
+            <Setter Property="Foreground" Value="#F2F2F7"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#1FFFFFFF"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                        <Border x:Name="BtnBorder" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
                         </Border>
                     </ControlTemplate>
@@ -27,63 +82,244 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#444444"/>
+                    <Setter Property="Background" Value="#3A3A41"/>
+                    <Setter Property="BorderBrush" Value="#33FFFFFF"/>
                 </Trigger>
                 <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#222222"/>
+                    <Setter Property="Background" Value="#222227"/>
+                    <Setter Property="RenderTransform">
+                        <Setter.Value>
+                            <ScaleTransform ScaleX="0.97" ScaleY="0.97"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.45"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style TargetType="Button" x:Key="ActionPrimaryButton" BasedOn="{StaticResource ModernButton}">
-            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Background" Value="#0A84FF"/>
+            <Setter Property="BorderBrush" Value="#38FFFFFF"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable Text Semibold, Segoe UI Semibold"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#0098FF"/>
+                    <Setter Property="Background" Value="#2492FF"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#006EE6"/>
+                    <Setter Property="RenderTransform">
+                        <Setter.Value>
+                            <ScaleTransform ScaleX="0.97" ScaleY="0.97"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.42"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style TargetType="Button" x:Key="ActionDangerButton" BasedOn="{StaticResource ModernButton}">
-            <Setter Property="Background" Value="#CC2222"/>
+            <Setter Property="Background" Value="#E03127"/>
+            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="FontFamily" Value="Segoe UI Variable Text Semibold, Segoe UI Semibold"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#FF4444"/>
+                    <Setter Property="Background" Value="#FF453A"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#BA231B"/>
+                    <Setter Property="RenderTransform">
+                        <Setter.Value>
+                            <ScaleTransform ScaleX="0.97" ScaleY="0.97"/>
+                        </Setter.Value>
+                    </Setter>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
+        <!-- Apple-Style Dark TextBox -->
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#232329"/>
+            <Setter Property="Foreground" Value="#F2F2F7"/>
+            <Setter Property="CaretBrush" Value="#0A84FF"/>
+            <Setter Property="BorderBrush" Value="#36363F"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="2,0"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4E4E5A"/>
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#0A84FF"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#1E1E24"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Apple-Style Dark ComboBox & ComboBoxItem -->
+        <ControlTemplate x:Key="ModernComboBoxToggleButton" TargetType="ToggleButton">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition Width="26"/>
+                </Grid.ColumnDefinitions>
+                <Border x:Name="Border" Grid.ColumnSpan="2" CornerRadius="8" Background="#232329" BorderBrush="#36363F" BorderThickness="1"/>
+                <Path x:Name="Arrow" Grid.Column="1" Fill="#9898A0" HorizontalAlignment="Center" VerticalAlignment="Center"
+                      Data="M 0 0 L 4.5 4.5 L 9 0 L 7.8 -1.1 L 4.5 2.2 L 1.2 -1.1 Z"/>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Border" Property="Background" Value="#2B2B33"/>
+                    <Setter TargetName="Border" Property="BorderBrush" Value="#4D4D59"/>
+                    <Setter TargetName="Arrow" Property="Fill" Value="#E5E5EA"/>
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter TargetName="Border" Property="Background" Value="#1F1F25"/>
+                    <Setter TargetName="Border" Property="BorderBrush" Value="#0A84FF"/>
+                    <Setter TargetName="Arrow" Property="Fill" Value="#0A84FF"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Foreground" Value="#E5E5EA"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="ItemBorder" Background="{TemplateBinding Background}" CornerRadius="6" Margin="4,1" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#0A84FF"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="ItemBorder" Property="Background" Value="#260A84FF"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ComboBox">
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.CanContentScroll" Value="False"/>
+            <Setter Property="Foreground" Value="#F2F2F7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="MinHeight" Value="33"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton Name="ToggleButton" Template="{StaticResource ModernComboBoxToggleButton}"
+                                          Grid.Column="2" Focusable="False"
+                                          IsChecked="{Binding Path=IsDropDownOpen,Mode=TwoWay,RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press"/>
+                            <ContentPresenter Name="ContentSite" IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                              Margin="10,5,28,5" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                            <TextBox x:Name="PART_EditableTextBox" Style="{x:Null}"
+                                     HorizontalAlignment="Left" VerticalAlignment="Center" Margin="10,5,28,5"
+                                     Focusable="True" Background="Transparent" Foreground="#F2F2F7" CaretBrush="#0A84FF"
+                                     BorderThickness="0" Visibility="Hidden" IsReadOnly="{TemplateBinding IsReadOnly}"/>
+                            <Popup Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="Fade">
+                                <Grid Name="DropDown" SnapsToDevicePixels="True"
+                                      MinWidth="{TemplateBinding ActualWidth}" MaxHeight="250" Margin="0,4,0,8">
+                                    <Border x:Name="DropDownBorder" Background="#F51C1C22" BorderThickness="1" BorderBrush="#383842" CornerRadius="10" Padding="2,4">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="Black" BlurRadius="16" ShadowDepth="6" Opacity="0.6"/>
+                                        </Border.Effect>
+                                        <ScrollViewer Margin="0,2" SnapsToDevicePixels="True" PanningMode="VerticalOnly"
+                                                      PreviewMouseWheel="SmoothScrollViewer_PreviewMouseWheel">
+                                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEditable" Value="True">
+                                <Setter Property="IsTabStop" Value="False"/>
+                                <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="ContentSite" Property="Visibility" Value="Hidden"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Caption Fade Storyboards -->
         <Storyboard x:Key="FadeInCaption">
-            <DoubleAnimation Storyboard.TargetName="CaptionBar" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.3"/>
+            <DoubleAnimation Storyboard.TargetName="CaptionBar" Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.28">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
         </Storyboard>
         <Storyboard x:Key="FadeOutCaption">
-            <DoubleAnimation Storyboard.TargetName="CaptionBar" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.8"/>
+            <DoubleAnimation Storyboard.TargetName="CaptionBar" Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.65">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseInOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
         </Storyboard>
 
-        <!-- Modern Toggle Switch Style -->
+        <!-- Apple-Style Toggle Switch -->
         <Style TargetType="CheckBox" x:Key="ModernToggleSwitch">
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
-                        <Border x:Name="BackgroundBorder" Width="44" Height="24" CornerRadius="12" Background="#444449" BorderBrush="#66666B" BorderThickness="1">
+                        <Border x:Name="BackgroundBorder" Width="44" Height="24" CornerRadius="12" Background="#39393D" BorderBrush="#525258" BorderThickness="1">
                             <Canvas>
                                 <Ellipse x:Name="SwitchThumb" Width="18" Height="18" Fill="White" Canvas.Left="3" Canvas.Top="2">
                                     <Ellipse.Effect>
-                                        <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.3"/>
+                                        <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.35"/>
                                     </Ellipse.Effect>
                                 </Ellipse>
                             </Canvas>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="BackgroundBorder" Property="Background" Value="#007ACC"/>
-                                <Setter TargetName="BackgroundBorder" Property="BorderBrush" Value="#0098FF"/>
+                                <Setter TargetName="BackgroundBorder" Property="Background" Value="#30D158"/>
+                                <Setter TargetName="BackgroundBorder" Property="BorderBrush" Value="#34C759"/>
                                 <Setter TargetName="SwitchThumb" Property="Canvas.Left" Value="21"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="BackgroundBorder" Property="Opacity" Value="0.9"/>
+                                <Setter TargetName="BackgroundBorder" Property="Opacity" Value="0.92"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -98,29 +334,35 @@
             MouseLeftButtonUp="OverlayCanvas_MouseLeftButtonUp">
         
         <!-- Selection Rectangle -->
-        <Rectangle x:Name="SelectionRect" Stroke="#00FF88" StrokeThickness="2" StrokeDashArray="2,2" Fill="#2000FF88" Visibility="Collapsed"/>
+        <Rectangle x:Name="SelectionRect" Stroke="#30D158" StrokeThickness="2" StrokeDashArray="3,2" Fill="#1E30D158" RadiusX="4" RadiusY="4" Visibility="Collapsed"/>
         
         <!-- Translated Text Box (OCR) -->
-        <Border x:Name="TranslatedTextContainer" MaxWidth="800" MaxHeight="600" Background="#CC0A0A0A" BorderBrush="#33FFFFFF" BorderThickness="1" CornerRadius="8" Visibility="Collapsed" Padding="15">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <TextBlock x:Name="TranslatedTextBlock" Foreground="#E0E0E0" FontSize="16" FontFamily="Segoe UI" TextWrapping="Wrap" Text="[Translation will appear here]"/>
+        <Border x:Name="TranslatedTextContainer" MaxWidth="800" MaxHeight="600" Background="#D8101014" BorderBrush="#2EFFFFFF" BorderThickness="1" CornerRadius="14" Visibility="Collapsed" Padding="16,14">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="6" Opacity="0.6"/>
+            </Border.Effect>
+            <ScrollViewer x:Name="OcrScrollViewer" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="SmoothScrollViewer_PreviewMouseWheel">
+                <TextBlock x:Name="TranslatedTextBlock" Foreground="#F2F2F7" FontSize="16" FontFamily="Segoe UI Variable Text, Segoe UI" LineHeight="24" TextWrapping="Wrap" Text="[Translation will appear here]"/>
             </ScrollViewer>
         </Border>
 
-        <!-- Audio Caption Bar (bottom center) -->
-        <Border x:Name="CaptionBar" Background="#B3000000" CornerRadius="12" Padding="20,14" Visibility="Collapsed" 
+        <!-- Audio Caption Bar (bottom center, Apple Glass Pill) -->
+        <Border x:Name="CaptionBar" Background="#CC0E0E12" BorderBrush="#28FFFFFF" BorderThickness="1" CornerRadius="16" Padding="22,15" Visibility="Collapsed" 
                 MinWidth="400" MaxWidth="900" Opacity="0" Cursor="SizeAll"
                 MouseLeftButtonDown="CaptionBar_MouseLeftButtonDown"
                 MouseMove="CaptionBar_MouseMove"
                 MouseLeftButtonUp="CaptionBar_MouseLeftButtonUp">
+            <Border.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="24" ShadowDepth="6" Opacity="0.65"/>
+            </Border.Effect>
             <StackPanel>
-                <!-- Speaker label (hidden in Groq mode, shown in Deepgram mode) -->
-                <TextBlock x:Name="CaptionSpeaker" Foreground="#00FF88" FontFamily="Segoe UI Semibold" FontSize="11"
-                           Text="" Visibility="Collapsed" Margin="0,0,0,4" Opacity="0.85"/>
-                <TextBlock x:Name="CaptionOriginal" Foreground="#999999" FontFamily="Segoe UI" FontSize="14" TextWrapping="Wrap" Text="" Margin="0,0,0,2"/>
-                <TextBlock x:Name="CaptionTranslated" Foreground="#00FF88" FontFamily="Segoe UI Semibold" FontSize="20" TextWrapping="Wrap" Text="[Waiting for audio...]">
+                <!-- Speaker label -->
+                <TextBlock x:Name="CaptionSpeaker" Foreground="#30D158" FontFamily="Segoe UI Variable Text Semibold, Segoe UI Semibold" FontSize="11.5"
+                           Text="" Visibility="Collapsed" Margin="0,0,0,4" Opacity="0.9"/>
+                <TextBlock x:Name="CaptionOriginal" Foreground="#AEAEB2" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="14" TextWrapping="Wrap" Text="" Margin="0,0,0,3"/>
+                <TextBlock x:Name="CaptionTranslated" Foreground="#30D158" FontFamily="Segoe UI Variable Display Semibold, Segoe UI Semibold" FontSize="20" TextWrapping="Wrap" Text="[Waiting for audio...]">
                     <TextBlock.Effect>
-                        <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="2" Opacity="0.8"/>
+                        <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="1.5" Opacity="0.8"/>
                     </TextBlock.Effect>
                 </TextBlock>
             </StackPanel>
@@ -129,30 +371,31 @@
         <!-- Control Panel Container -->
         <StackPanel x:Name="ControlPanelContainer" Canvas.Left="20" Canvas.Top="20">
             <!-- Toggle Button & Drag Handle -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,10" HorizontalAlignment="Left">
-                <Thumb DragDelta="ControlPanel_DragDelta" Width="24" Height="30" Cursor="SizeAll" Margin="0,0,5,0" ToolTip="Drag to move settings panel">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8" HorizontalAlignment="Left">
+                <Thumb DragDelta="ControlPanel_DragDelta" Width="28" Height="32" Cursor="SizeAll" Margin="0,0,6,0" ToolTip="Drag to move settings panel">
                     <Thumb.Template>
                         <ControlTemplate TargetType="Thumb">
-                            <Border Background="#333333" CornerRadius="6">
-                                <TextBlock Text="::" Foreground="#888" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="14" Margin="0,0,0,0"/>
+                            <Border Background="#D81C1C22" BorderBrush="#28FFFFFF" BorderThickness="1" CornerRadius="8">
+                                <TextBlock Text="⋮⋮" Foreground="#9898A0" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="13" FontWeight="Bold"/>
                             </Border>
                         </ControlTemplate>
                     </Thumb.Template>
                 </Thumb>
-                <Button x:Name="BtnTogglePanel" Content="Settings" Style="{StaticResource ModernButton}" Click="BtnTogglePanel_Click" Padding="10,6" FontSize="13"/>
+                <Button x:Name="BtnTogglePanel" Content="Settings" Style="{StaticResource ModernButton}" Click="BtnTogglePanel_Click" Padding="14,6" FontSize="12.5"/>
             </StackPanel>
             
-            <!-- Control Panel -->
-            <Border x:Name="ControlPanel" Background="#E61A1A1A" CornerRadius="12" BorderBrush="#33FFFFFF" BorderThickness="1" MaxWidth="320" MaxHeight="750">
+            <!-- Control Panel (Apple Translucent Dark Material) -->
+            <Border x:Name="ControlPanel" Background="#EE151519" CornerRadius="16" BorderBrush="#28FFFFFF" BorderThickness="1" Width="328" MaxWidth="328" MaxHeight="760">
                 <Border.Effect>
-                    <DropShadowEffect Color="Black" BlurRadius="15" ShadowDepth="5" Opacity="0.5"/>
+                    <DropShadowEffect Color="Black" BlurRadius="28" ShadowDepth="8" Opacity="0.65"/>
                 </Border.Effect>
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Margin="20">
-                        <TextBlock x:Name="TxtAppTitle" Text="Live Translator" Foreground="White" FontFamily="Segoe UI Semibold" FontSize="20" Margin="0,0,0,12"/>
+                <ScrollViewer x:Name="SettingsScrollViewer" VerticalScrollBarVisibility="Auto" CanContentScroll="False"
+                              PanningMode="VerticalOnly" PreviewMouseWheel="SmoothScrollViewer_PreviewMouseWheel">
+                    <StackPanel Margin="18,18,16,18">
+                        <TextBlock x:Name="TxtAppTitle" Text="Live Translator" Foreground="#F2F2F7" FontFamily="Segoe UI Variable Display Semibold, Segoe UI Semibold" FontSize="20" Margin="0,0,0,14"/>
 
-                        <!-- Update Banner (Shown when update is ready to restart) -->
-                        <Border x:Name="BannerUpdateReady" Visibility="Collapsed" Background="#1E293B" BorderBrush="#38BDF8" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,12">
+                        <!-- Update Banner -->
+                        <Border x:Name="BannerUpdateReady" Visibility="Collapsed" Background="#16253B" BorderBrush="#0A84FF" BorderThickness="1" CornerRadius="10" Padding="12,10" Margin="0,0,0,12">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -166,14 +409,14 @@
                             </Grid>
                         </Border>
 
-                        <!-- Window Visibility Toggle (Dedicated Card) -->
-                        <Border Background="#252528" BorderBrush="#3E3E42" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,15">
+                        <!-- Window Visibility Toggle Card -->
+                        <Border Background="#1F1F26" BorderBrush="#2F2F38" BorderThickness="1" CornerRadius="10" Padding="12,10" Margin="0,0,0,14">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock x:Name="TxtToggleHideDesc" Text="Hide overlay &amp; all windows from desktop" Foreground="White" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                <TextBlock x:Name="TxtToggleHideDesc" Text="Hide overlay &amp; all windows from desktop" Foreground="#E5E5EA" FontSize="12" VerticalAlignment="Center" TextWrapping="Wrap"/>
                                 <CheckBox x:Name="ChkHideAllWindows" Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"
                                           Style="{StaticResource ModernToggleSwitch}"
                                           Checked="ChkHideAllWindows_Changed" Unchecked="ChkHideAllWindows_Changed"
@@ -182,126 +425,158 @@
                         </Border>
 
                         <!-- Language Settings -->
-                        <TextBlock x:Name="LblSourceLang" Text="Source Language:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
-                        <ComboBox x:Name="CmbSourceLang" SelectedIndex="0" Margin="0,0,0,12" Padding="5">
+                        <TextBlock x:Name="LblSourceLang" Text="Source Language:" Foreground="#AEAEB2" FontSize="11.5" Margin="2,0,0,5"/>
+                        <ComboBox x:Name="CmbSourceLang" SelectedIndex="0" Margin="0,0,0,12" SelectionChanged="CmbLanguage_SelectionChanged">
                             <ComboBoxItem x:Name="ItemSrcAuto" Content="Auto Detect" Tag="auto"/>
                             <ComboBoxItem x:Name="ItemSrcEn" Content="English (en)" Tag="en"/>
+                            <ComboBoxItem x:Name="ItemSrcId" Content="Indonesian (id)" Tag="id"/>
                             <ComboBoxItem x:Name="ItemSrcJa" Content="Japanese (ja)" Tag="ja"/>
                             <ComboBoxItem x:Name="ItemSrcKo" Content="Korean (ko)" Tag="ko"/>
-                            <ComboBoxItem x:Name="ItemSrcZh" Content="Chinese (zh)" Tag="zh"/>
-                            <ComboBoxItem x:Name="ItemSrcId" Content="Indonesian (id)" Tag="id"/>
+                            <ComboBoxItem x:Name="ItemSrcZh" Content="Chinese Simplified (zh)" Tag="zh"/>
+                            <ComboBoxItem x:Name="ItemSrcZhTw" Content="Chinese Traditional (zh-TW)" Tag="zh-TW"/>
+                            <ComboBoxItem x:Name="ItemSrcRu" Content="Russian (ru)" Tag="ru"/>
+                            <ComboBoxItem x:Name="ItemSrcUk" Content="Ukrainian (uk)" Tag="uk"/>
+                            <ComboBoxItem x:Name="ItemSrcAz" Content="Azerbaijani (az)" Tag="az"/>
+                            <ComboBoxItem x:Name="ItemSrcUz" Content="Uzbek (uz)" Tag="uz"/>
+                            <ComboBoxItem x:Name="ItemSrcMn" Content="Mongolian (mn)" Tag="mn"/>
+                            <ComboBoxItem x:Name="ItemSrcKa" Content="Georgian (ka)" Tag="ka"/>
+                            <ComboBoxItem x:Name="ItemSrcSr" Content="Serbian (sr)" Tag="sr"/>
+                            <ComboBoxItem x:Name="ItemSrcHr" Content="Croatian (hr)" Tag="hr"/>
+                            <ComboBoxItem x:Name="ItemSrcBs" Content="Bosnian (bs)" Tag="bs"/>
+                            <ComboBoxItem x:Name="ItemSrcBg" Content="Bulgarian (bg)" Tag="bg"/>
+                            <ComboBoxItem x:Name="ItemSrcRo" Content="Romanian (ro)" Tag="ro"/>
+                            <ComboBoxItem x:Name="ItemSrcEl" Content="Greek (el)" Tag="el"/>
+                            <ComboBoxItem x:Name="ItemSrcSq" Content="Albanian (sq)" Tag="sq"/>
+                            <ComboBoxItem x:Name="ItemSrcMk" Content="Macedonian (mk)" Tag="mk"/>
+                            <ComboBoxItem x:Name="ItemSrcSl" Content="Slovenian (sl)" Tag="sl"/>
                             <ComboBoxItem x:Name="ItemSrcEs" Content="Spanish (es)" Tag="es"/>
                             <ComboBoxItem x:Name="ItemSrcFr" Content="French (fr)" Tag="fr"/>
                             <ComboBoxItem x:Name="ItemSrcDe" Content="German (de)" Tag="de"/>
-                            <ComboBoxItem x:Name="ItemSrcRu" Content="Russian (ru)" Tag="ru"/>
                             <ComboBoxItem x:Name="ItemSrcAr" Content="Arabic (ar)" Tag="ar"/>
                         </ComboBox>
 
-                        <TextBlock x:Name="LblTargetLang" Text="Target Language:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
-                        <ComboBox x:Name="CmbTargetLang" SelectedIndex="0" Margin="0,0,0,15" Padding="5">
+                        <TextBlock x:Name="LblTargetLang" Text="Target Language:" Foreground="#AEAEB2" FontSize="11.5" Margin="2,0,0,5"/>
+                        <ComboBox x:Name="CmbTargetLang" SelectedIndex="0" Margin="0,0,0,12" SelectionChanged="CmbLanguage_SelectionChanged">
                             <ComboBoxItem x:Name="ItemTgtAuto" Content="Auto (System Language)" Tag="auto"/>
                             <ComboBoxItem x:Name="ItemTgtId" Content="Indonesian (id)" Tag="id"/>
                             <ComboBoxItem x:Name="ItemTgtEn" Content="English (en)" Tag="en"/>
                             <ComboBoxItem x:Name="ItemTgtJa" Content="Japanese (ja)" Tag="ja"/>
                             <ComboBoxItem x:Name="ItemTgtKo" Content="Korean (ko)" Tag="ko"/>
                             <ComboBoxItem x:Name="ItemTgtZh" Content="Chinese Simplified (zh)" Tag="zh"/>
+                            <ComboBoxItem x:Name="ItemTgtZhTw" Content="Chinese Traditional (zh-TW)" Tag="zh-TW"/>
+                            <ComboBoxItem x:Name="ItemTgtRu" Content="Russian (ru)" Tag="ru"/>
+                            <ComboBoxItem x:Name="ItemTgtUk" Content="Ukrainian (uk)" Tag="uk"/>
+                            <ComboBoxItem x:Name="ItemTgtAz" Content="Azerbaijani (az)" Tag="az"/>
+                            <ComboBoxItem x:Name="ItemTgtUz" Content="Uzbek (uz)" Tag="uz"/>
+                            <ComboBoxItem x:Name="ItemTgtMn" Content="Mongolian (mn)" Tag="mn"/>
+                            <ComboBoxItem x:Name="ItemTgtKa" Content="Georgian (ka)" Tag="ka"/>
+                            <ComboBoxItem x:Name="ItemTgtSr" Content="Serbian (sr)" Tag="sr"/>
+                            <ComboBoxItem x:Name="ItemTgtHr" Content="Croatian (hr)" Tag="hr"/>
+                            <ComboBoxItem x:Name="ItemTgtBs" Content="Bosnian (bs)" Tag="bs"/>
+                            <ComboBoxItem x:Name="ItemTgtBg" Content="Bulgarian (bg)" Tag="bg"/>
+                            <ComboBoxItem x:Name="ItemTgtRo" Content="Romanian (ro)" Tag="ro"/>
+                            <ComboBoxItem x:Name="ItemTgtEl" Content="Greek (el)" Tag="el"/>
+                            <ComboBoxItem x:Name="ItemTgtSq" Content="Albanian (sq)" Tag="sq"/>
+                            <ComboBoxItem x:Name="ItemTgtMk" Content="Macedonian (mk)" Tag="mk"/>
+                            <ComboBoxItem x:Name="ItemTgtSl" Content="Slovenian (sl)" Tag="sl"/>
                             <ComboBoxItem x:Name="ItemTgtEs" Content="Spanish (es)" Tag="es"/>
                             <ComboBoxItem x:Name="ItemTgtFr" Content="French (fr)" Tag="fr"/>
                             <ComboBoxItem x:Name="ItemTgtDe" Content="German (de)" Tag="de"/>
-                            <ComboBoxItem x:Name="ItemTgtRu" Content="Russian (ru)" Tag="ru"/>
                             <ComboBoxItem x:Name="ItemTgtAr" Content="Arabic (ar)" Tag="ar"/>
                         </ComboBox>
 
-                        <!-- Japanese Script Style Selection -->
-                        <TextBlock x:Name="LblJapaneseStyle" Text="Japanese Subtitle Style:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
-                        <ComboBox x:Name="CmbJapaneseStyle" SelectedIndex="0" Margin="0,0,0,12" Padding="5" SelectionChanged="CmbJapaneseStyle_SelectionChanged">
-                            <ComboBoxItem x:Name="ItemJpStandard" Content="Standard (Kanji + Kana Mix)" Tag="standard"/>
-                            <ComboBoxItem x:Name="ItemJpHiragana" Content="Hiragana / Kana Mix (ひらがな)" Tag="hiragana"/>
-                            <ComboBoxItem x:Name="ItemJpFurigana" Content="Furigana: 漢字(かんじ)" Tag="furigana"/>
-                            <ComboBoxItem x:Name="ItemJpRomaji" Content="Romaji (Latin ABC)" Tag="romaji"/>
-                            <ComboBoxItem x:Name="ItemJpKatakana" Content="Katakana (カタカナ)" Tag="katakana"/>
-                        </ComboBox>
+                        <!-- Dynamic Multi-Script Style Selection (Only visible for languages with 2+ scripts: JA, KO, ZH, SR, BS, UZ, AZ, MN) -->
+                        <StackPanel x:Name="ScriptStylePanel" Visibility="Collapsed" Margin="0,0,0,12">
+                            <TextBlock x:Name="LblJapaneseStyle" Text="Japanese Script Style:" Foreground="#AEAEB2" FontSize="11.5" Margin="2,0,0,5"/>
+                            <ComboBox x:Name="CmbJapaneseStyle" SelectedIndex="0" SelectionChanged="CmbJapaneseStyle_SelectionChanged">
+                                <ComboBoxItem x:Name="ItemJpStandard" Content="Standard (Kanji + Kana Mix)" Tag="standard"/>
+                                <ComboBoxItem x:Name="ItemJpHiragana" Content="Hiragana / Kana Mix (ひらがな)" Tag="hiragana"/>
+                                <ComboBoxItem x:Name="ItemJpFurigana" Content="Furigana: 漢字(かんじ)" Tag="furigana"/>
+                                <ComboBoxItem x:Name="ItemJpRomaji" Content="Romaji (Latin ABC)" Tag="romaji"/>
+                                <ComboBoxItem x:Name="ItemJpKatakana" Content="Katakana (カタカナ)" Tag="katakana"/>
+                            </ComboBox>
+                        </StackPanel>
 
                         <!-- Engine Settings -->
-                        <TextBlock x:Name="LblEngine" Text="Translation Engine:" Foreground="#BBBBBB" FontSize="12" Margin="0,0,0,4"/>
-                        <ComboBox x:Name="CmbEngine" SelectedIndex="0" Margin="0,0,0,8" Padding="5" SelectionChanged="CmbEngine_SelectionChanged">
+                        <TextBlock x:Name="LblEngine" Text="Translation Engine:" Foreground="#AEAEB2" FontSize="11.5" Margin="2,0,0,5"/>
+                        <ComboBox x:Name="CmbEngine" SelectedIndex="0" Margin="0,0,0,10" SelectionChanged="CmbEngine_SelectionChanged">
                             <ComboBoxItem x:Name="ItemEngineGoogle" Content="Google Translate (Free &amp; Fast, No Quota)" Tag="google"/>
                             <ComboBoxItem x:Name="ItemEngineGroq" Content="Groq AI (Requires API Key, Limited Quota)" Tag="groq"/>
                         </ComboBox>
                         
-                        <TextBlock x:Name="LblApiKey" Text="API Key (Groq):" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="LblApiKey" Text="API Key (Groq):" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
                         <Grid Margin="0,0,0,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBox x:Name="TxtApiKey" Grid.Column="0" Padding="5" Background="#2A2A2A" Foreground="White" BorderBrush="#555"/>
-                            <Button x:Name="BtnVerifyApiKey" Grid.Column="1" Content="Verify" Width="60" Margin="5,0,0,0" ToolTip="Test and verify API key with Groq" Click="BtnVerifyApiKey_Click" Style="{StaticResource ModernButton}" Padding="4,0"/>
+                            <TextBox x:Name="TxtApiKey" Grid.Column="0"/>
+                            <Button x:Name="BtnVerifyApiKey" Grid.Column="1" Content="Verify" Width="62" Margin="6,0,0,0" ToolTip="Test and verify API key with Groq" Click="BtnVerifyApiKey_Click" Style="{StaticResource ModernButton}" Padding="6,0"/>
                         </Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="2,2,0,10">
                             <Ellipse x:Name="DotApiKeyStatus" Width="6" Height="6" Fill="#71717A" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="TxtApiKeyStatus" Text="Free Google Translate active" Foreground="#71717A" FontSize="10" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock x:Name="TxtApiKeyStatus" Text="Free Google Translate active" Foreground="#8E8E93" FontSize="10.5" TextTrimming="CharacterEllipsis"/>
                         </StackPanel>
 
-                        <TextBlock x:Name="LblDeepgramKey" Text="Deepgram API Key:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
-                        <TextBox x:Name="TxtDeepgramKey" Margin="0,0,0,8" Padding="5" Background="#2A2A2A" Foreground="White" BorderBrush="#555" ToolTip="Sign up for free at deepgram.com - 12,000 minutes/month"/>
+                        <TextBlock x:Name="LblDeepgramKey" Text="Deepgram API Key:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
+                        <TextBox x:Name="TxtDeepgramKey" Margin="0,0,0,10" ToolTip="Sign up for free at deepgram.com - 12,000 minutes/month"/>
                         
-                        <TextBlock x:Name="LblGroqModel" Text="Groq Model:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
-                        <Grid Margin="0,0,0,15">
+                        <TextBlock x:Name="LblGroqModel" Text="Groq Model:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
+                        <Grid Margin="0,0,0,14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <ComboBox x:Name="CmbGroqModel" Grid.Column="0" IsEditable="True" MaxDropDownHeight="150" Padding="5">
+                            <ComboBox x:Name="CmbGroqModel" Grid.Column="0" IsEditable="True">
                                 <ComboBoxItem x:Name="ItemGroqAuto" Content="(Auto)" Tag="" IsSelected="True"/>
                             </ComboBox>
-                            <Button x:Name="BtnRefreshModels" Grid.Column="1" Content="Refresh" Width="60" Margin="5,0,0,0" ToolTip="Refresh model list" Click="BtnRefreshModels_Click" Style="{StaticResource ModernButton}" Padding="4,0"/>
+                            <Button x:Name="BtnRefreshModels" Grid.Column="1" Content="Refresh" Width="62" Margin="6,0,0,0" ToolTip="Refresh model list" Click="BtnRefreshModels_Click" Style="{StaticResource ModernButton}" Padding="6,0"/>
                         </Grid>
 
-                        <Separator Margin="0,5,0,15" Background="#333"/>
+                        <Border Height="1" Background="#26FFFFFF" Margin="0,2,0,14"/>
 
                         <!-- Screen OCR Section -->
-                        <TextBlock x:Name="TxtTitleOcr" Text="Screen OCR" Foreground="White" FontFamily="Segoe UI Semibold" FontSize="15" Margin="0,0,0,10"/>
+                        <TextBlock x:Name="TxtTitleOcr" Text="Screen OCR" Foreground="#F2F2F7" FontFamily="Segoe UI Variable Text Semibold, Segoe UI Semibold" FontSize="14.5" Margin="0,0,0,10"/>
                         <Button x:Name="BtnDrawArea" Content="Select Screen Area" Click="BtnDrawArea_Click" Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
-                        <Button x:Name="BtnStartLive" Content="Start Live OCR" Click="BtnStartLive_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,6" IsEnabled="False"/>
-                        <TextBlock x:Name="TxtOcrPackHint" Text="Need Japanese / other OCR? Open Windows Settings" Foreground="#4DABF7" FontSize="11" Margin="0,0,0,15" Cursor="Hand" MouseDown="TxtOcrPackHint_MouseDown" TextDecorations="Underline" ToolTip="Install Japanese or other Language Pack with OCR in Windows Settings"/>
+                        <Button x:Name="BtnStartLive" Content="Start Live OCR" Click="BtnStartLive_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,8" IsEnabled="False"/>
+                        <TextBlock x:Name="TxtOcrPackHint" Text="Need Japanese / other OCR? Open Windows Settings" Foreground="#4DABF7" FontSize="11" Margin="2,0,0,14" Cursor="Hand" MouseDown="TxtOcrPackHint_MouseDown" TextDecorations="Underline" ToolTip="Install Japanese or other Language Pack with OCR in Windows Settings"/>
                         
-                        <Separator Margin="0,5,0,15" Background="#333"/>
+                        <Border Height="1" Background="#26FFFFFF" Margin="0,2,0,14"/>
 
                         <!-- Audio STT Section -->
-                        <TextBlock x:Name="TxtTitleAudio" Text="Audio Transcription" Foreground="White" FontFamily="Segoe UI Semibold" FontSize="15" Margin="0,0,0,10"/>
+                        <TextBlock x:Name="TxtTitleAudio" Text="Audio Transcription" Foreground="#F2F2F7" FontFamily="Segoe UI Variable Text Semibold, Segoe UI Semibold" FontSize="14.5" Margin="0,0,0,10"/>
 
-                        <TextBlock x:Name="LblSttMode" Text="STT Mode:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
-                        <ComboBox x:Name="CmbSttMode" Margin="0,0,0,10" Padding="5" SelectedIndex="0">
+                        <TextBlock x:Name="LblSttMode" Text="STT Mode:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
+                        <ComboBox x:Name="CmbSttMode" Margin="0,0,0,10" SelectedIndex="0">
                             <ComboBoxItem x:Name="ItemSttDeepgram" Content="Deepgram (Streaming + Speaker)" Tag="deepgram"/>
                             <ComboBoxItem x:Name="ItemSttGroq" Content="Groq Whisper (Batch + Speaker)" Tag="groq"/>
                         </ComboBox>
 
-                        <TextBlock x:Name="LblFontSize" Text="Subtitle Font Size:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
-                        <ComboBox x:Name="CmbFontSize" Margin="0,0,0,10" Padding="5" SelectedIndex="1" SelectionChanged="CmbFontSize_SelectionChanged">
+                        <TextBlock x:Name="LblFontSize" Text="Subtitle Font Size:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
+                        <ComboBox x:Name="CmbFontSize" Margin="0,0,0,10" SelectedIndex="1" SelectionChanged="CmbFontSize_SelectionChanged">
                             <ComboBoxItem x:Name="ItemFontSmall" Content="Small (14px)" Tag="14"/>
                             <ComboBoxItem x:Name="ItemFontMed" Content="Medium (20px)" Tag="20"/>
                             <ComboBoxItem x:Name="ItemFontLg" Content="Large (26px)" Tag="26"/>
                             <ComboBoxItem x:Name="ItemFontXl" Content="Extra Large (36px)" Tag="36"/>
                         </ComboBox>
 
-                        <TextBlock x:Name="LblAudioDevice" Text="Audio Capture Device:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
+                        <TextBlock x:Name="LblAudioDevice" Text="Audio Capture Device:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
                         <Grid Margin="0,0,0,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <ComboBox x:Name="CmbAudioDevice" Grid.Column="0" IsEditable="False" Padding="5">
+                            <ComboBox x:Name="CmbAudioDevice" Grid.Column="0" IsEditable="False">
                                 <ComboBoxItem x:Name="ItemAudioDefault" Content="Default System Playback" Tag="default" IsSelected="True"/>
                             </ComboBox>
-                            <Button x:Name="BtnRefreshAudio" Grid.Column="1" Content="Refresh" Width="60" Margin="5,0,0,0" ToolTip="Refresh audio devices" Click="BtnRefreshAudioDevices_Click" Style="{StaticResource ModernButton}" Padding="4,0"/>
+                            <Button x:Name="BtnRefreshAudio" Grid.Column="1" Content="Refresh" Width="62" Margin="6,0,0,0" ToolTip="Refresh audio devices" Click="BtnRefreshAudioDevices_Click" Style="{StaticResource ModernButton}" Padding="6,0"/>
                         </Grid>
 
-                        <TextBlock x:Name="TxtAudioStatus" Text="" Foreground="#888" FontSize="11" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                        <Button x:Name="BtnStartAudio" Content="Start Audio Translate" Click="BtnStartAudio_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,12"/>
+                        <TextBlock x:Name="TxtAudioStatus" Text="" Foreground="#8E8E93" FontSize="11" Margin="2,0,0,6" TextWrapping="Wrap"/>
+                        <Button x:Name="BtnStartAudio" Content="Start Audio Translate" Click="BtnStartAudio_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,14"/>
 
                         <!-- API Quota -->
-                        <Border Background="#1C1C1F" BorderBrush="#2E2E33" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,0,0,15">
+                        <Border Background="#1D1D24" BorderBrush="#2E2E38" BorderThickness="1" CornerRadius="10" Padding="12,9" Margin="0,0,0,14">
                             <StackPanel>
                                 <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
@@ -309,43 +584,39 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock x:Name="TxtTitleQuota" Text="API Quota" Foreground="#ECECEE" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                    <Border x:Name="BadgeQuotaStatus" Grid.Column="1" Background="#065F46" CornerRadius="4" Padding="6,1">
+                                    <Border x:Name="BadgeQuotaStatus" Grid.Column="1" Background="#065F46" CornerRadius="5" Padding="6,1">
                                         <TextBlock x:Name="TxtQuotaBadge" Text="Unlimited" Foreground="#34D399" FontSize="10" FontWeight="Bold"/>
                                     </Border>
                                 </Grid>
 
-                                <!-- Capacity Progress Bar -->
-                                <ProgressBar x:Name="PbQuotaRequests" Height="4" Margin="0,2,0,4" Background="#2A2A2E" Foreground="#10B981" Value="100" Maximum="100"/>
-
-                                <!-- Quota Info -->
+                                <ProgressBar x:Name="PbQuotaRequests" Height="4" Margin="0,3,0,4" Background="#2A2A32" Foreground="#10B981" BorderThickness="0" Value="100" Maximum="100"/>
                                 <TextBlock x:Name="TxtQuotaInfo" Text="Unlimited" Foreground="#34D399" FontSize="10"/>
                             </StackPanel>
                         </Border>
                         
-                        <!-- App Preferences (Separated from Translation) -->
-                        <Separator Margin="0,5,0,15" Background="#333"/>
-                        <Border Background="#252528" BorderBrush="#3E3E42" BorderThickness="1" CornerRadius="8" Padding="12,10" Margin="0,0,0,15">
+                        <!-- App Preferences -->
+                        <Border Height="1" Background="#26FFFFFF" Margin="0,2,0,14"/>
+                        <Border Background="#1F1F26" BorderBrush="#2F2F38" BorderThickness="1" CornerRadius="10" Padding="12,10" Margin="0,0,0,14">
                             <StackPanel>
-                                <TextBlock x:Name="TxtTitlePreferences" Text="App Preferences" Foreground="White" FontFamily="Segoe UI Semibold" FontSize="12" Margin="0,0,0,8"/>
-                                <TextBlock x:Name="LblUiLanguage" Text="UI Language:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
-                                <ComboBox x:Name="CmbUiLanguage" SelectedIndex="0" Padding="5" SelectionChanged="CmbUiLanguage_SelectionChanged" Margin="0,0,0,10">
+                                <TextBlock x:Name="TxtTitlePreferences" Text="App Preferences" Foreground="#F2F2F7" FontFamily="Segoe UI Variable Text Semibold, Segoe UI Semibold" FontSize="12.5" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="LblUiLanguage" Text="UI Language:" Foreground="#AEAEB2" FontSize="11" Margin="0,0,0,4"/>
+                                <ComboBox x:Name="CmbUiLanguage" SelectedIndex="0" SelectionChanged="CmbUiLanguage_SelectionChanged" Margin="0,0,0,10">
                                     <ComboBoxItem x:Name="ItemUiLangEn" Content="English (Default)" Tag="en"/>
                                     <ComboBoxItem x:Name="ItemUiLangId" Content="Indonesian (Bahasa Indonesia)" Tag="id"/>
                                     <ComboBoxItem x:Name="ItemUiLangRu" Content="Russian (Русский)" Tag="ru"/>
                                     <ComboBoxItem x:Name="ItemUiLangAuto" Content="Auto (System Default)" Tag="auto"/>
                                 </ComboBox>
 
-                                <!-- Silent Auto Update -->
-                                <TextBlock x:Name="LblAutoUpdate" Text="App Updates:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
-                                <Grid Margin="0,0,0,6">
+                                <TextBlock x:Name="LblAutoUpdate" Text="App Updates:" Foreground="#AEAEB2" FontSize="11" Margin="0,0,0,4"/>
+                                <Grid Margin="0,0,0,4">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock x:Name="TxtUpdateStatus" Grid.Column="0" Text="App is up to date (v1.2.0)" Foreground="#888888" FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                                    <Button x:Name="BtnCheckUpdate" Grid.Column="1" Content="Check" Width="55" Margin="6,0,0,0" Click="BtnCheckUpdate_Click" Style="{StaticResource ModernButton}" Padding="4,2"/>
+                                    <TextBlock x:Name="TxtUpdateStatus" Grid.Column="0" Text="App is up to date (v1.2.0)" Foreground="#8E8E93" FontSize="10.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <Button x:Name="BtnCheckUpdate" Grid.Column="1" Content="Check" Width="58" Margin="6,0,0,0" Click="BtnCheckUpdate_Click" Style="{StaticResource ModernButton}" Padding="4,3"/>
                                 </Grid>
-                                <Button x:Name="BtnApplyUpdateNow" Visibility="Collapsed" Content="Restart to Apply Update" Click="BtnApplyUpdateNow_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,4" Padding="6,4"/>
+                                <Button x:Name="BtnApplyUpdateNow" Visibility="Collapsed" Content="Restart to Apply Update" Click="BtnApplyUpdateNow_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,4,0,2" Padding="6,5"/>
                             </StackPanel>
                         </Border>
 

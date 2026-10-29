@@ -2,6 +2,7 @@ using System;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
+using LiveTranslatorOverlay.Core.Japanese;
 
 namespace LiveTranslatorOverlay.Core.Translation
 {
@@ -9,10 +10,13 @@ namespace LiveTranslatorOverlay.Core.Translation
     {
         private readonly HttpClient _httpClient;
 
+        public JapaneseScriptStyle ScriptStyle { get; set; } = JapaneseScriptStyle.Standard;
+
         // Simple cache
         private string _cachedInput = "";
         private string _cachedTarget = "";
         private string _cachedSource = "";
+        private JapaneseScriptStyle _cachedStyle = JapaneseScriptStyle.Standard;
         private string _cachedResult = "";
 
         public GoogleFreeTranslateProvider()
@@ -27,53 +31,69 @@ namespace LiveTranslatorOverlay.Core.Translation
         {
             if (string.IsNullOrWhiteSpace(text)) return string.Empty;
 
-            // Return cache if same
-            if (text == _cachedInput && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource)
+            if (text == _cachedInput && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource && ScriptStyle == _cachedStyle && !string.IsNullOrEmpty(_cachedResult))
                 return _cachedResult;
 
-            // Try Google first, then MyMemory fallback
-            string result = await TryGoogleTranslateAsync(text, targetLanguage, sourceLanguage);
+            string effectiveTarget = ResolveGoogleLanguageCode(targetLanguage, isTarget: true);
+            string effectiveSource = ResolveGoogleLanguageCode(sourceLanguage, isTarget: false);
 
-            // Validate result: if result is identical to input, it was probably not translated
-            // This happens when Google ignores the source lang and returns original
+            // Try Google first, then MyMemory fallback
+            string result = await TryGoogleTranslateAsync(text, effectiveTarget, effectiveSource, targetLanguage);
+
             if (!string.IsNullOrWhiteSpace(result) && result.Trim() != text.Trim())
             {
                 _cachedInput = text;
                 _cachedTarget = targetLanguage;
                 _cachedSource = sourceLanguage;
+                _cachedStyle = ScriptStyle;
                 _cachedResult = result;
                 return result;
             }
 
             // Fallback to MyMemory
-            result = await TryMyMemoryAsync(text, targetLanguage, sourceLanguage);
+            result = await TryMyMemoryAsync(text, effectiveTarget, effectiveSource);
             if (!string.IsNullOrWhiteSpace(result))
             {
                 _cachedInput = text;
                 _cachedTarget = targetLanguage;
                 _cachedSource = sourceLanguage;
+                _cachedStyle = ScriptStyle;
                 _cachedResult = result;
                 return result;
             }
 
-            return text; // Return original if all fail
+            return text;
         }
 
-        public async Task TranslateStreamAsync(string text, string targetLanguage, string sourceLanguage, System.Action<string> onTokenReceived)
+        public async Task TranslateStreamAsync(string text, string targetLanguage, string sourceLanguage, Action<string> onTokenReceived)
         {
-            // Google Free API tidak mendukung streaming, jadi kita panggil method biasa lalu kirim hasilnya sekaligus
             string result = await TranslateAsync(text, targetLanguage, sourceLanguage);
             onTokenReceived(result);
         }
 
-        private async Task<string> TryGoogleTranslateAsync(string text, string targetLang, string sourceLang)
+        private string ResolveGoogleLanguageCode(string code, bool isTarget)
+        {
+            if (string.IsNullOrWhiteSpace(code)) return isTarget ? "en" : "auto";
+            if (code.Equals("zh", StringComparison.OrdinalIgnoreCase))
+            {
+                if (isTarget && ScriptStyle == JapaneseScriptStyle.Hiragana)
+                    return "zh-TW";
+                return "zh-CN";
+            }
+            if (code.Equals("zh-TW", StringComparison.OrdinalIgnoreCase))
+            {
+                return "zh-TW";
+            }
+            return code;
+        }
+
+        private async Task<string> TryGoogleTranslateAsync(string text, string targetLang, string sourceLang, string rawTargetLang)
         {
             try
             {
                 string encoded = Uri.EscapeDataString(text);
-                // dj=1 returns structured JSON, more reliable than nested arrays
-                // hl=en forces the interface language to English (prevents locale interference)
-                string url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl={sourceLang}&tl={targetLang}&hl=en&dt=t&dj=1&q={encoded}";
+                // dt=t returns translation, dt=rm returns romanization/transliteration (Pinyin, Romaji, Romaja, etc.)
+                string url = $"https://translate.googleapis.com/translate_a/single?client=gtx&sl={sourceLang}&tl={targetLang}&hl=en&dt=t&dt=rm&dj=1&q={encoded}";
 
                 var response = await _httpClient.GetAsync(url);
                 if (!response.IsSuccessStatusCode) return string.Empty;
@@ -82,24 +102,33 @@ namespace LiveTranslatorOverlay.Core.Translation
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
 
-                // Parse detected source language
-                string? detectedSrc = null;
-                if (root.TryGetProperty("src", out var srcEl))
-                    detectedSrc = srcEl.GetString();
-
-                // Parse translated sentences
                 if (root.TryGetProperty("sentences", out var sentences))
                 {
                     string translated = "";
+                    string translit = "";
                     foreach (var s in sentences.EnumerateArray())
                     {
                         if (s.TryGetProperty("trans", out var trans))
                             translated += trans.GetString();
+                        if (s.TryGetProperty("translit", out var tr))
+                            translit += tr.GetString();
                     }
 
                     if (!string.IsNullOrWhiteSpace(translated))
                     {
-                        return System.Net.WebUtility.HtmlDecode(translated).Trim();
+                        string cleanTrans = System.Net.WebUtility.HtmlDecode(translated).Trim();
+                        string cleanTranslit = System.Net.WebUtility.HtmlDecode(translit).Trim();
+
+                        // Apply free built-in romanization/pinyin for Chinese when requested
+                        if ((rawTargetLang == "zh" || rawTargetLang == "zh-TW") && !string.IsNullOrWhiteSpace(cleanTranslit))
+                        {
+                            if (ScriptStyle == JapaneseScriptStyle.Romaji)
+                                return cleanTranslit;
+                            if (ScriptStyle == JapaneseScriptStyle.Furigana)
+                                return $"{cleanTrans} ({cleanTranslit})";
+                        }
+
+                        return cleanTrans;
                     }
                 }
 
@@ -115,7 +144,6 @@ namespace LiveTranslatorOverlay.Core.Translation
         {
             try
             {
-                // MyMemory uses "autodetect" instead of "auto"
                 string src = sourceLang == "auto" ? "autodetect" : sourceLang;
                 string langPair = $"{src}|{targetLang}";
                 string encoded = Uri.EscapeDataString(text);

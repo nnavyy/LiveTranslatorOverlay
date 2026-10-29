@@ -24,6 +24,34 @@ namespace LiveTranslatorOverlay.Core.Japanese
         private static readonly ConcurrentDictionary<string, string> _romajiCache = new();
         private static readonly ConcurrentDictionary<string, string> _katakanaCache = new();
         private static readonly ConcurrentDictionary<string, string> _furiganaCache = new();
+        private static readonly ConcurrentDictionary<string, string> _multiScriptCache = new();
+
+        /// <summary>
+        /// Returns true if the language has 2+ writing systems, phonetic scripts, or digraphic options
+        /// (Japanese, Korean, Chinese, Serbian, Bosnian, Uzbek, Azerbaijani, Mongolian).
+        /// </summary>
+        public static bool IsMultiScriptLanguage(string? langCode)
+        {
+            if (string.IsNullOrWhiteSpace(langCode)) return false;
+            return langCode.ToLowerInvariant() switch
+            {
+                "ja" or "ko" or "zh" or "zh-cn" or "zh-tw" or "sr" or "bs" or "uz" or "az" or "mn" => true,
+                _ => false
+            };
+        }
+
+        public static string GetScriptCategory(string? langCode)
+        {
+            if (string.IsNullOrWhiteSpace(langCode)) return "none";
+            return langCode.ToLowerInvariant() switch
+            {
+                "ja" => "ja",
+                "ko" => "ko",
+                "zh" or "zh-cn" or "zh-tw" => "zh",
+                "sr" or "bs" or "uz" or "az" or "mn" => "dual",
+                _ => "none"
+            };
+        }
 
         private static readonly Dictionary<string, string> TwoCharRomaji = new()
         {
@@ -160,6 +188,335 @@ namespace LiveTranslatorOverlay.Core.Japanese
                 if (c >= 0x3400 && c <= 0x4DBF) return true;
             }
             return false;
+        }
+
+        public static bool HasHangul(string text)
+        {
+            foreach (char c in text)
+            {
+                if ((c >= 0xAC00 && c <= 0xD7A3) || (c >= 0x3131 && c <= 0x318E))
+                    return true;
+            }
+            return false;
+        }
+
+        public static bool HasCyrillic(string text)
+        {
+            foreach (char c in text)
+            {
+                if (c >= 0x0400 && c <= 0x04FF)
+                    return true;
+            }
+            return false;
+        }
+
+        // Korean Revised Romanization (Official National Institute of Korean Language standard)
+        private static readonly string[] KrInitials =
+        {
+            "g", "kk", "n", "d", "tt", "r", "m", "b", "pp", "s", "ss", "", "j", "jj", "ch", "k", "t", "p", "h"
+        };
+
+        private static readonly string[] KrMedials =
+        {
+            "a", "ae", "ya", "yae", "eo", "e", "yeo", "ye", "o", "wa", "wae", "oe", "yo", "u", "wo", "we", "wi", "yu", "eu", "ui", "i"
+        };
+
+        private static readonly string[] KrFinals =
+        {
+            "", "k", "k", "k", "n", "n", "n", "t", "l", "k", "m", "p", "l", "l", "p", "l", "m", "p", "p", "t", "t", "ng", "t", "t", "k", "t", "p", "t"
+        };
+
+        public static string HangulToRomaja(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            var sb = new StringBuilder(text.Length * 2);
+            foreach (char c in text)
+            {
+                if (c >= 0xAC00 && c <= 0xD7A3)
+                {
+                    int code = c - 0xAC00;
+                    int initial = code / (21 * 28);
+                    int medial = (code % (21 * 28)) / 28;
+                    int final = code % 28;
+                    sb.Append(KrInitials[initial]).Append(KrMedials[medial]).Append(KrFinals[final]);
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+            return FormatRomaji(sb.ToString());
+        }
+
+        public static string HangulWithRomaja(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text) || !HasHangul(text)) return text;
+            var sb = new StringBuilder();
+            var hangulWord = new StringBuilder();
+
+            foreach (char c in text)
+            {
+                if (c >= 0xAC00 && c <= 0xD7A3)
+                {
+                    hangulWord.Append(c);
+                }
+                else
+                {
+                    if (hangulWord.Length > 0)
+                    {
+                        string w = hangulWord.ToString();
+                        sb.Append(w).Append('(').Append(HangulToRomaja(w).ToLowerInvariant()).Append(')');
+                        hangulWord.Clear();
+                    }
+                    sb.Append(c);
+                }
+            }
+            if (hangulWord.Length > 0)
+            {
+                string w = hangulWord.ToString();
+                sb.Append(w).Append('(').Append(HangulToRomaja(w).ToLowerInvariant()).Append(')');
+            }
+            return sb.ToString();
+        }
+
+        private static readonly Dictionary<char, string> CyrillicToLatinMap = new()
+        {
+            // Serbian / Bosnian / Macedonian / General Cyrillic
+            {'А', "A"}, {'а', "a"}, {'Б', "B"}, {'б', "b"}, {'В', "V"}, {'в', "v"},
+            {'Г', "G"}, {'г', "g"}, {'Д', "D"}, {'д', "d"}, {'Ђ', "Đ"}, {'ђ', "đ"},
+            {'Ѓ', "Gj"}, {'ѓ', "gj"}, {'Е', "E"}, {'е', "e"}, {'Ё', "Yo"}, {'ё', "yo"},
+            {'Ж', "Ž"}, {'ж', "ž"}, {'З', "Z"}, {'з', "z"}, {'Ѕ', "Dz"}, {'ѕ', "dz"},
+            {'И', "I"}, {'и', "i"}, {'Ј', "J"}, {'ј', "j"}, {'Й', "Y"}, {'й', "y"},
+            {'К', "K"}, {'к', "k"}, {'Л', "L"}, {'л', "l"}, {'Љ', "Lj"}, {'љ', "lj"},
+            {'М', "M"}, {'м', "m"}, {'Н', "N"}, {'н', "n"}, {'Њ', "Nj"}, {'њ', "nj"},
+            {'О', "O"}, {'о', "o"}, {'П', "P"}, {'п', "p"}, {'Р', "R"}, {'р', "r"},
+            {'С', "S"}, {'с', "s"}, {'Т', "T"}, {'т', "t"}, {'Ћ', "Ć"}, {'ћ', "ć"},
+            {'Ќ', "Kj"}, {'ќ', "kj"}, {'У', "U"}, {'у', "u"}, {'Ф', "F"}, {'ф', "f"},
+            {'Х', "H"}, {'х', "h"}, {'Ц', "C"}, {'ц', "c"}, {'Ч', "Č"}, {'ч', "č"},
+            {'Џ', "Dž"}, {'џ', "dž"}, {'Ш', "Š"}, {'ш', "š"}, {'Щ', "Shch"}, {'щ', "shch"},
+            {'Ъ', ""}, {'ъ', ""}, {'Ы', "Y"}, {'ы', "y"}, {'Ь', ""}, {'ь', ""},
+            {'Э', "E"}, {'э', "e"}, {'Ю', "Yu"}, {'ю', "yu"}, {'Я', "Ya"}, {'я', "ya"},
+            // Uzbek / Azerbaijani / Mongolian extended Cyrillic
+            {'Ў', "Oʻ"}, {'ў', "oʻ"}, {'Қ', "Q"}, {'қ', "q"}, {'Ғ', "Gʻ"}, {'ғ', "gʻ"},
+            {'Ҳ', "H"}, {'ҳ', "h"}, {'Ә', "Ə"}, {'ә', "ə"}, {'Ө', "Ö"}, {'ө', "ö"},
+            {'Ү', "Ü"}, {'ү', "ü"}, {'Ҹ', "C"}, {'ҹ', "c"}, {'Һ', "H"}, {'һ', "h"}
+        };
+
+        private static readonly (string Latin, string Cyrillic)[] SerbianLatinToCyrillicDigraphs =
+        {
+            ("Dž", "Џ"), ("DŽ", "Џ"), ("dž", "џ"),
+            ("Lj", "Љ"), ("LJ", "Љ"), ("lj", "љ"),
+            ("Nj", "Њ"), ("NJ", "Њ"), ("nj", "њ")
+        };
+
+        private static readonly Dictionary<char, char> SerbianLatinToCyrillicSingle = new()
+        {
+            {'A', 'А'}, {'a', 'а'}, {'B', 'Б'}, {'b', 'б'}, {'C', 'Ц'}, {'c', 'ц'},
+            {'Č', 'Ч'}, {'č', 'ч'}, {'Ć', 'Ћ'}, {'ć', 'ћ'}, {'D', 'Д'}, {'d', 'д'},
+            {'Đ', 'Ђ'}, {'đ', 'ђ'}, {'E', 'Е'}, {'e', 'е'}, {'F', 'Ф'}, {'f', 'ф'},
+            {'G', 'Г'}, {'g', 'г'}, {'H', 'Х'}, {'h', 'х'}, {'I', 'И'}, {'i', 'и'},
+            {'J', 'Ј'}, {'j', 'ј'}, {'K', 'К'}, {'k', 'к'}, {'L', 'Л'}, {'l', 'л'},
+            {'M', 'М'}, {'m', 'м'}, {'N', 'Н'}, {'n', 'н'}, {'O', 'О'}, {'o', 'о'},
+            {'P', 'П'}, {'p', 'п'}, {'R', 'Р'}, {'r', 'р'}, {'S', 'С'}, {'s', 'с'},
+            {'Š', 'Ш'}, {'š', 'ш'}, {'T', 'Т'}, {'t', 'т'}, {'U', 'У'}, {'u', 'у'},
+            {'V', 'В'}, {'v', 'в'}, {'Z', 'З'}, {'z', 'з'}, {'Ž', 'Ж'}, {'ž', 'ж'}
+        };
+
+        public static string ConvertCyrillicToLatin(string text, string langCode)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            string lang = langCode.ToLowerInvariant();
+            var sb = new StringBuilder(text.Length);
+            foreach (char c in text)
+            {
+                if (lang == "uz")
+                {
+                    switch (c)
+                    {
+                        case 'Ж': sb.Append("J"); continue;
+                        case 'ж': sb.Append("j"); continue;
+                        case 'Ч': sb.Append("Ch"); continue;
+                        case 'ч': sb.Append("ch"); continue;
+                        case 'Ш': sb.Append("Sh"); continue;
+                        case 'ш': sb.Append("sh"); continue;
+                        case 'Ц': sb.Append("Ts"); continue;
+                        case 'ц': sb.Append("ts"); continue;
+                        case 'Х': sb.Append("X"); continue;
+                        case 'х': sb.Append("x"); continue;
+                    }
+                }
+                else if (lang == "az")
+                {
+                    switch (c)
+                    {
+                        case 'Ч': sb.Append("Ç"); continue;
+                        case 'ч': sb.Append("ç"); continue;
+                        case 'Ш': sb.Append("Ş"); continue;
+                        case 'ш': sb.Append("ş"); continue;
+                        case 'Ж': sb.Append("J"); continue;
+                        case 'ж': sb.Append("j"); continue;
+                        case 'Х': sb.Append("X"); continue;
+                        case 'х': sb.Append("x"); continue;
+                        case 'Ғ': sb.Append("Ğ"); continue;
+                        case 'ғ': sb.Append("ğ"); continue;
+                        case 'Ы': sb.Append("I"); continue;
+                        case 'ы': sb.Append("ı"); continue;
+                    }
+                }
+
+                if (CyrillicToLatinMap.TryGetValue(c, out var mapped))
+                    sb.Append(mapped);
+                else
+                    sb.Append(c);
+            }
+            return sb.ToString();
+        }
+
+        public static string ConvertLatinToCyrillic(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return text;
+            string working = text;
+            foreach (var (lat, cyr) in SerbianLatinToCyrillicDigraphs)
+            {
+                working = working.Replace(lat, cyr);
+            }
+            var sb = new StringBuilder(working.Length);
+            foreach (char c in working)
+            {
+                if (SerbianLatinToCyrillicSingle.TryGetValue(c, out char cyr))
+                    sb.Append(cyr);
+                else
+                    sb.Append(c);
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Converts text for any multi-script language (Japanese, Korean, Chinese, Serbian, Bosnian, Uzbek, Azerbaijani, Mongolian).
+        /// </summary>
+        public static async Task<string> ConvertForLanguageAsync(string text, string langCode, JapaneseScriptStyle style, string? apiKey = null)
+        {
+            if (string.IsNullOrWhiteSpace(text) || style == JapaneseScriptStyle.Standard)
+                return text;
+
+            string category = GetScriptCategory(langCode);
+            if (category == "ja" || (category == "none" && (ContainsKana(text) || HasKanji(text))))
+            {
+                return await ConvertAsync(text, style, apiKey);
+            }
+
+            string cacheKey = $"{langCode}:{style}:{text}";
+            if (_multiScriptCache.TryGetValue(cacheKey, out var cached))
+                return cached;
+
+            string result = text;
+            if (category == "ko")
+            {
+                result = style switch
+                {
+                    JapaneseScriptStyle.Furigana => HangulWithRomaja(text),
+                    JapaneseScriptStyle.Romaji => HangulToRomaja(text),
+                    JapaneseScriptStyle.Katakana => !string.IsNullOrWhiteSpace(apiKey)
+                        ? await QueryAiMultiScriptAsync(text, "Korean Hangul with Hanja in parentheses for Sino-Korean words, e.g. 한국(韓國)", apiKey)
+                        : text,
+                    _ => text
+                };
+            }
+            else if (category == "zh")
+            {
+                if (!string.IsNullOrWhiteSpace(apiKey))
+                {
+                    string instruction = style switch
+                    {
+                        JapaneseScriptStyle.Hiragana => "Traditional Chinese characters (繁體中文)",
+                        JapaneseScriptStyle.Furigana => "Chinese characters with Hanyu Pinyin in parentheses after each word, e.g. 你好(nǐ hǎo)",
+                        JapaneseScriptStyle.Romaji => "Hanyu Pinyin with tone marks only (Latin alphabet)",
+                        _ => ""
+                    };
+                    if (!string.IsNullOrEmpty(instruction))
+                        result = await QueryAiMultiScriptAsync(text, instruction, apiKey);
+                }
+            }
+            else if (category == "dual")
+            {
+                if (style == JapaneseScriptStyle.Romaji) // Latin script
+                {
+                    result = HasCyrillic(text) ? ConvertCyrillicToLatin(text, langCode) : text;
+                }
+                else if (style == JapaneseScriptStyle.Hiragana) // Cyrillic script
+                {
+                    if (!HasCyrillic(text))
+                    {
+                        if (langCode is "sr" or "bs")
+                            result = ConvertLatinToCyrillic(text);
+                        else if (!string.IsNullOrWhiteSpace(apiKey))
+                            result = await QueryAiMultiScriptAsync(text, $"Cyrillic script for {langCode}", apiKey);
+                    }
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(result))
+                _multiScriptCache[cacheKey] = result;
+
+            return string.IsNullOrWhiteSpace(result) ? text : result;
+        }
+
+        private static bool ContainsKana(string text)
+        {
+            foreach (char c in text)
+            {
+                if ((c >= 0x3040 && c <= 0x309F) || (c >= 0x30A0 && c <= 0x30FF))
+                    return true;
+            }
+            return false;
+        }
+
+        private static async Task<string> QueryAiMultiScriptAsync(string text, string targetFormatDescription, string apiKey)
+        {
+            try
+            {
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                string prompt = $"Convert the following text into {targetFormatDescription}. Output ONLY the converted text, nothing else.";
+                string[] modelsToTry = { "llama-3.3-70b-versatile", "llama-3.1-8b-instant" };
+
+                foreach (var modelName in modelsToTry)
+                {
+                    try
+                    {
+                        var req = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions");
+                        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.Trim());
+
+                        var payload = new
+                        {
+                            model = modelName,
+                            messages = new[]
+                            {
+                                new { role = "system", content = prompt },
+                                new { role = "user", content = text }
+                            },
+                            temperature = 0.0,
+                            max_tokens = 256
+                        };
+
+                        req.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                        using var response = await client.SendAsync(req);
+                        if (!response.IsSuccessStatusCode) continue;
+
+                        var json = await response.Content.ReadAsStringAsync();
+                        using var doc = JsonDocument.Parse(json);
+                        if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
+                        {
+                            var msg = choices[0].GetProperty("message").GetProperty("content").GetString()?.Trim();
+                            if (!string.IsNullOrWhiteSpace(msg))
+                                return msg;
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+
+            return text;
         }
 
         private static string TryWindowsImeToHiragana(string text)
