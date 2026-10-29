@@ -85,6 +85,33 @@ namespace LiveTranslatorOverlay.Core
 
             // Arabic common hallucinations
             "\u0634\u0643\u0631\u0627 \u0644\u0643\u0645",   // شكرا لكم (thank you - Arabic)
+            "\u0627\u0634\u062a\u0631\u0643 \u0641\u064a \u0627\u0644\u0642\u0646\u0627\u0629", // اشترك في القناة (subscribe - Arabic)
+            "\u062a\u0631\u062c\u0645\u0629 \u0646\u0627\u0646\u0633\u064a", // ترجمة نانسي
+
+            // Ukrainian common hallucinations
+            "дякую за перегляд", "дякуємо за перегляд", "підписуйтесь на канал",
+            "підпишіться на канал", "далі буде", "субтитри зробив", "редактор субтитрів",
+
+            // Azerbaijani & Uzbek common hallucinations
+            "izlədiyiniz üçün təşəkkürlər", "kanala abunə olun", "altyazı",
+            "tomosha qilganingiz uchun rahmat", "obuna bo'ling",
+
+            // Georgian & Mongolian common hallucinations
+            "მადლობა ყურებისთვის", "გამოიწერეთ არხი", "სუბტიტრები",
+            "үзсэнд баярлалаа", "хадмал орчуулга",
+
+            // Balkan languages common hallucinations (Serbian, Croatian, Bosnian, Bulgarian, Romanian, Greek, Albanian, Macedonian, Slovenian)
+            "hvala na gledanju", "хвала на гледању", "pretplatite se", "претплатите се",
+            "благодаря за гледането", "абонирайте се",
+            "mulțumesc pentru vizionare", "abonați-vă", "subtitrare realizată",
+            "ευχαριστώ για την παρακολούθηση", "εγγραφείτε στο κανάλι", "υπότιτλοι",
+            "faleminderit për shikimin", "abonohuni në kanal",
+            "ви благодариме за гледањето", "претплатете се",
+            "hvala za ogled", "naročite se na kanal",
+
+            // LLM meta-commentary hallucinations
+            "here is the translation", "as an ai language model", "i cannot translate",
+            "no text to translate", "please provide the text"
         };
 
         private static readonly string[] ExactMatches =
@@ -114,6 +141,12 @@ namespace LiveTranslatorOverlay.Core
             "会話の書き起こし",
             "書き起こし",
             "正確に書き起こしてください",
+            // Ukrainian, Balkan, Caucasian, Turkic standalone silence hallucinations
+            "дякую", "дякую.", "дякую!",
+            "təşəkkürlər", "rahmat", "მადლობა", "баярлалаа",
+            "hvala", "хвала", "благодаря", "mulțumesc", "ευχαριστώ", "faleminderit",
+            "субтитри", "субтитры", "subtitles", "subtitle", "titlovi", "altyazı",
+            "mbc 뉴스", "kbs 뉴스", "sbs 뉴스"
         };
 
         public static bool IsHallucination(string? text)
@@ -127,7 +160,7 @@ namespace LiveTranslatorOverlay.Core
             string stripped = new string(lower.Where(c => !char.IsPunctuation(c) && c != '\u266a' && c != '\u266b').ToArray()).Trim();
             if (stripped.Length == 0) return true;
 
-            // Short-text rejection: transcripts ≤ 2 meaningful characters are noise
+            // Short-text rejection: transcripts <= 2 meaningful characters are noise
             if (stripped.Length <= 2) return true;
 
             // Check exact stripped matches (e.g. "спасибо", "thank you", "spasiba")
@@ -183,6 +216,48 @@ namespace LiveTranslatorOverlay.Core
 
                 if ((double)maxCount / words.Length > 0.60)
                     return true;
+
+                // N-gram (2-word & 3-word phrase) repetition detector
+                // Catches loops like "I don't know I don't know I don't know"
+                for (int n = 2; n <= 3; n++)
+                {
+                    if (words.Length >= n * 3)
+                    {
+                        var ngramCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                        int maxNgram = 0;
+                        for (int i = 0; i <= words.Length - n; i++)
+                        {
+                            string ngram = string.Join(" ", words, i, n);
+                            ngramCounts[ngram] = ngramCounts.TryGetValue(ngram, out int c) ? c + 1 : 1;
+                            if (ngramCounts[ngram] > maxNgram) maxNgram = ngramCounts[ngram];
+                        }
+                        if (maxNgram >= 3 && (double)(maxNgram * n) / words.Length > 0.55)
+                            return true;
+                    }
+                }
+            }
+
+            // Space-less / CJK / Character-block repetition detector
+            // Catches Whisper loops in Japanese/Chinese/Korean without spaces (e.g. "ありがとうありがとうありがとう")
+            string noSpace = new string(stripped.Where(c => !char.IsWhiteSpace(c)).ToArray());
+            if (noSpace.Length >= 6)
+            {
+                for (int patLen = 2; patLen <= Math.Min(14, noSpace.Length / 3); patLen++)
+                {
+                    for (int start = 0; start <= noSpace.Length - patLen * 3; start++)
+                    {
+                        ReadOnlySpan<char> pattern = noSpace.AsSpan(start, patLen);
+                        int consecutiveRepeats = 1;
+                        int pos = start + patLen;
+                        while (pos + patLen <= noSpace.Length && noSpace.AsSpan(pos, patLen).Equals(pattern, StringComparison.Ordinal))
+                        {
+                            consecutiveRepeats++;
+                            pos += patLen;
+                        }
+                        if (consecutiveRepeats >= 3 && (consecutiveRepeats * patLen >= noSpace.Length * 0.50 || consecutiveRepeats >= 4))
+                            return true;
+                    }
+                }
             }
 
             // Musical note only strings (♪♪♪ or ♫♫)
@@ -191,6 +266,80 @@ namespace LiveTranslatorOverlay.Core
 
             return false;
         }
+
+        /// <summary>
+        /// Cleans LLM translation output to strip thinking blocks, meta prefixes, history bracket echoes,
+        /// and trailing translator commentary.
+        /// </summary>
+        public static string CleanTranslationOutput(string? rawTranslation, string? originalText = null)
+        {
+            if (string.IsNullOrWhiteSpace(rawTranslation)) return string.Empty;
+
+            string result = rawTranslation.Trim();
+
+            // 1. Strip <think>...</think> blocks or unclosed <think> tags
+            while (result.Contains("<think>", StringComparison.OrdinalIgnoreCase))
+            {
+                int startIdx = result.IndexOf("<think>", StringComparison.OrdinalIgnoreCase);
+                int endIdx = result.IndexOf("</think>", StringComparison.OrdinalIgnoreCase);
+                if (endIdx != -1 && endIdx > startIdx)
+                {
+                    result = (result.Substring(0, startIdx) + result.Substring(endIdx + 8)).Trim();
+                }
+                else
+                {
+                    result = result.Substring(0, startIdx).Trim();
+                    break;
+                }
+            }
+
+            // 2. Strip accidental history format echoes like "[source] -> [target]"
+            if (result.Contains("->"))
+            {
+                int arrowIdx = result.LastIndexOf("->", StringComparison.Ordinal);
+                string afterArrow = result.Substring(arrowIdx + 2).Trim();
+                if (!string.IsNullOrWhiteSpace(afterArrow))
+                    result = afterArrow;
+            }
+
+            // 3. Strip common LLM meta-prefixes
+            string[] prefixes =
+            {
+                "Translation:", "Translated text:", "Here is the translation:", "Output:",
+                "Terjemahan:", "Hasil terjemahan:", "Перевод:", "Переклад:"
+            };
+            foreach (var prefix in prefixes)
+            {
+                if (result.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    result = result.Substring(prefix.Length).Trim();
+                }
+            }
+
+            // 4. Strip accidental wrapping brackets [ ... ] or quotes "..." if the original didn't have them
+            bool origBracketed = !string.IsNullOrEmpty(originalText) && originalText.Trim().StartsWith("[") && originalText.Trim().EndsWith("]");
+            if (!origBracketed && result.Length >= 2 && result.StartsWith("[") && result.EndsWith("]") && !result.Substring(1, result.Length - 2).Contains("["))
+            {
+                result = result.Substring(1, result.Length - 2).Trim();
+            }
+
+            bool origQuoted = !string.IsNullOrEmpty(originalText) && (originalText.Trim().StartsWith("\"") || originalText.Trim().StartsWith("«"));
+            if (!origQuoted && result.Length >= 2 &&
+                ((result.StartsWith("\"") && result.EndsWith("\"")) || (result.StartsWith("“") && result.EndsWith("”"))))
+            {
+                result = result.Substring(1, result.Length - 2).Trim();
+            }
+
+            // 5. Strip trailing "(Note: ...)" or "[Note: ...]" translator commentary
+            int noteIdx = result.IndexOf("(Note:", StringComparison.OrdinalIgnoreCase);
+            if (noteIdx < 0) noteIdx = result.IndexOf("[Note:", StringComparison.OrdinalIgnoreCase);
+            if (noteIdx < 0) noteIdx = result.IndexOf("(Translator's note", StringComparison.OrdinalIgnoreCase);
+            if (noteIdx > 0)
+            {
+                result = result.Substring(0, noteIdx).Trim();
+            }
+
+            return result;
+        }
     }
 }
-

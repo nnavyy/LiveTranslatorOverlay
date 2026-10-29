@@ -83,9 +83,15 @@ public partial class MainWindow : Window
 
     // UI Animations & Timers
     private DispatcherTimer _subtitleHideTimer;
-    private Storyboard _fadeInStoryboard;
-    private Storyboard _fadeOutStoryboard;
+    private Storyboard? _fadeInStoryboard;
+    private Storyboard? _fadeOutStoryboard;
     private bool _isCaptionVisible = false;
+    private string _activeScriptCategory = "none";
+
+    // Apple-style fluid scroll physics state (interruptible, velocity-continuous, slowed-down step)
+    private readonly System.Collections.Generic.Dictionary<ScrollViewer, double> _scrollTargets = new();
+    private bool _isScrollRenderingHooked = false;
+    private DateTime _lastScrollFrameTime = DateTime.UtcNow;
 
     private string _savedAudioDeviceName = "";
 
@@ -132,8 +138,11 @@ public partial class MainWindow : Window
         }
         else
         {
-            _translationProvider = new GoogleFreeTranslateProvider();
+            var google = new GoogleFreeTranslateProvider();
+            google.ScriptStyle = GetSelectedJapaneseScriptStyle();
+            _translationProvider = google;
         }
+        UpdateScriptStyleVisibilityAndOptions(animate: false);
 
         QuotaTracker.Instance.QuotaChanged += (s, info) =>
         {
@@ -360,11 +369,226 @@ public partial class MainWindow : Window
         await RefreshGroqModelsAsync();
     }
 
+    private void CmbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateScriptStyleVisibilityAndOptions(animate: true);
+
+        string srcLang = GetSourceLanguage();
+        if (_whisperSttService != null)
+        {
+            _ = _whisperSttService.ChangeLanguageAsync(srcLang);
+        }
+        if (_diarizedSttService != null)
+        {
+            _diarizedSttService.SetLanguage(srcLang == "auto" ? "multi" : srcLang);
+        }
+    }
+
+    /// <summary>
+    /// Shows the Script Style selector ONLY when the selected target or source language has 2+ writing systems
+    /// (Japanese, Korean, Chinese, Serbian, Bosnian, Uzbek, Azerbaijani, Mongolian), and hides it for single-script languages.
+    /// </summary>
+    private void UpdateScriptStyleVisibilityAndOptions(bool animate = false)
+    {
+        if (ScriptStylePanel == null || CmbJapaneseStyle == null || LblJapaneseStyle == null) return;
+        if (ItemJpStandard == null || ItemJpHiragana == null || ItemJpFurigana == null || ItemJpRomaji == null || ItemJpKatakana == null) return;
+
+        string targetLang = GetTargetLanguage();
+        string sourceLang = GetSourceLanguage();
+
+        string activeMultiLang = "";
+        if (JapaneseScriptConverter.IsMultiScriptLanguage(targetLang))
+            activeMultiLang = targetLang;
+        else if (JapaneseScriptConverter.IsMultiScriptLanguage(sourceLang))
+            activeMultiLang = sourceLang;
+
+        if (string.IsNullOrEmpty(activeMultiLang))
+        {
+            ScriptStylePanel.Visibility = Visibility.Collapsed;
+            _activeScriptCategory = "none";
+            return;
+        }
+
+        string category = JapaneseScriptConverter.GetScriptCategory(activeMultiLang);
+        bool categoryChanged = category != _activeScriptCategory;
+        _activeScriptCategory = category;
+
+        var loc = LocalizationManager.Instance;
+
+        if (category == "ja")
+        {
+            LblJapaneseStyle.Text = loc.Get("LblJapaneseStyle");
+            ItemJpStandard.Content = loc.Get("ItemJpStandard");
+            ItemJpHiragana.Content = loc.Get("ItemJpHiragana");
+            ItemJpFurigana.Content = loc.Get("ItemJpFurigana");
+            ItemJpRomaji.Content = loc.Get("ItemJpRomaji");
+            ItemJpKatakana.Content = loc.Get("ItemJpKatakana");
+
+            ItemJpStandard.Visibility = Visibility.Visible;
+            ItemJpHiragana.Visibility = Visibility.Visible;
+            ItemJpFurigana.Visibility = Visibility.Visible;
+            ItemJpRomaji.Visibility = Visibility.Visible;
+            ItemJpKatakana.Visibility = Visibility.Visible;
+        }
+        else if (category == "ko")
+        {
+            LblJapaneseStyle.Text = loc.Get("LblKoreanStyle");
+            ItemJpStandard.Content = loc.Get("ItemKoStandard");
+            ItemJpFurigana.Content = loc.Get("ItemKoFurigana");
+            ItemJpRomaji.Content = loc.Get("ItemKoRomaji");
+            ItemJpKatakana.Content = loc.Get("ItemKoHanja");
+
+            ItemJpStandard.Visibility = Visibility.Visible;
+            ItemJpHiragana.Visibility = Visibility.Collapsed;
+            ItemJpFurigana.Visibility = Visibility.Visible;
+            ItemJpRomaji.Visibility = Visibility.Visible;
+            ItemJpKatakana.Visibility = Visibility.Visible;
+
+            if (CmbJapaneseStyle.SelectedItem == ItemJpHiragana)
+                CmbJapaneseStyle.SelectedIndex = 0;
+        }
+        else if (category == "zh")
+        {
+            LblJapaneseStyle.Text = loc.Get("LblChineseStyle");
+            ItemJpStandard.Content = loc.Get("ItemZhStandard");
+            ItemJpHiragana.Content = loc.Get("ItemZhTrad");
+            ItemJpFurigana.Content = loc.Get("ItemZhFurigana");
+            ItemJpRomaji.Content = loc.Get("ItemZhRomaji");
+
+            ItemJpStandard.Visibility = Visibility.Visible;
+            ItemJpHiragana.Visibility = Visibility.Visible;
+            ItemJpFurigana.Visibility = Visibility.Visible;
+            ItemJpRomaji.Visibility = Visibility.Visible;
+            ItemJpKatakana.Visibility = Visibility.Collapsed;
+
+            if (CmbJapaneseStyle.SelectedItem == ItemJpKatakana)
+                CmbJapaneseStyle.SelectedIndex = 0;
+        }
+        else if (category == "dual")
+        {
+            LblJapaneseStyle.Text = loc.Get("LblDualScriptStyle");
+            ItemJpStandard.Content = loc.Get("ItemDualStandard");
+            ItemJpRomaji.Content = loc.Get("ItemDualLatin");
+            ItemJpHiragana.Content = loc.Get("ItemDualCyrillic");
+
+            ItemJpStandard.Visibility = Visibility.Visible;
+            ItemJpRomaji.Visibility = Visibility.Visible;
+            ItemJpHiragana.Visibility = Visibility.Visible;
+            ItemJpFurigana.Visibility = Visibility.Collapsed;
+            ItemJpKatakana.Visibility = Visibility.Collapsed;
+
+            if (CmbJapaneseStyle.SelectedItem == ItemJpFurigana || CmbJapaneseStyle.SelectedItem == ItemJpKatakana)
+                CmbJapaneseStyle.SelectedIndex = 0;
+        }
+
+        if (ScriptStylePanel.Visibility != Visibility.Visible)
+        {
+            ScriptStylePanel.Visibility = Visibility.Visible;
+            if (animate)
+            {
+                var fade = new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(220))
+                {
+                    EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                };
+                ScriptStylePanel.BeginAnimation(UIElement.OpacityProperty, fade);
+            }
+        }
+        else if (categoryChanged && animate)
+        {
+            var pulse = new DoubleAnimation(0.4, 1.0, TimeSpan.FromMilliseconds(180))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            ScriptStylePanel.BeginAnimation(UIElement.OpacityProperty, pulse);
+        }
+    }
+
+    private void SmoothScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (sender is not ScrollViewer sv) return;
+
+        // If user is scrolling inside an open ComboBox popup and this event hit the parent SettingsScrollViewer, let the child handle it
+        if (sv == SettingsScrollViewer && e.OriginalSource is DependencyObject src && src != sv)
+        {
+            DependencyObject? curr = src;
+            while (curr != null && curr != sv)
+            {
+                if (curr is ScrollViewer innerSv && innerSv != sv)
+                    return;
+                curr = VisualTreeHelper.GetParent(curr);
+            }
+        }
+
+        e.Handled = true;
+
+        if (!_scrollTargets.TryGetValue(sv, out double currentTarget))
+        {
+            currentTarget = sv.VerticalOffset;
+        }
+
+        // Gentle, controlled scroll step (~24px per wheel notch instead of WPF's abrupt 48px jump)
+        double step = e.Delta * 0.20;
+        double nextTarget = Math.Clamp(currentTarget - step, 0.0, sv.ScrollableHeight);
+        _scrollTargets[sv] = nextTarget;
+
+        if (!_isScrollRenderingHooked)
+        {
+            _lastScrollFrameTime = DateTime.UtcNow;
+            CompositionTarget.Rendering += OnSmoothScrollRendering;
+            _isScrollRenderingHooked = true;
+        }
+    }
+
+    private void OnSmoothScrollRendering(object? sender, EventArgs e)
+    {
+        var now = DateTime.UtcNow;
+        double dt = Math.Clamp((now - _lastScrollFrameTime).TotalSeconds, 0.001, 0.05);
+        _lastScrollFrameTime = now;
+
+        // Critically-damped exponential spring factor normalized for any monitor refresh rate (60Hz / 120Hz / 144Hz)
+        double blend = 1.0 - Math.Pow(1.0 - 0.16, dt * 60.0);
+
+        var finished = new System.Collections.Generic.List<ScrollViewer>();
+        foreach (var kv in _scrollTargets)
+        {
+            var sv = kv.Key;
+            double target = Math.Clamp(kv.Value, 0.0, sv.ScrollableHeight);
+            double current = sv.VerticalOffset;
+            double diff = target - current;
+
+            if (Math.Abs(diff) < 0.35)
+            {
+                sv.ScrollToVerticalOffset(target);
+                finished.Add(sv);
+            }
+            else
+            {
+                sv.ScrollToVerticalOffset(current + diff * blend);
+            }
+        }
+
+        foreach (var sv in finished)
+        {
+            _scrollTargets.Remove(sv);
+        }
+
+        if (_scrollTargets.Count == 0 && _isScrollRenderingHooked)
+        {
+            CompositionTarget.Rendering -= OnSmoothScrollRendering;
+            _isScrollRenderingHooked = false;
+        }
+    }
+
     private async void CmbJapaneseStyle_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        var selectedStyle = GetSelectedJapaneseScriptStyle();
         if (_translationProvider is GroqTranslateProvider groq)
         {
-            groq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
+            groq.JapaneseStyle = selectedStyle;
+        }
+        else if (_translationProvider is GoogleFreeTranslateProvider google)
+        {
+            google.ScriptStyle = selectedStyle;
         }
 
         string sourceLang = GetSourceLanguage();
@@ -375,12 +599,12 @@ public partial class MainWindow : Window
             CaptionOriginal.Text = await FormatJapaneseTextIfNeededAsync(CaptionOriginal.Text, sourceLang);
         }
 
-        if (CaptionTranslated != null && !string.IsNullOrWhiteSpace(CaptionTranslated.Text) && (targetLang == "ja" || ContainsJapaneseKana(CaptionTranslated.Text) || JapaneseScriptConverter.HasKanji(CaptionTranslated.Text)))
+        if (CaptionTranslated != null && !string.IsNullOrWhiteSpace(CaptionTranslated.Text) && (JapaneseScriptConverter.IsMultiScriptLanguage(targetLang) || ContainsJapaneseKana(CaptionTranslated.Text) || JapaneseScriptConverter.HasKanji(CaptionTranslated.Text) || JapaneseScriptConverter.HasHangul(CaptionTranslated.Text)))
         {
             CaptionTranslated.Text = await FormatJapaneseTextIfNeededAsync(CaptionTranslated.Text, targetLang);
         }
 
-        if (TranslatedTextBlock != null && !string.IsNullOrWhiteSpace(TranslatedTextBlock.Text) && (targetLang == "ja" || ContainsJapaneseKana(TranslatedTextBlock.Text) || JapaneseScriptConverter.HasKanji(TranslatedTextBlock.Text)))
+        if (TranslatedTextBlock != null && !string.IsNullOrWhiteSpace(TranslatedTextBlock.Text) && (JapaneseScriptConverter.IsMultiScriptLanguage(targetLang) || ContainsJapaneseKana(TranslatedTextBlock.Text) || JapaneseScriptConverter.HasKanji(TranslatedTextBlock.Text) || JapaneseScriptConverter.HasHangul(TranslatedTextBlock.Text)))
         {
             TranslatedTextBlock.Text = await FormatJapaneseTextIfNeededAsync(TranslatedTextBlock.Text, targetLang);
         }
@@ -411,7 +635,7 @@ public partial class MainWindow : Window
         if (style == JapaneseScriptStyle.Standard || string.IsNullOrWhiteSpace(text))
             return text;
 
-        if (langCode == "ja" || JapaneseScriptConverter.HasKanji(text) || ContainsJapaneseKana(text))
+        if (JapaneseScriptConverter.IsMultiScriptLanguage(langCode) || JapaneseScriptConverter.HasKanji(text) || ContainsJapaneseKana(text) || JapaneseScriptConverter.HasHangul(text))
         {
             string apiKey = "";
             if (Dispatcher.CheckAccess())
@@ -419,7 +643,7 @@ public partial class MainWindow : Window
             else
                 apiKey = Dispatcher.Invoke(() => TxtApiKey?.Text ?? "");
 
-            return await JapaneseScriptConverter.ConvertAsync(text, style, apiKey);
+            return await JapaneseScriptConverter.ConvertForLanguageAsync(text, langCode, style, apiKey);
         }
 
         return text;
@@ -471,8 +695,18 @@ public partial class MainWindow : Window
         else
         {
             QuotaTracker.Instance.SetUnlimited("Google Translate");
-            if (!(_translationProvider is GoogleFreeTranslateProvider))
-                _translationProvider = new GoogleFreeTranslateProvider();
+            if (_translationProvider is GoogleFreeTranslateProvider existingGoogle)
+            {
+                existingGoogle.ScriptStyle = GetSelectedJapaneseScriptStyle();
+            }
+            else
+            {
+                var newGoogle = new GoogleFreeTranslateProvider
+                {
+                    ScriptStyle = GetSelectedJapaneseScriptStyle()
+                };
+                _translationProvider = newGoogle;
+            }
         }
     }
 
@@ -730,7 +964,7 @@ public partial class MainWindow : Window
         if (!Dispatcher.CheckAccess())
             return Dispatcher.Invoke(GetTargetLanguage);
 
-        if (CmbTargetLang.SelectedItem is ComboBoxItem item)
+        if (CmbTargetLang?.SelectedItem is ComboBoxItem item)
         {
             string tag = item.Tag?.ToString() ?? "id";
             if (tag == "auto")
@@ -739,20 +973,12 @@ public partial class MainWindow : Window
                 string installedSys = CultureInfo.InstalledUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
                 return sys switch
                 {
-                    "ru" => "ru",
-                    "id" => "id",
-                    "ja" => "ja",
-                    "ko" => "ko",
-                    "zh" => "zh",
-                    "es" => "es",
-                    "fr" => "fr",
-                    "de" => "de",
-                    "ar" => "ar",
+                    "ru" or "id" or "ja" or "ko" or "zh" or "uk" or "az" or "uz" or "mn" or "ka"
+                        or "sr" or "hr" or "bs" or "bg" or "ro" or "el" or "sq" or "mk" or "sl"
+                        or "es" or "fr" or "de" or "ar" => sys,
                     _ => installedSys switch
                     {
-                        "ru" => "ru",
-                        "id" => "id",
-                        "ja" => "ja",
+                        "ru" or "id" or "ja" or "uk" => installedSys,
                         _ => "en"
                     }
                 };
@@ -977,7 +1203,7 @@ public partial class MainWindow : Window
 
                         if (!token.IsCancellationRequested)
                         {
-                            if (targetLang == "ja" && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
+                            if (JapaneseScriptConverter.IsMultiScriptLanguage(targetLang) && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
                             {
                                 string formatted = await FormatJapaneseTextIfNeededAsync(finalTranslation, targetLang);
                                 if (!string.IsNullOrWhiteSpace(formatted) && formatted != finalTranslation)
@@ -1159,7 +1385,7 @@ public partial class MainWindow : Window
                     });
                 });
 
-                if (targetLang == "ja" && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
+                if (JapaneseScriptConverter.IsMultiScriptLanguage(targetLang) && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
                 {
                     string formatted = await FormatJapaneseTextIfNeededAsync(finalTranslation, targetLang);
                     if (!string.IsNullOrWhiteSpace(formatted) && formatted != finalTranslation)
@@ -1382,7 +1608,7 @@ public partial class MainWindow : Window
                     });
                 });
 
-                if (targetLang == "ja" && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
+                if (JapaneseScriptConverter.IsMultiScriptLanguage(targetLang) && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
                 {
                     string formatted = await FormatJapaneseTextIfNeededAsync(finalTranslation, targetLang);
                     if (!string.IsNullOrWhiteSpace(formatted) && formatted != finalTranslation)
@@ -1448,7 +1674,7 @@ public partial class MainWindow : Window
         
         if (!_isCaptionVisible)
         {
-            _fadeInStoryboard.Begin(this);
+            _fadeInStoryboard?.Begin(this);
             _isCaptionVisible = true;
         }
     }
@@ -1466,6 +1692,11 @@ public partial class MainWindow : Window
         else
         {
             ControlPanel.Visibility = Visibility.Visible;
+            var fade = new DoubleAnimation(0.0, 1.0, TimeSpan.FromMilliseconds(220))
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            ControlPanel.BeginAnimation(UIElement.OpacityProperty, fade);
             BtnTogglePanel.Content = loc.Get("BtnHideSettings");
         }
     }
@@ -1563,14 +1794,29 @@ public partial class MainWindow : Window
         // Combobox items text
         if (ItemSrcAuto != null) ItemSrcAuto.Content = loc.Get("AutoDetect");
         if (ItemSrcEn != null) ItemSrcEn.Content = loc.Get("LangEnglish");
+        if (ItemSrcId != null) ItemSrcId.Content = loc.Get("LangIndonesian");
         if (ItemSrcJa != null) ItemSrcJa.Content = loc.Get("LangJapanese");
         if (ItemSrcKo != null) ItemSrcKo.Content = loc.Get("LangKorean");
-        if (ItemSrcZh != null) ItemSrcZh.Content = loc.Get("LangChinese");
-        if (ItemSrcId != null) ItemSrcId.Content = loc.Get("LangIndonesian");
+        if (ItemSrcZh != null) ItemSrcZh.Content = loc.Get("LangChineseSimp");
+        if (ItemSrcZhTw != null) ItemSrcZhTw.Content = loc.Get("LangChineseTrad");
+        if (ItemSrcRu != null) ItemSrcRu.Content = loc.Get("LangRussian");
+        if (ItemSrcUk != null) ItemSrcUk.Content = loc.Get("LangUkrainian");
+        if (ItemSrcAz != null) ItemSrcAz.Content = loc.Get("LangAzerbaijani");
+        if (ItemSrcUz != null) ItemSrcUz.Content = loc.Get("LangUzbek");
+        if (ItemSrcMn != null) ItemSrcMn.Content = loc.Get("LangMongolian");
+        if (ItemSrcKa != null) ItemSrcKa.Content = loc.Get("LangGeorgian");
+        if (ItemSrcSr != null) ItemSrcSr.Content = loc.Get("LangSerbian");
+        if (ItemSrcHr != null) ItemSrcHr.Content = loc.Get("LangCroatian");
+        if (ItemSrcBs != null) ItemSrcBs.Content = loc.Get("LangBosnian");
+        if (ItemSrcBg != null) ItemSrcBg.Content = loc.Get("LangBulgarian");
+        if (ItemSrcRo != null) ItemSrcRo.Content = loc.Get("LangRomanian");
+        if (ItemSrcEl != null) ItemSrcEl.Content = loc.Get("LangGreek");
+        if (ItemSrcSq != null) ItemSrcSq.Content = loc.Get("LangAlbanian");
+        if (ItemSrcMk != null) ItemSrcMk.Content = loc.Get("LangMacedonian");
+        if (ItemSrcSl != null) ItemSrcSl.Content = loc.Get("LangSlovenian");
         if (ItemSrcEs != null) ItemSrcEs.Content = loc.Get("LangSpanish");
         if (ItemSrcFr != null) ItemSrcFr.Content = loc.Get("LangFrench");
         if (ItemSrcDe != null) ItemSrcDe.Content = loc.Get("LangGerman");
-        if (ItemSrcRu != null) ItemSrcRu.Content = loc.Get("LangRussian");
         if (ItemSrcAr != null) ItemSrcAr.Content = loc.Get("LangArabic");
 
         if (ItemTgtAuto != null) ItemTgtAuto.Content = loc.Get("TargetAuto");
@@ -1579,11 +1825,28 @@ public partial class MainWindow : Window
         if (ItemTgtJa != null) ItemTgtJa.Content = loc.Get("LangJapanese");
         if (ItemTgtKo != null) ItemTgtKo.Content = loc.Get("LangKorean");
         if (ItemTgtZh != null) ItemTgtZh.Content = loc.Get("LangChineseSimp");
+        if (ItemTgtZhTw != null) ItemTgtZhTw.Content = loc.Get("LangChineseTrad");
+        if (ItemTgtRu != null) ItemTgtRu.Content = loc.Get("LangRussian");
+        if (ItemTgtUk != null) ItemTgtUk.Content = loc.Get("LangUkrainian");
+        if (ItemTgtAz != null) ItemTgtAz.Content = loc.Get("LangAzerbaijani");
+        if (ItemTgtUz != null) ItemTgtUz.Content = loc.Get("LangUzbek");
+        if (ItemTgtMn != null) ItemTgtMn.Content = loc.Get("LangMongolian");
+        if (ItemTgtKa != null) ItemTgtKa.Content = loc.Get("LangGeorgian");
+        if (ItemTgtSr != null) ItemTgtSr.Content = loc.Get("LangSerbian");
+        if (ItemTgtHr != null) ItemTgtHr.Content = loc.Get("LangCroatian");
+        if (ItemTgtBs != null) ItemTgtBs.Content = loc.Get("LangBosnian");
+        if (ItemTgtBg != null) ItemTgtBg.Content = loc.Get("LangBulgarian");
+        if (ItemTgtRo != null) ItemTgtRo.Content = loc.Get("LangRomanian");
+        if (ItemTgtEl != null) ItemTgtEl.Content = loc.Get("LangGreek");
+        if (ItemTgtSq != null) ItemTgtSq.Content = loc.Get("LangAlbanian");
+        if (ItemTgtMk != null) ItemTgtMk.Content = loc.Get("LangMacedonian");
+        if (ItemTgtSl != null) ItemTgtSl.Content = loc.Get("LangSlovenian");
         if (ItemTgtEs != null) ItemTgtEs.Content = loc.Get("LangSpanish");
         if (ItemTgtFr != null) ItemTgtFr.Content = loc.Get("LangFrench");
         if (ItemTgtDe != null) ItemTgtDe.Content = loc.Get("LangGerman");
-        if (ItemTgtRu != null) ItemTgtRu.Content = loc.Get("LangRussian");
         if (ItemTgtAr != null) ItemTgtAr.Content = loc.Get("LangArabic");
+
+        UpdateScriptStyleVisibilityAndOptions(animate: false);
 
         if (ItemEngineGoogle != null) ItemEngineGoogle.Content = loc.Get("EngineGoogle");
         if (ItemEngineGroq != null) ItemEngineGroq.Content = loc.Get("EngineGroq");

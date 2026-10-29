@@ -4,7 +4,6 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading.Tasks;
-
 using LiveTranslatorOverlay.Core.Japanese;
 
 namespace LiveTranslatorOverlay.Core.Translation
@@ -12,26 +11,30 @@ namespace LiveTranslatorOverlay.Core.Translation
     public class GroqTranslateProvider : ITranslationProvider
     {
         private readonly HttpClient _httpClient;
+        private static readonly GoogleFreeTranslateProvider SharedGoogleFallback = new();
         private string _apiKey;
         private string _model = ""; // Will be auto-set after fetching available models
 
         public JapaneseScriptStyle JapaneseStyle { get; set; } = JapaneseScriptStyle.Standard;
 
-        // Preferred models in order of priority (fastest/most accurate multilingual first)
+        // Preferred models in order of priority (most accurate multilingual first)
         private static readonly string[] PreferredModels =
         {
-            "llama-3.3-70b-versatile",  // Best accuracy, tone nuance & idiom handling for Japanese, Russian, Asian & European languages
+            "llama-3.3-70b-versatile",  // Best accuracy, tone nuance & idiom handling for Slavic, Turkic, Caucasian, Balkan & Asian languages
+            "meta-llama/llama-4-maverick-17b-128e-instruct",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
             "llama-3.1-8b-instant"       // High speed fallback
         };
 
         private string _cachedInput = "";
         private string _cachedTarget = "";
         private string _cachedSource = "";
+        private JapaneseScriptStyle _cachedStyle = JapaneseScriptStyle.Standard;
         private string _cachedResult = "";
 
-        // Menyimpan history 5 kalimat terakhir untuk konteks terjemahan (deeper context improves coherence)
+        // Keep last 4 dialogue turns for pronoun/topic continuity without polluting short translations
         private readonly Queue<string> _history = new Queue<string>();
-        private const int MaxHistory = 5;
+        private const int MaxHistory = 4;
 
         // Deduplication: track the last translated input to avoid redundant API calls
         private string _lastTranslatedInput = "";
@@ -51,20 +54,20 @@ namespace LiveTranslatorOverlay.Core.Translation
 
         /// <summary>
         /// Validates that a model ID is a legitimate text generation model,
-        /// strictly excluding safeguard, moderation, audio, TTS, and whisper models
-        /// which have severe rate limits (e.g. 3 RPM) and are unsuitable for translation.
+        /// strictly excluding safeguard, moderation, audio, TTS, and whisper models.
         /// </summary>
         public static bool IsValidTextModel(string? id)
         {
             if (string.IsNullOrWhiteSpace(id)) return false;
             string lower = id.ToLowerInvariant();
-            if (lower.Contains("guard")) return false; // Excludes prompt-guard, safeguard
-            if (lower.Contains("whisper")) return false; // Audio STT
+            if (lower.Contains("guard")) return false;
+            if (lower.Contains("whisper")) return false;
             if (lower.Contains("vision")) return false;
             if (lower.Contains("embed")) return false;
-            if (lower.Contains("orpheus")) return false; // Audio TTS
+            if (lower.Contains("orpheus")) return false;
             if (lower.Contains("audio")) return false;
             if (lower.Contains("moderation")) return false;
+            if (lower.Contains("tts")) return false;
             return true;
         }
 
@@ -103,14 +106,12 @@ namespace LiveTranslatorOverlay.Core.Translation
                     }
                 }
 
-                // 1. Pick first preferred model that is actually available
                 foreach (var preferred in PreferredModels)
                 {
                     if (availableIds.Contains(preferred))
                         return preferred;
                 }
 
-                // 2. Fallback: return the first VALID text model (NEVER safeguard/guard/whisper)
                 if (validModels.Count > 0)
                 {
                     return validModels[0];
@@ -205,10 +206,11 @@ namespace LiveTranslatorOverlay.Core.Translation
         {
             try
             {
-                if (currentModel.Contains("qwen", StringComparison.OrdinalIgnoreCase))
-                    return "openai/gpt-oss-20b";
-                if (currentModel.Contains("gpt-oss", StringComparison.OrdinalIgnoreCase))
-                    return "qwen/qwen3.8-27b";
+                foreach (var pref in PreferredModels)
+                {
+                    if (!string.Equals(pref, currentModel, StringComparison.OrdinalIgnoreCase))
+                        return pref;
+                }
 
                 var models = await GetAvailableModelsAsync();
                 foreach (var m in models)
@@ -219,7 +221,118 @@ namespace LiveTranslatorOverlay.Core.Translation
             }
             catch { }
 
-            return "openai/gpt-oss-20b";
+            return "llama-3.1-8b-instant";
+        }
+
+        public static string ResolveTargetLanguageDescription(string targetLanguage, JapaneseScriptStyle style)
+        {
+            return targetLanguage switch
+            {
+                "en" => "English",
+                "id" => "Indonesian",
+                "ja" => style switch
+                {
+                    JapaneseScriptStyle.Hiragana => "Japanese (written in pure Hiragana and Katakana without Kanji)",
+                    JapaneseScriptStyle.Furigana => "Japanese (with Hiragana furigana in parentheses immediately following each Kanji word, e.g. 漢字(かんじ))",
+                    JapaneseScriptStyle.Romaji => "Japanese (written in standard Hepburn Romaji Latin alphabet)",
+                    JapaneseScriptStyle.Katakana => "Japanese (written exclusively in Katakana)",
+                    _ => "Japanese"
+                },
+                "ko" => style switch
+                {
+                    JapaneseScriptStyle.Furigana => "Korean (written in Hangul with Revised Romanization in parentheses after each word, e.g. 한국어(hangugeo))",
+                    JapaneseScriptStyle.Romaji => "Korean (written in standard Revised Romanization of Korean Latin alphabet)",
+                    JapaneseScriptStyle.Katakana => "Korean (written in Hangul with corresponding Hanja in parentheses for Sino-Korean words, e.g. 대한민국(大韓民國))",
+                    _ => "Korean (Hangul)"
+                },
+                "zh" => style switch
+                {
+                    JapaneseScriptStyle.Hiragana => "Traditional Chinese (繁體中文)",
+                    JapaneseScriptStyle.Furigana => "Simplified Chinese (with Hanyu Pinyin in parentheses after each word, e.g. 你好(nǐ hǎo))",
+                    JapaneseScriptStyle.Romaji => "Chinese (written in Hanyu Pinyin with tone marks)",
+                    _ => "Simplified Chinese (简体中文)"
+                },
+                "zh-TW" => style switch
+                {
+                    JapaneseScriptStyle.Furigana => "Traditional Chinese (with Hanyu Pinyin in parentheses after each word, e.g. 你好(nǐ hǎo))",
+                    JapaneseScriptStyle.Romaji => "Chinese (written in Hanyu Pinyin with tone marks)",
+                    _ => "Traditional Chinese (繁體中文)"
+                },
+                "uk" => "Ukrainian",
+                "az" => style switch
+                {
+                    JapaneseScriptStyle.Hiragana => "Azerbaijani (written in Cyrillic script: Азәрбајҹан Кирил)",
+                    _ => "Azerbaijani (written in standard Latin script: Azərbaycan dili)"
+                },
+                "uz" => style switch
+                {
+                    JapaneseScriptStyle.Hiragana => "Uzbek (written in Cyrillic script: Ўзбек Кирилл)",
+                    _ => "Uzbek (written in standard Latin script: Oʻzbek lotin)"
+                },
+                "mn" => style switch
+                {
+                    JapaneseScriptStyle.Romaji => "Mongolian (written in Latin transliteration)",
+                    _ => "Mongolian (written in standard Khalkha Cyrillic script)"
+                },
+                "ka" => "Georgian (ქართული)",
+                "sr" => style switch
+                {
+                    JapaneseScriptStyle.Romaji => "Serbian (written in Latinica / Latin script)",
+                    JapaneseScriptStyle.Hiragana => "Serbian (written in Ћирилица / Cyrillic script)",
+                    _ => "Serbian"
+                },
+                "hr" => "Croatian",
+                "bs" => style switch
+                {
+                    JapaneseScriptStyle.Hiragana => "Bosnian (written in Cyrillic script)",
+                    _ => "Bosnian (written in Latinica / Latin script)"
+                },
+                "bg" => "Bulgarian",
+                "ro" => "Romanian",
+                "el" => "Greek",
+                "sq" => "Albanian",
+                "mk" => "Macedonian",
+                "sl" => "Slovenian",
+                "es" => "Spanish",
+                "fr" => "French",
+                "de" => "German",
+                "ru" => "Russian",
+                "ar" => "Arabic",
+                _ => targetLanguage
+            };
+        }
+
+        public static string ResolveSourceLanguageName(string sourceLanguage)
+        {
+            return sourceLanguage switch
+            {
+                "en" => "English",
+                "id" => "Indonesian",
+                "ja" => "Japanese",
+                "ko" => "Korean",
+                "zh" => "Chinese (Simplified)",
+                "zh-TW" => "Chinese (Traditional)",
+                "uk" => "Ukrainian",
+                "az" => "Azerbaijani",
+                "uz" => "Uzbek",
+                "mn" => "Mongolian",
+                "ka" => "Georgian",
+                "sr" => "Serbian",
+                "hr" => "Croatian",
+                "bs" => "Bosnian",
+                "bg" => "Bulgarian",
+                "ro" => "Romanian",
+                "el" => "Greek",
+                "sq" => "Albanian",
+                "mk" => "Macedonian",
+                "sl" => "Slovenian",
+                "es" => "Spanish",
+                "fr" => "French",
+                "de" => "German",
+                "ru" => "Russian",
+                "ar" => "Arabic",
+                _ => sourceLanguage
+            };
         }
 
         public async Task<string> TranslateAsync(string text, string targetLanguage = "id", string sourceLanguage = "auto")
@@ -232,15 +345,14 @@ namespace LiveTranslatorOverlay.Core.Translation
             if (string.IsNullOrWhiteSpace(text)) return string.Empty;
             if (string.IsNullOrWhiteSpace(_apiKey)) return "[Error: Groq API Key kosong]";
 
-            // Return cache if same
-            if (text == _cachedInput && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource)
+            // Return cache if identical
+            if (text == _cachedInput && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource && JapaneseStyle == _cachedStyle && !string.IsNullOrEmpty(_cachedResult))
                 return _cachedResult;
 
-            // Deduplication: skip if new text is >85% similar to last translated text
-            if (!string.IsNullOrEmpty(_lastTranslatedInput) && StringSimilarity(text, _lastTranslatedInput) > 0.85)
+            // Deduplication: skip if new text is >88% similar to last translated text in same language pair
+            if (!string.IsNullOrEmpty(_lastTranslatedInput) && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource && JapaneseStyle == _cachedStyle && StringSimilarity(text, _lastTranslatedInput) > 0.88)
                 return _cachedResult;
 
-            // Auto-select model if not set or invalid
             if (string.IsNullOrEmpty(_model) || !IsValidTextModel(_model))
             {
                 _model = await GetBestAvailableModelAsync();
@@ -251,49 +363,14 @@ namespace LiveTranslatorOverlay.Core.Translation
                 var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
 
-                string targetLangFull = targetLanguage switch
-                {
-                    "en" => "English",
-                    "id" => "Indonesian",
-                    "ja" => JapaneseStyle switch
-                    {
-                        JapaneseScriptStyle.Hiragana => "Japanese (written in pure Hiragana and Katakana without Kanji)",
-                        JapaneseScriptStyle.Furigana => "Japanese (with Hiragana furigana in parentheses immediately following each Kanji, e.g. 漢字(かんじ))",
-                        JapaneseScriptStyle.Romaji => "Japanese (written in standard Hepburn Romaji Latin alphabet)",
-                        JapaneseScriptStyle.Katakana => "Japanese (written exclusively in Katakana)",
-                        _ => "Japanese"
-                    },
-                    "ko" => "Korean",
-                    "zh" => "Chinese",
-                    "es" => "Spanish",
-                    "fr" => "French",
-                    "de" => "German",
-                    "ru" => "Russian",
-                    "ar" => "Arabic",
-                    _ => targetLanguage
-                };
-
-                string sourceLangFull = sourceLanguage switch
-                {
-                    "en" => "English",
-                    "id" => "Indonesian",
-                    "ja" => "Japanese",
-                    "ko" => "Korean",
-                    "zh" => "Chinese",
-                    "es" => "Spanish",
-                    "fr" => "French",
-                    "de" => "German",
-                    "ru" => "Russian",
-                    "ar" => "Arabic",
-                    _ => sourceLanguage
-                };
-
+                string targetLangFull = ResolveTargetLanguageDescription(targetLanguage, JapaneseStyle);
+                string sourceLangFull = ResolveSourceLanguageName(sourceLanguage);
                 string sourceLangHint = sourceLanguage != "auto" ? $" Source language: {sourceLangFull}." : "";
                 
                 string contextStr = "";
-                if (_history.Count > 0)
+                if (_history.Count > 0 && text.Length > 4)
                 {
-                    contextStr = "\n\nPrevious conversation context (use this ONLY to understand the flow, DO NOT translate this again):\n" + string.Join("\n", _history);
+                    contextStr = "\n\nRecent dialogue context (for pronoun and topic continuity ONLY — DO NOT translate or repeat these earlier lines):\n" + string.Join("\n", _history);
                 }
 
                 string systemPrompt = BuildSystemPrompt(targetLangFull, sourceLangHint, contextStr);
@@ -306,7 +383,8 @@ namespace LiveTranslatorOverlay.Core.Translation
                         new { role = "system", content = systemPrompt },
                         new { role = "user", content = text }
                     },
-                    temperature = 0.1,
+                    temperature = 0.05,
+                    top_p = 0.9,
                     max_tokens = 1024
                 };
 
@@ -317,7 +395,6 @@ namespace LiveTranslatorOverlay.Core.Translation
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    // Retry once with alternative model on 404, 400, or 429
                     if (!isRetry && (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
                                      response.StatusCode == System.Net.HttpStatusCode.BadRequest ||
                                      response.StatusCode == (System.Net.HttpStatusCode)429))
@@ -326,9 +403,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                         return await TranslateInternalAsync(text, targetLanguage, sourceLanguage, isRetry: true);
                     }
                     
-                    // Seamless fallback to Google Free Translate so the live translation never breaks
-                    var googleFallback = new GoogleFreeTranslateProvider();
-                    return await googleFallback.TranslateAsync(text, targetLanguage, sourceLanguage);
+                    return await SharedGoogleFallback.TranslateAsync(text, targetLanguage, sourceLanguage);
                 }
 
                 var responseString = await response.Content.ReadAsStringAsync();
@@ -340,28 +415,18 @@ namespace LiveTranslatorOverlay.Core.Translation
                     var firstChoice = choices[0];
                     if (firstChoice.TryGetProperty("message", out var message) && message.TryGetProperty("content", out var content))
                     {
-                        string result = content.GetString()?.Trim() ?? text;
-
-                        if (result.Contains("<think>"))
-                        {
-                            int endThinkIndex = result.IndexOf("</think>");
-                            if (endThinkIndex != -1)
-                            {
-                                result = result.Substring(endThinkIndex + 8).Trim();
-                            }
-                            else
-                            {
-                                return text; 
-                            }
-                        }
+                        string raw = content.GetString()?.Trim() ?? text;
+                        string result = HallucinationDetector.CleanTranslationOutput(raw, text);
+                        if (string.IsNullOrWhiteSpace(result)) result = text;
 
                         _cachedInput = text;
                         _cachedTarget = targetLanguage;
                         _cachedSource = sourceLanguage;
+                        _cachedStyle = JapaneseStyle;
                         _cachedResult = result;
                         _lastTranslatedInput = text;
 
-                        _history.Enqueue($"[{text}] -> [{result}]");
+                        _history.Enqueue($"- Source: \"{text}\" | Translation: \"{result}\"");
                         if (_history.Count > MaxHistory) _history.Dequeue();
 
                         return result;
@@ -374,8 +439,7 @@ namespace LiveTranslatorOverlay.Core.Translation
             {
                 try
                 {
-                    var googleFallback = new GoogleFreeTranslateProvider();
-                    return await googleFallback.TranslateAsync(text, targetLanguage, sourceLanguage);
+                    return await SharedGoogleFallback.TranslateAsync(text, targetLanguage, sourceLanguage);
                 }
                 catch
                 {
@@ -384,17 +448,29 @@ namespace LiveTranslatorOverlay.Core.Translation
             }
         }
 
-        public async Task TranslateStreamAsync(string text, string targetLanguage, string sourceLanguage, System.Action<string> onTokenReceived)
+        public async Task TranslateStreamAsync(string text, string targetLanguage, string sourceLanguage, Action<string> onTokenReceived)
         {
             await TranslateStreamInternalAsync(text, targetLanguage, sourceLanguage, onTokenReceived, isRetry: false);
         }
 
-        private async Task TranslateStreamInternalAsync(string text, string targetLanguage, string sourceLanguage, System.Action<string> onTokenReceived, bool isRetry)
+        private async Task TranslateStreamInternalAsync(string text, string targetLanguage, string sourceLanguage, Action<string> onTokenReceived, bool isRetry)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
             if (string.IsNullOrWhiteSpace(_apiKey))
             {
                 onTokenReceived("[Error: Groq API Key kosong]");
+                return;
+            }
+
+            // Return cached result immediately if identical or near-identical
+            if (text == _cachedInput && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource && JapaneseStyle == _cachedStyle && !string.IsNullOrEmpty(_cachedResult))
+            {
+                onTokenReceived(_cachedResult);
+                return;
+            }
+            if (!string.IsNullOrEmpty(_lastTranslatedInput) && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource && JapaneseStyle == _cachedStyle && StringSimilarity(text, _lastTranslatedInput) > 0.88 && !string.IsNullOrEmpty(_cachedResult))
+            {
+                onTokenReceived(_cachedResult);
                 return;
             }
 
@@ -408,49 +484,14 @@ namespace LiveTranslatorOverlay.Core.Translation
                 var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
 
-                string targetLangFull = targetLanguage switch
-                {
-                    "en" => "English",
-                    "id" => "Indonesian",
-                    "ja" => JapaneseStyle switch
-                    {
-                        JapaneseScriptStyle.Hiragana => "Japanese (written in pure Hiragana and Katakana without Kanji)",
-                        JapaneseScriptStyle.Furigana => "Japanese (with Hiragana furigana in parentheses immediately following each Kanji, e.g. 漢字(かんじ))",
-                        JapaneseScriptStyle.Romaji => "Japanese (written in standard Hepburn Romaji Latin alphabet)",
-                        JapaneseScriptStyle.Katakana => "Japanese (written exclusively in Katakana)",
-                        _ => "Japanese"
-                    },
-                    "ko" => "Korean",
-                    "zh" => "Chinese",
-                    "es" => "Spanish",
-                    "fr" => "French",
-                    "de" => "German",
-                    "ru" => "Russian",
-                    "ar" => "Arabic",
-                    _ => targetLanguage
-                };
-
-                string sourceLangFull = sourceLanguage switch
-                {
-                    "en" => "English",
-                    "id" => "Indonesian",
-                    "ja" => "Japanese",
-                    "ko" => "Korean",
-                    "zh" => "Chinese",
-                    "es" => "Spanish",
-                    "fr" => "French",
-                    "de" => "German",
-                    "ru" => "Russian",
-                    "ar" => "Arabic",
-                    _ => sourceLanguage
-                };
-
+                string targetLangFull = ResolveTargetLanguageDescription(targetLanguage, JapaneseStyle);
+                string sourceLangFull = ResolveSourceLanguageName(sourceLanguage);
                 string sourceLangHint = sourceLanguage != "auto" ? $" Source language: {sourceLangFull}." : "";
                 
                 string contextStr = "";
-                if (_history.Count > 0)
+                if (_history.Count > 0 && text.Length > 4)
                 {
-                    contextStr = "\n\nPrevious conversation context (use this ONLY to understand the flow, DO NOT translate this again):\n" + string.Join("\n", _history);
+                    contextStr = "\n\nRecent dialogue context (for pronoun and topic continuity ONLY — DO NOT translate or repeat these earlier lines):\n" + string.Join("\n", _history);
                 }
 
                 string systemPrompt = BuildSystemPrompt(targetLangFull, sourceLangHint, contextStr);
@@ -463,7 +504,8 @@ namespace LiveTranslatorOverlay.Core.Translation
                         new { role = "system", content = systemPrompt },
                         new { role = "user", content = text }
                     },
-                    temperature = 0.1,
+                    temperature = 0.05,
+                    top_p = 0.9,
                     max_tokens = 1024,
                     stream = true
                 };
@@ -475,7 +517,6 @@ namespace LiveTranslatorOverlay.Core.Translation
                 
                 if (!response.IsSuccessStatusCode)
                 {
-                    // If model not found or rate limited, retry once with fallback model
                     if (!isRetry && (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
                                      response.StatusCode == System.Net.HttpStatusCode.BadRequest || 
                                      response.StatusCode == (System.Net.HttpStatusCode)429))
@@ -485,11 +526,9 @@ namespace LiveTranslatorOverlay.Core.Translation
                         return;
                     }
 
-                    // Seamless fallback to Google Free Translate so the live subtitle never displays raw JSON errors
                     try
                     {
-                        var googleFallback = new GoogleFreeTranslateProvider();
-                        await googleFallback.TranslateStreamAsync(text, targetLanguage, sourceLanguage, onTokenReceived);
+                        await SharedGoogleFallback.TranslateStreamAsync(text, targetLanguage, sourceLanguage, onTokenReceived);
                         return;
                     }
                     catch
@@ -502,8 +541,8 @@ namespace LiveTranslatorOverlay.Core.Translation
                 using var stream = await response.Content.ReadAsStreamAsync();
                 using var reader = new System.IO.StreamReader(stream);
 
-                string fullResult = "";
-                bool isThinking = false;
+                string rawBuffer = "";
+                string lastEmitted = "";
 
                 string? line;
                 while ((line = await reader.ReadLineAsync()) != null)
@@ -523,24 +562,16 @@ namespace LiveTranslatorOverlay.Core.Translation
                                 var delta = choices[0].GetProperty("delta");
                                 if (delta.TryGetProperty("content", out var contentElement) && contentElement.ValueKind == JsonValueKind.String)
                                 {
-                                    string content = contentElement.GetString() ?? "";
-                                    
-                                    // Handle reasoning models <think> tags
-                                    if (content.Contains("<think>"))
+                                    string token = contentElement.GetString() ?? "";
+                                    if (!string.IsNullOrEmpty(token))
                                     {
-                                        isThinking = true;
-                                        content = content.Replace("<think>", "");
-                                    }
-                                    if (content.Contains("</think>"))
-                                    {
-                                        isThinking = false;
-                                        content = content.Substring(content.IndexOf("</think>") + 8);
-                                    }
-
-                                    if (!isThinking && !string.IsNullOrEmpty(content))
-                                    {
-                                        fullResult += content;
-                                        onTokenReceived(fullResult);
+                                        rawBuffer += token;
+                                        string cleaned = HallucinationDetector.CleanTranslationOutput(rawBuffer, text);
+                                        if (!string.IsNullOrEmpty(cleaned) && cleaned != lastEmitted)
+                                        {
+                                            lastEmitted = cleaned;
+                                            onTokenReceived(cleaned);
+                                        }
                                     }
                                 }
                             }
@@ -549,15 +580,22 @@ namespace LiveTranslatorOverlay.Core.Translation
                     }
                 }
 
-                // Update history
-                if (!string.IsNullOrWhiteSpace(fullResult))
+                string finalClean = HallucinationDetector.CleanTranslationOutput(rawBuffer, text);
+                if (!string.IsNullOrWhiteSpace(finalClean))
                 {
+                    if (finalClean != lastEmitted)
+                    {
+                        onTokenReceived(finalClean);
+                    }
+
                     _cachedInput = text;
                     _cachedTarget = targetLanguage;
                     _cachedSource = sourceLanguage;
-                    _cachedResult = fullResult.Trim();
+                    _cachedStyle = JapaneseStyle;
+                    _cachedResult = finalClean;
+                    _lastTranslatedInput = text;
                     
-                    _history.Enqueue($"[{text}] -> [{_cachedResult}]");
+                    _history.Enqueue($"- Source: \"{text}\" | Translation: \"{finalClean}\"");
                     if (_history.Count > MaxHistory) _history.Dequeue();
                 }
             }
@@ -565,8 +603,7 @@ namespace LiveTranslatorOverlay.Core.Translation
             {
                 try
                 {
-                    var googleFallback = new GoogleFreeTranslateProvider();
-                    await googleFallback.TranslateStreamAsync(text, targetLanguage, sourceLanguage, onTokenReceived);
+                    await SharedGoogleFallback.TranslateStreamAsync(text, targetLanguage, sourceLanguage, onTokenReceived);
                 }
                 catch
                 {
@@ -590,23 +627,20 @@ namespace LiveTranslatorOverlay.Core.Translation
 
         private static string BuildSystemPrompt(string targetLangFull, string sourceLangHint, string contextStr)
         {
-            return $"You are an expert subtitle, dialogue, and live speech translator. Translate spoken conversation into {targetLangFull} with high accuracy, natural phrasing, and authentic conversational flow.\n\n" +
-                   $"Key translation guidelines:\n" +
-                   $"1. Natural Tone & Idioms: Avoid stiff, word-for-word machine translation. Convey politeness, casualness, slang, emotion, and speaker intent naturally in {targetLangFull}.\n" +
-                   $"2. Service & Courtesy Phrases:\n" +
-                   $"   - Polite acknowledgements (e.g. わかりました, かしこまりました, 了解): translate as natural conversational acknowledgements (e.g. into Russian: 'Хорошо' / 'Понятно' / 'Договорились'; into Indonesian: 'Baiklah' / 'Dimengerti'; into English: 'Understood' / 'Got it').\n" +
-                   $"   - Service/waiting phrases (e.g. 少々お待ちください, お待ちください): translate naturally (e.g. into Russian: 'Минуточку, пожалуйста' / 'Подождите секунду'; into Indonesian: 'Mohon tunggu sebentar'; into English: 'Please wait a moment').\n" +
-                   $"   - Reassurance phrases (e.g. 大丈夫, 問題ない): translate as 'Всё в порядке' / 'Tidak apa-apa' / 'It's all right'.\n" +
-                   $"3. Mixed Script & OCR Robustness: If the input contains mixed Kanji, Hiragana, Katakana, Romaji, or minor OCR noise/spacing artifacts, correctly understand the intended sentence and translate accurately without error.\n" +
-                   $"4. Same-language passthrough: If the input text is ALREADY in {targetLangFull}, return it EXACTLY as-is without any modifications, rephrasing, or corrections. Do NOT paraphrase same-language text.\n" +
-                   $"5. Incomplete utterances: If the input is a short, incomplete fragment (e.g. 'Yeah', 'Hmm', 'OK'), translate it directly without inventing additional context or expanding it into a full sentence.\n" +
-                   $"6. Format: Output ONLY the final direct translation in {targetLangFull}. Never output quotes, notes, pronunciation guides, asterisks, brackets, markdown, or explanations. Never add translator's notes, footnotes, or commentary.{sourceLangHint}{contextStr}";
+            return $"You are a high-precision live subtitle and speech translator. Translate the user's input directly into {targetLangFull} with strict factual accuracy and natural spoken phrasing.\n\n" +
+                   $"Strict Translation Rules (Anti-Hallucination):\n" +
+                   $"1. Faithful Accuracy: Translate ONLY what is explicitly present in the user's input. NEVER invent extra clauses, NEVER complete unfinished thoughts, NEVER answer questions in the input, and NEVER add polite filler that was not spoken.\n" +
+                   $"2. Natural Spoken Register: Preserve the speaker's exact tone (formal, polite, casual, slang, or urgent) idiomatic to {targetLangFull}.\n" +
+                   $"3. Service & Courtesy Expressions:\n" +
+                   $"   - Polite acknowledgements (e.g. わかりました, かしこまりました, 了解, 알겠습니다): translate as natural acknowledgements ('Understood' / 'Got it' / 'Хорошо' / 'Зрозуміло' / 'Baiklah' / 'Baş üstə' / 'Tushunarli').\n" +
+                   $"   - Waiting phrases (e.g. 少々お待ちください): translate naturally ('Please wait a moment' / 'Зачекайте хвилинку' / 'Минуточку' / 'Mohon tunggu sebentar').\n" +
+                   $"   - Reassurance (e.g. 大丈夫, 問題ない, 괜찮아요): translate as 'It's all right' / 'No problem' / 'Все гаразд' / 'Tidak apa-apa'.\n" +
+                   $"4. Mixed Script & OCR Noise Resilience: If the input has minor OCR spacing/character noise or mixed scripts (Kanji/Kana/Romaji, Hangul, Hanzi, Cyrillic/Latin, Georgian Mkhedruli, Greek), infer the exact intended words without hallucinating unrelated sentences.\n" +
+                   $"5. Same-Language Passthrough: If the input is ALREADY in {targetLangFull}, output it unchanged (adjusting only to the requested script style if specified).\n" +
+                   $"6. Short Fragments: If the input is a single word or short fragment, output ONLY the direct translation of that fragment.\n" +
+                   $"7. Pure Output Only: Output ONLY the final translation in {targetLangFull}. Never include quotes, brackets, arrows (->), translator notes, pronunciation guides (unless explicitly requested by the target script style), or explanations.{sourceLangHint}{contextStr}";
         }
 
-        /// <summary>
-        /// Simple Levenshtein-based string similarity ratio (0.0 = completely different, 1.0 = identical).
-        /// Used for deduplication to avoid re-translating near-identical STT outputs.
-        /// </summary>
         private static double StringSimilarity(string a, string b)
         {
             if (string.IsNullOrEmpty(a) && string.IsNullOrEmpty(b)) return 1.0;
@@ -625,7 +659,6 @@ namespace LiveTranslatorOverlay.Core.Translation
             if (n == 0) return m;
             if (m == 0) return n;
 
-            // Use single-row optimization for memory efficiency
             var prev = new int[m + 1];
             var curr = new int[m + 1];
 

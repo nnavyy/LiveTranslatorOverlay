@@ -274,9 +274,9 @@ namespace LiveTranslatorOverlay.Core
                     }
                     float avgChunkEnergy = totalEnergy / currentChunk.Count;
 
-                    if (maxAmp < 0.008f && avgChunkEnergy < 0.0015f)
+                    if (maxAmp < 0.012f || avgChunkEnergy < 0.0018f)
                     {
-                        // Hening total, kosongkan buffer tanpa mengirim ke STT
+                        // Hening total atau hanya klik sesaat, kosongkan buffer tanpa mengirim ke STT
                         currentChunk.Clear();
                         _overlapBuffer = null;
                         await Task.Delay(50);
