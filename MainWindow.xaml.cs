@@ -173,10 +173,8 @@ public partial class MainWindow : Window
             var loadedSettings = LiveTranslatorOverlay.Core.AppSettings.Load();
             CaptureExclusion.ApplyToAllWindows(loadedSettings.HideFromCapture);
 
-            if (loadedSettings.EngineIndex == 1)
-                QuotaTracker.Instance.NotifyCurrentGroq();
-            else
-                QuotaTracker.Instance.SetUnlimited("Google Translate");
+            QuotaTracker.Instance.Initialize(loadedSettings.GroqApiKey, loadedSettings.EngineIndex, loadedSettings.SttModeIndex);
+            UpdateQuotaUi(QuotaTracker.Instance.CurrentInfo);
 
             if (loadedSettings.CaptionLeft != -1 && loadedSettings.CaptionTop != -1)
             {
@@ -348,6 +346,7 @@ public partial class MainWindow : Window
     {
         CaptureExclusion.Shutdown();
         SaveCurrentSettings();
+        QuotaTracker.Instance.Flush();
 
         // Opsi A: Seamlessly apply update when closing window
         if (AutoUpdaterService.Instance.IsUpdateReady)
@@ -1049,6 +1048,8 @@ public partial class MainWindow : Window
             settings.EngineIndex = 1;
             settings.Save();
 
+            QuotaTracker.Instance.SetApiKey(key);
+            await GroqTranslateProvider.ProbeRateLimitsAsync(key, models.FirstOrDefault());
             QuotaTracker.Instance.NotifyCurrentGroq();
         }
         else
@@ -1884,6 +1885,15 @@ public partial class MainWindow : Window
         CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00FF88"));
         _isCaptionVisible = false;
         TxtAudioStatus.Text = "";
+
+        if (CmbEngine?.SelectedItem is ComboBoxItem item && item.Tag?.ToString() == "groq")
+        {
+            QuotaTracker.Instance.NotifyCurrentGroq();
+        }
+        else
+        {
+            QuotaTracker.Instance.SetUnlimited("Google Translate");
+        }
     }
 
     private void ShowSubtitleWithAnimation()
