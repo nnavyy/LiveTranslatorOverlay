@@ -10,6 +10,8 @@ namespace LiveTranslatorOverlay.Core
         public string DeepgramApiKey { get; set; } = "";
         public int SourceLangIndex { get; set; } = 0;
         public int TargetLangIndex { get; set; } = 0;
+        public string SourceLangTag { get; set; } = "auto";
+        public string TargetLangTag { get; set; } = "auto";
         public int EngineIndex { get; set; } = 0;
         public int SttModeIndex { get; set; } = 0;
         public int JapaneseStyleIndex { get; set; } = 0;
