@@ -103,8 +103,19 @@ public partial class MainWindow : Window
         var loadedSettings = LiveTranslatorOverlay.Core.AppSettings.Load();
         TxtApiKey.Text = loadedSettings.GroqApiKey;
         TxtDeepgramKey.Text = loadedSettings.DeepgramApiKey;
-        if (loadedSettings.SourceLangIndex >= 0 && loadedSettings.SourceLangIndex < CmbSourceLang.Items.Count) CmbSourceLang.SelectedIndex = loadedSettings.SourceLangIndex;
-        if (loadedSettings.TargetLangIndex >= 0 && loadedSettings.TargetLangIndex < CmbTargetLang.Items.Count) CmbTargetLang.SelectedIndex = loadedSettings.TargetLangIndex;
+        if (!string.IsNullOrEmpty(loadedSettings.SourceLangTag))
+            SelectLanguageByTag(CmbSourceLang, loadedSettings.SourceLangTag, loadedSettings.SourceLangIndex);
+        else if (loadedSettings.SourceLangIndex >= 0 && loadedSettings.SourceLangIndex < CmbSourceLang.Items.Count)
+            CmbSourceLang.SelectedIndex = loadedSettings.SourceLangIndex;
+
+        if (!string.IsNullOrEmpty(loadedSettings.TargetLangTag))
+            SelectLanguageByTag(CmbTargetLang, loadedSettings.TargetLangTag, loadedSettings.TargetLangIndex);
+        else if (loadedSettings.TargetLangIndex >= 0 && loadedSettings.TargetLangIndex < CmbTargetLang.Items.Count)
+            CmbTargetLang.SelectedIndex = loadedSettings.TargetLangIndex;
+
+        SetupSearchableLanguageComboBox(CmbSourceLang);
+        SetupSearchableLanguageComboBox(CmbTargetLang);
+
         if (loadedSettings.JapaneseStyleIndex >= 0 && loadedSettings.JapaneseStyleIndex < CmbJapaneseStyle.Items.Count) CmbJapaneseStyle.SelectedIndex = loadedSettings.JapaneseStyleIndex;
         if (loadedSettings.EngineIndex >= 0 && loadedSettings.EngineIndex < CmbEngine.Items.Count) CmbEngine.SelectedIndex = loadedSettings.EngineIndex;
         if (loadedSettings.SttModeIndex >= 0 && loadedSettings.SttModeIndex < CmbSttMode.Items.Count) CmbSttMode.SelectedIndex = loadedSettings.SttModeIndex;
@@ -142,6 +153,8 @@ public partial class MainWindow : Window
             google.ScriptStyle = GetSelectedJapaneseScriptStyle();
             _translationProvider = google;
         }
+        SortLanguageComboBoxAscending(CmbSourceLang);
+        SortLanguageComboBoxAscending(CmbTargetLang);
         UpdateScriptStyleVisibilityAndOptions(animate: false);
 
         QuotaTracker.Instance.QuotaChanged += (s, info) =>
@@ -314,6 +327,8 @@ public partial class MainWindow : Window
                 DeepgramApiKey = TxtDeepgramKey.Text,
                 SourceLangIndex = CmbSourceLang.SelectedIndex,
                 TargetLangIndex = CmbTargetLang.SelectedIndex,
+                SourceLangTag = (CmbSourceLang.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "auto",
+                TargetLangTag = (CmbTargetLang.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "auto",
                 JapaneseStyleIndex = CmbJapaneseStyle.SelectedIndex,
                 EngineIndex = CmbEngine.SelectedIndex,
                 SttModeIndex = CmbSttMode.SelectedIndex,
@@ -369,8 +384,212 @@ public partial class MainWindow : Window
         await RefreshGroqModelsAsync();
     }
 
+    private bool _isUpdatingLanguageText = false;
+
+    private static void SelectLanguageByTag(ComboBox cmb, string tag, int fallbackIndex = 0)
+    {
+        if (cmb == null || cmb.Items.Count == 0) return;
+        foreach (var obj in cmb.Items)
+        {
+            if (obj is ComboBoxItem item && string.Equals(item.Tag?.ToString(), tag, StringComparison.OrdinalIgnoreCase))
+            {
+                cmb.SelectedItem = item;
+                cmb.Text = item.Content?.ToString() ?? "";
+                return;
+            }
+        }
+        if (fallbackIndex >= 0 && fallbackIndex < cmb.Items.Count)
+        {
+            cmb.SelectedIndex = fallbackIndex;
+            if (cmb.SelectedItem is ComboBoxItem item)
+                cmb.Text = item.Content?.ToString() ?? "";
+        }
+        else
+        {
+            cmb.SelectedIndex = 0;
+        }
+    }
+
+    private void SortLanguageComboBoxAscending(ComboBox cmb)
+    {
+        if (cmb == null || cmb.Items.Count <= 1) return;
+
+        var selectedItem = cmb.SelectedItem as ComboBoxItem;
+        string? selectedTag = selectedItem?.Tag?.ToString();
+
+        ComboBoxItem? autoItem = null;
+        var otherItems = new System.Collections.Generic.List<ComboBoxItem>();
+
+        foreach (var item in cmb.Items.OfType<ComboBoxItem>())
+        {
+            if (item.Tag?.ToString() == "auto")
+                autoItem = item;
+            else
+                otherItems.Add(item);
+        }
+
+        otherItems.Sort((a, b) => string.Compare(a.Content?.ToString(), b.Content?.ToString(), StringComparison.CurrentCultureIgnoreCase));
+
+        _isUpdatingLanguageText = true;
+        cmb.Items.Clear();
+        if (autoItem != null) cmb.Items.Add(autoItem);
+        foreach (var item in otherItems) cmb.Items.Add(item);
+
+        if (!string.IsNullOrEmpty(selectedTag))
+        {
+            SelectLanguageByTag(cmb, selectedTag, 0);
+        }
+        else if (cmb.SelectedIndex < 0)
+        {
+            cmb.SelectedIndex = 0;
+        }
+
+        if (cmb.SelectedItem is ComboBoxItem cur)
+        {
+            cmb.Text = cur.Content?.ToString() ?? "";
+        }
+        _isUpdatingLanguageText = false;
+    }
+
+    private void SetupSearchableLanguageComboBox(ComboBox cmb)
+    {
+        if (cmb == null) return;
+        cmb.IsEditable = true;
+        cmb.StaysOpenOnEdit = true;
+        cmb.IsTextSearchEnabled = false;
+
+        if (cmb.SelectedItem is ComboBoxItem initialItem)
+        {
+            _isUpdatingLanguageText = true;
+            cmb.Text = initialItem.Content?.ToString() ?? "";
+            _isUpdatingLanguageText = false;
+        }
+
+        // Live search filter on typing
+        cmb.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent, new TextChangedEventHandler((s, ev) =>
+        {
+            if (_isUpdatingLanguageText || cmb.SelectedItem == null) return;
+
+            string query = cmb.Text.Trim();
+            string selectedContent = (cmb.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "";
+
+            // If the text equals the currently selected item, don't filter
+            if (string.Equals(query, selectedContent, StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var item in cmb.Items.OfType<ComboBoxItem>())
+                    item.Visibility = Visibility.Visible;
+                return;
+            }
+
+            // User is actively typing to search -> ensure dropdown is open
+            if (!cmb.IsDropDownOpen)
+            {
+                cmb.IsDropDownOpen = true;
+            }
+
+            foreach (var item in cmb.Items.OfType<ComboBoxItem>())
+            {
+                if (string.IsNullOrWhiteSpace(query))
+                {
+                    item.Visibility = Visibility.Visible;
+                    continue;
+                }
+
+                string content = item.Content?.ToString() ?? "";
+                string tag = item.Tag?.ToString() ?? "";
+                bool match = content.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                             tag.Contains(query, StringComparison.OrdinalIgnoreCase);
+
+                item.Visibility = match ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }));
+
+        // When dropdown closes or focus lost: reset filter and restore full name
+        cmb.DropDownClosed += (s, ev) =>
+        {
+            foreach (var item in cmb.Items.OfType<ComboBoxItem>())
+                item.Visibility = Visibility.Visible;
+
+            if (cmb.SelectedItem is ComboBoxItem selItem)
+            {
+                _isUpdatingLanguageText = true;
+                cmb.Text = selItem.Content?.ToString() ?? "";
+                _isUpdatingLanguageText = false;
+            }
+        };
+
+        cmb.LostFocus += (s, ev) =>
+        {
+            foreach (var item in cmb.Items.OfType<ComboBoxItem>())
+                item.Visibility = Visibility.Visible;
+
+            if (cmb.SelectedItem is ComboBoxItem selItem)
+            {
+                _isUpdatingLanguageText = true;
+                cmb.Text = selItem.Content?.ToString() ?? "";
+                _isUpdatingLanguageText = false;
+            }
+        };
+
+        // When clicking or focusing: select all text so typing immediately replaces it with search
+        cmb.PreviewMouseDown += (s, ev) =>
+        {
+            if (!cmb.IsDropDownOpen)
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (cmb.Template.FindName("PART_EditableTextBox", cmb) is TextBox tb)
+                    {
+                        tb.SelectAll();
+                    }
+                }), System.Windows.Threading.DispatcherPriority.Input);
+            }
+        };
+
+        // Keyboard navigation: Enter commits first visible match if needed
+        cmb.PreviewKeyDown += (s, ev) =>
+        {
+            if (ev.Key == Key.Enter)
+            {
+                if (cmb.IsDropDownOpen)
+                {
+                    var firstMatch = cmb.Items.OfType<ComboBoxItem>().FirstOrDefault(i => i.Visibility == Visibility.Visible);
+                    if (firstMatch != null && cmb.SelectedItem != firstMatch && !string.IsNullOrWhiteSpace(cmb.Text))
+                    {
+                        cmb.SelectedItem = firstMatch;
+                    }
+                    cmb.IsDropDownOpen = false;
+                    ev.Handled = true;
+                }
+            }
+            else if (ev.Key == Key.Escape)
+            {
+                cmb.IsDropDownOpen = false;
+                if (cmb.SelectedItem is ComboBoxItem item)
+                {
+                    _isUpdatingLanguageText = true;
+                    cmb.Text = item.Content?.ToString() ?? "";
+                    _isUpdatingLanguageText = false;
+                }
+                ev.Handled = true;
+            }
+            else if (ev.Key == Key.Down && !cmb.IsDropDownOpen)
+            {
+                cmb.IsDropDownOpen = true;
+                ev.Handled = true;
+            }
+        };
+    }
+
     private void CmbLanguage_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        if (sender is ComboBox cmb && cmb.SelectedItem is ComboBoxItem item)
+        {
+            _isUpdatingLanguageText = true;
+            cmb.Text = item.Content?.ToString() ?? "";
+            _isUpdatingLanguageText = false;
+        }
+
         UpdateScriptStyleVisibilityAndOptions(animate: true);
 
         string srcLang = GetSourceLanguage();
@@ -1846,6 +2065,8 @@ public partial class MainWindow : Window
         if (ItemTgtDe != null) ItemTgtDe.Content = loc.Get("LangGerman");
         if (ItemTgtAr != null) ItemTgtAr.Content = loc.Get("LangArabic");
 
+        SortLanguageComboBoxAscending(CmbSourceLang);
+        SortLanguageComboBoxAscending(CmbTargetLang);
         UpdateScriptStyleVisibilityAndOptions(animate: false);
 
         if (ItemEngineGoogle != null) ItemEngineGoogle.Content = loc.Get("EngineGoogle");

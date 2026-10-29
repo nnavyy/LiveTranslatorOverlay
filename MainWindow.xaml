@@ -426,63 +426,67 @@
 
                         <!-- Language Settings -->
                         <TextBlock x:Name="LblSourceLang" Text="Source Language:" Foreground="#AEAEB2" FontSize="11.5" Margin="2,0,0,5"/>
-                        <ComboBox x:Name="CmbSourceLang" SelectedIndex="0" Margin="0,0,0,12" SelectionChanged="CmbLanguage_SelectionChanged">
+                        <ComboBox x:Name="CmbSourceLang" SelectedIndex="0" Margin="0,0,0,12"
+                                  IsEditable="True" StaysOpenOnEdit="True" IsTextSearchEnabled="False"
+                                  SelectionChanged="CmbLanguage_SelectionChanged">
                             <ComboBoxItem x:Name="ItemSrcAuto" Content="Auto Detect" Tag="auto"/>
+                            <ComboBoxItem x:Name="ItemSrcSq" Content="Albanian (sq)" Tag="sq"/>
+                            <ComboBoxItem x:Name="ItemSrcAr" Content="Arabic (ar)" Tag="ar"/>
+                            <ComboBoxItem x:Name="ItemSrcAz" Content="Azerbaijani (az)" Tag="az"/>
+                            <ComboBoxItem x:Name="ItemSrcBs" Content="Bosnian (bs)" Tag="bs"/>
+                            <ComboBoxItem x:Name="ItemSrcBg" Content="Bulgarian (bg)" Tag="bg"/>
+                            <ComboBoxItem x:Name="ItemSrcZh" Content="Chinese Simplified (zh)" Tag="zh"/>
+                            <ComboBoxItem x:Name="ItemSrcZhTw" Content="Chinese Traditional (zh-TW)" Tag="zh-TW"/>
+                            <ComboBoxItem x:Name="ItemSrcHr" Content="Croatian (hr)" Tag="hr"/>
                             <ComboBoxItem x:Name="ItemSrcEn" Content="English (en)" Tag="en"/>
+                            <ComboBoxItem x:Name="ItemSrcFr" Content="French (fr)" Tag="fr"/>
+                            <ComboBoxItem x:Name="ItemSrcKa" Content="Georgian (ka)" Tag="ka"/>
+                            <ComboBoxItem x:Name="ItemSrcDe" Content="German (de)" Tag="de"/>
+                            <ComboBoxItem x:Name="ItemSrcEl" Content="Greek (el)" Tag="el"/>
                             <ComboBoxItem x:Name="ItemSrcId" Content="Indonesian (id)" Tag="id"/>
                             <ComboBoxItem x:Name="ItemSrcJa" Content="Japanese (ja)" Tag="ja"/>
                             <ComboBoxItem x:Name="ItemSrcKo" Content="Korean (ko)" Tag="ko"/>
-                            <ComboBoxItem x:Name="ItemSrcZh" Content="Chinese Simplified (zh)" Tag="zh"/>
-                            <ComboBoxItem x:Name="ItemSrcZhTw" Content="Chinese Traditional (zh-TW)" Tag="zh-TW"/>
-                            <ComboBoxItem x:Name="ItemSrcRu" Content="Russian (ru)" Tag="ru"/>
-                            <ComboBoxItem x:Name="ItemSrcUk" Content="Ukrainian (uk)" Tag="uk"/>
-                            <ComboBoxItem x:Name="ItemSrcAz" Content="Azerbaijani (az)" Tag="az"/>
-                            <ComboBoxItem x:Name="ItemSrcUz" Content="Uzbek (uz)" Tag="uz"/>
-                            <ComboBoxItem x:Name="ItemSrcMn" Content="Mongolian (mn)" Tag="mn"/>
-                            <ComboBoxItem x:Name="ItemSrcKa" Content="Georgian (ka)" Tag="ka"/>
-                            <ComboBoxItem x:Name="ItemSrcSr" Content="Serbian (sr)" Tag="sr"/>
-                            <ComboBoxItem x:Name="ItemSrcHr" Content="Croatian (hr)" Tag="hr"/>
-                            <ComboBoxItem x:Name="ItemSrcBs" Content="Bosnian (bs)" Tag="bs"/>
-                            <ComboBoxItem x:Name="ItemSrcBg" Content="Bulgarian (bg)" Tag="bg"/>
-                            <ComboBoxItem x:Name="ItemSrcRo" Content="Romanian (ro)" Tag="ro"/>
-                            <ComboBoxItem x:Name="ItemSrcEl" Content="Greek (el)" Tag="el"/>
-                            <ComboBoxItem x:Name="ItemSrcSq" Content="Albanian (sq)" Tag="sq"/>
                             <ComboBoxItem x:Name="ItemSrcMk" Content="Macedonian (mk)" Tag="mk"/>
+                            <ComboBoxItem x:Name="ItemSrcMn" Content="Mongolian (mn)" Tag="mn"/>
+                            <ComboBoxItem x:Name="ItemSrcRo" Content="Romanian (ro)" Tag="ro"/>
+                            <ComboBoxItem x:Name="ItemSrcRu" Content="Russian (ru)" Tag="ru"/>
+                            <ComboBoxItem x:Name="ItemSrcSr" Content="Serbian (sr)" Tag="sr"/>
                             <ComboBoxItem x:Name="ItemSrcSl" Content="Slovenian (sl)" Tag="sl"/>
                             <ComboBoxItem x:Name="ItemSrcEs" Content="Spanish (es)" Tag="es"/>
-                            <ComboBoxItem x:Name="ItemSrcFr" Content="French (fr)" Tag="fr"/>
-                            <ComboBoxItem x:Name="ItemSrcDe" Content="German (de)" Tag="de"/>
-                            <ComboBoxItem x:Name="ItemSrcAr" Content="Arabic (ar)" Tag="ar"/>
+                            <ComboBoxItem x:Name="ItemSrcUk" Content="Ukrainian (uk)" Tag="uk"/>
+                            <ComboBoxItem x:Name="ItemSrcUz" Content="Uzbek (uz)" Tag="uz"/>
                         </ComboBox>
 
                         <TextBlock x:Name="LblTargetLang" Text="Target Language:" Foreground="#AEAEB2" FontSize="11.5" Margin="2,0,0,5"/>
-                        <ComboBox x:Name="CmbTargetLang" SelectedIndex="0" Margin="0,0,0,12" SelectionChanged="CmbLanguage_SelectionChanged">
+                        <ComboBox x:Name="CmbTargetLang" SelectedIndex="0" Margin="0,0,0,12"
+                                  IsEditable="True" StaysOpenOnEdit="True" IsTextSearchEnabled="False"
+                                  SelectionChanged="CmbLanguage_SelectionChanged">
                             <ComboBoxItem x:Name="ItemTgtAuto" Content="Auto (System Language)" Tag="auto"/>
-                            <ComboBoxItem x:Name="ItemTgtId" Content="Indonesian (id)" Tag="id"/>
-                            <ComboBoxItem x:Name="ItemTgtEn" Content="English (en)" Tag="en"/>
-                            <ComboBoxItem x:Name="ItemTgtJa" Content="Japanese (ja)" Tag="ja"/>
-                            <ComboBoxItem x:Name="ItemTgtKo" Content="Korean (ko)" Tag="ko"/>
-                            <ComboBoxItem x:Name="ItemTgtZh" Content="Chinese Simplified (zh)" Tag="zh"/>
-                            <ComboBoxItem x:Name="ItemTgtZhTw" Content="Chinese Traditional (zh-TW)" Tag="zh-TW"/>
-                            <ComboBoxItem x:Name="ItemTgtRu" Content="Russian (ru)" Tag="ru"/>
-                            <ComboBoxItem x:Name="ItemTgtUk" Content="Ukrainian (uk)" Tag="uk"/>
+                            <ComboBoxItem x:Name="ItemTgtSq" Content="Albanian (sq)" Tag="sq"/>
+                            <ComboBoxItem x:Name="ItemTgtAr" Content="Arabic (ar)" Tag="ar"/>
                             <ComboBoxItem x:Name="ItemTgtAz" Content="Azerbaijani (az)" Tag="az"/>
-                            <ComboBoxItem x:Name="ItemTgtUz" Content="Uzbek (uz)" Tag="uz"/>
-                            <ComboBoxItem x:Name="ItemTgtMn" Content="Mongolian (mn)" Tag="mn"/>
-                            <ComboBoxItem x:Name="ItemTgtKa" Content="Georgian (ka)" Tag="ka"/>
-                            <ComboBoxItem x:Name="ItemTgtSr" Content="Serbian (sr)" Tag="sr"/>
-                            <ComboBoxItem x:Name="ItemTgtHr" Content="Croatian (hr)" Tag="hr"/>
                             <ComboBoxItem x:Name="ItemTgtBs" Content="Bosnian (bs)" Tag="bs"/>
                             <ComboBoxItem x:Name="ItemTgtBg" Content="Bulgarian (bg)" Tag="bg"/>
-                            <ComboBoxItem x:Name="ItemTgtRo" Content="Romanian (ro)" Tag="ro"/>
+                            <ComboBoxItem x:Name="ItemTgtZh" Content="Chinese Simplified (zh)" Tag="zh"/>
+                            <ComboBoxItem x:Name="ItemTgtZhTw" Content="Chinese Traditional (zh-TW)" Tag="zh-TW"/>
+                            <ComboBoxItem x:Name="ItemTgtHr" Content="Croatian (hr)" Tag="hr"/>
+                            <ComboBoxItem x:Name="ItemTgtEn" Content="English (en)" Tag="en"/>
+                            <ComboBoxItem x:Name="ItemTgtFr" Content="French (fr)" Tag="fr"/>
+                            <ComboBoxItem x:Name="ItemTgtKa" Content="Georgian (ka)" Tag="ka"/>
+                            <ComboBoxItem x:Name="ItemTgtDe" Content="German (de)" Tag="de"/>
                             <ComboBoxItem x:Name="ItemTgtEl" Content="Greek (el)" Tag="el"/>
-                            <ComboBoxItem x:Name="ItemTgtSq" Content="Albanian (sq)" Tag="sq"/>
+                            <ComboBoxItem x:Name="ItemTgtId" Content="Indonesian (id)" Tag="id"/>
+                            <ComboBoxItem x:Name="ItemTgtJa" Content="Japanese (ja)" Tag="ja"/>
+                            <ComboBoxItem x:Name="ItemTgtKo" Content="Korean (ko)" Tag="ko"/>
                             <ComboBoxItem x:Name="ItemTgtMk" Content="Macedonian (mk)" Tag="mk"/>
+                            <ComboBoxItem x:Name="ItemTgtMn" Content="Mongolian (mn)" Tag="mn"/>
+                            <ComboBoxItem x:Name="ItemTgtRo" Content="Romanian (ro)" Tag="ro"/>
+                            <ComboBoxItem x:Name="ItemTgtRu" Content="Russian (ru)" Tag="ru"/>
+                            <ComboBoxItem x:Name="ItemTgtSr" Content="Serbian (sr)" Tag="sr"/>
                             <ComboBoxItem x:Name="ItemTgtSl" Content="Slovenian (sl)" Tag="sl"/>
                             <ComboBoxItem x:Name="ItemTgtEs" Content="Spanish (es)" Tag="es"/>
-                            <ComboBoxItem x:Name="ItemTgtFr" Content="French (fr)" Tag="fr"/>
-                            <ComboBoxItem x:Name="ItemTgtDe" Content="German (de)" Tag="de"/>
-                            <ComboBoxItem x:Name="ItemTgtAr" Content="Arabic (ar)" Tag="ar"/>
+                            <ComboBoxItem x:Name="ItemTgtUk" Content="Ukrainian (uk)" Tag="uk"/>
+                            <ComboBoxItem x:Name="ItemTgtUz" Content="Uzbek (uz)" Tag="uz"/>
                         </ComboBox>
 
                         <!-- Dynamic Multi-Script Style Selection (Only visible for languages with 2+ scripts: JA, KO, ZH, SR, BS, UZ, AZ, MN) -->
