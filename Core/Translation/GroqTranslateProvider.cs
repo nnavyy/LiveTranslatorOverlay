@@ -20,6 +20,9 @@ namespace LiveTranslatorOverlay.Core.Translation
         // Preferred models in order of priority (most accurate multilingual first)
         private static readonly string[] PreferredModels =
         {
+            "openai/gpt-oss-20b",
+            "qwen/qwen3.8-27b",
+            "openai/gpt-oss-120b",
             "llama-3.3-70b-versatile",  // Best accuracy, tone nuance & idiom handling for Slavic, Turkic, Caucasian, Balkan & Asian languages
             "meta-llama/llama-4-maverick-17b-128e-instruct",
             "meta-llama/llama-4-scout-17b-16e-instruct",
@@ -200,6 +203,28 @@ namespace LiveTranslatorOverlay.Core.Translation
             {
                 return (false, $"Connection error: {ex.Message}", new List<string>());
             }
+        }
+
+        public static async Task ProbeRateLimitsAsync(string apiKey, string? model = null)
+        {
+            if (string.IsNullOrWhiteSpace(apiKey)) return;
+            try
+            {
+                string probeModel = !string.IsNullOrWhiteSpace(model) ? model : "openai/gpt-oss-20b";
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions");
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.Trim());
+                var payload = new
+                {
+                    model = probeModel,
+                    messages = new[] { new { role = "user", content = "ping" } },
+                    max_tokens = 1
+                };
+                request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+                using var response = await client.SendAsync(request);
+                QuotaTracker.Instance.UpdateFromHeaders(response.Headers, "Groq AI (Text)");
+            }
+            catch { }
         }
 
         private async Task<string> GetFallbackModelAsync(string currentModel)
@@ -395,6 +420,16 @@ namespace LiveTranslatorOverlay.Core.Translation
 
                 if (!response.IsSuccessStatusCode)
                 {
+                    if (response.StatusCode == (System.Net.HttpStatusCode)429)
+                    {
+                        int cooldownSecs = 8;
+                        if (response.Headers.RetryAfter?.Delta.HasValue == true)
+                        {
+                            cooldownSecs = Math.Max(5, (int)response.Headers.RetryAfter.Delta.Value.TotalSeconds + 1);
+                        }
+                        QuotaTracker.Instance.SetCooldown("Groq AI", cooldownSecs);
+                    }
+
                     if (!isRetry && (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
                                      response.StatusCode == System.Net.HttpStatusCode.BadRequest ||
                                      response.StatusCode == (System.Net.HttpStatusCode)429))
@@ -517,6 +552,16 @@ namespace LiveTranslatorOverlay.Core.Translation
                 
                 if (!response.IsSuccessStatusCode)
                 {
+                    if (response.StatusCode == (System.Net.HttpStatusCode)429)
+                    {
+                        int cooldownSecs = 8;
+                        if (response.Headers.RetryAfter?.Delta.HasValue == true)
+                        {
+                            cooldownSecs = Math.Max(5, (int)response.Headers.RetryAfter.Delta.Value.TotalSeconds + 1);
+                        }
+                        QuotaTracker.Instance.SetCooldown("Groq AI", cooldownSecs);
+                    }
+
                     if (!isRetry && (response.StatusCode == System.Net.HttpStatusCode.NotFound || 
                                      response.StatusCode == System.Net.HttpStatusCode.BadRequest || 
                                      response.StatusCode == (System.Net.HttpStatusCode)429))
