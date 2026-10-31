@@ -1,0 +1,38 @@
+Review date: 2026-10-31 (Asia/Jakarta)
+App version: 1.3.3
+App commit: e1362bec63f05bfaca34d1c67deec3470a0bb81e
+
+Command: dotnet build LiveTranslatorOverlay.csproj -c Release --nologo
+Result: exit 0; Build succeeded; 2 Warning(s), 0 Error(s).
+Warning: NU1510: PackageReference System.Drawing.Common will not be pruned. Consider removing this package from your dependencies, as it is likely unnecessary.
+Build time reported: 00:00:12.97
+
+Command: dotnet run --project ReviewChecks.csproj -c Release --nologo
+Exit: 0
+Captured output:
+REPRODUCED: Ordinary speech filtered: 8/8 valid examples rejected: yes / no / thank you / terima kasih / спасибо / 你好 / はい / 안녕
+REPRODUCED: Changed number reuses old translation: 100 -> 900: both methods return 'Harganya 100 dolar.'
+REPRODUCED: Valid unchanged translation invokes fallback and displays service error: mock HTTP calls=2; displayed='INVALID LANGUAGE PAIR'
+REPRODUCED: Short stopped playback is retained without emission: 2 seconds + 1.3 seconds idle: 0 chunks; after total 4 seconds: 1 chunk
+REPRODUCED: Two-slot queue does not bound async consumers: async consumers started=4; peak active=4; intended maximum=2
+REPRODUCED: Missing bundled settings resolves outside executable directory: base=B:\Projects\live translator\review-evidence\bin\Release\net10.0-windows10.0.19041.0\; resolved=B:\Projects\live translator\review-evidence\appsettings.json
+Review result: 6/6 defect probes reproduced. These checks document existing bugs; no fixes were applied.
+
+Command: dotnet list LiveTranslatorOverlay.csproj package --vulnerable --include-transitive --format json
+Exit: 0
+Output:
+{
+  "version": 1,
+  "parameters": "--vulnerable --include-transitive",
+  "sources": [
+    "https://api.nuget.org/v3/index.json"
+  ],
+  "projects": [
+    {
+      "path": "B:/Projects/live translator/LiveTranslatorOverlay/LiveTranslatorOverlay.csproj"
+    }
+  ]
+}
+
+Commands: git diff --check; git status --short
+Result: no output in application repository at review time.

@@ -1,0 +1,112 @@
+using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Http;
+using System.Reflection;
+using LiveTranslatorOverlay.Core;
+using LiveTranslatorOverlay.Core.Translation;
+
+// Offline review probes against the unmodified release assembly. No credentials,
+// devices, updater execution, feedback submissions, or real HTTP requests.
+const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
+int observed = 0;
+void Confirm(string name, bool reproduced, string detail)
+{
+    Console.WriteLine($"{(reproduced ? "REPRODUCED" : "NOT REPRODUCED")}: {name}: {detail}");
+    if (reproduced) observed++;
+}
+void Set(object target, string field, object value) =>
+    target.GetType().GetField(field, PrivateInstance)!.SetValue(target, value);
+T Get<T>(object target, string field) =>
+    (T)target.GetType().GetField(field, PrivateInstance)!.GetValue(target)!;
+
+string[] ordinarySpeech = ["yes", "no", "thank you", "terima kasih", "спасибо", "你好", "はい", "안녕"];
+var blocked = ordinarySpeech.Where(HallucinationDetector.IsHallucination).ToArray();
+Confirm("Ordinary speech filtered", blocked.Length == ordinarySpeech.Length,
+    $"{blocked.Length}/{ordinarySpeech.Length} valid examples rejected: {string.Join(" / ", blocked)}");
+
+var groq = new GroqTranslateProvider("offline-dummy-key");
+Set(groq, "_cachedInput", "The price is 100 dollars.");
+Set(groq, "_lastTranslatedInput", "The price is 100 dollars.");
+Set(groq, "_cachedTarget", "id");
+Set(groq, "_cachedSource", "en");
+Set(groq, "_cachedResult", "Harganya 100 dolar.");
+string wrongPrice = await groq.TranslateAsync("The price is 900 dollars.", "id", "en");
+string streamedPrice = "";
+await groq.TranslateStreamAsync("The price is 900 dollars.", "id", "en", s => streamedPrice = s);
+Confirm("Changed number reuses old translation", wrongPrice == "Harganya 100 dolar." && streamedPrice == wrongPrice,
+    $"100 -> 900: both methods return '{wrongPrice}'");
+
+var google = new GoogleFreeTranslateProvider();
+Get<HttpClient>(google, "_httpClient").Dispose();
+var mock = new MockHandler();
+Set(google, "_httpClient", new HttpClient(mock));
+string fallbackText = await google.TranslateAsync("Hello", "en", "en");
+Confirm("Valid unchanged translation invokes fallback and displays service error",
+    mock.Requests == 2 && fallbackText == MockHandler.Error,
+    $"mock HTTP calls={mock.Requests}; displayed='{fallbackText}'");
+
+var audio = new AudioCaptureService();
+var buffer = Get<ConcurrentQueue<float>>(audio, "_audioBuffer");
+int emitted = 0;
+audio.AudioChunkReady += (_, _) => Interlocked.Increment(ref emitted);
+Set(audio, "_isCapturing", true);
+for (int i = 0; i < 32000; i++) buffer.Enqueue((float)(0.1 * Math.Sin(i * 0.1)));
+var loop = (Task)typeof(AudioCaptureService).GetMethod("ChunkEmitterLoop", PrivateInstance)!.Invoke(audio, null)!;
+await Task.Delay(1300);
+int shortCount = emitted;
+for (int i = 0; i < 32000; i++) buffer.Enqueue((float)(0.1 * Math.Sin(i * 0.1)));
+await Task.Delay(1300);
+int fourSecondCount = emitted;
+audio.Stop();
+await loop.WaitAsync(TimeSpan.FromSeconds(2));
+Confirm("Short stopped playback is retained without emission", shortCount == 0 && fourSecondCount == 1,
+    $"2 seconds + 1.3 seconds idle: {shortCount} chunks; after total 4 seconds: {fourSecondCount} chunk");
+
+var queuedAudio = new AudioCaptureService();
+var queueBuffer = Get<ConcurrentQueue<float>>(queuedAudio, "_audioBuffer");
+int active = 0, peak = 0, started = 0;
+queuedAudio.AudioChunkReady += async (_, _) =>
+{
+    int now = Interlocked.Increment(ref active);
+    Interlocked.Increment(ref started);
+    int previous;
+    do { previous = Volatile.Read(ref peak); }
+    while (now > previous && Interlocked.CompareExchange(ref peak, now, previous) != previous);
+    await Task.Delay(1500);
+    Interlocked.Decrement(ref active);
+};
+Set(queuedAudio, "_isCapturing", true);
+var queueLoop = (Task)typeof(AudioCaptureService).GetMethod("ChunkEmitterLoop", PrivateInstance)!.Invoke(queuedAudio, null)!;
+for (int n = 0; n < 4; n++)
+{
+    for (int i = 0; i < 192000; i++) queueBuffer.Enqueue((float)(0.1 * Math.Sin(i * 0.1)));
+    await Task.Delay(180);
+}
+queuedAudio.Stop();
+await queueLoop.WaitAsync(TimeSpan.FromSeconds(2));
+await Task.Delay(1600);
+Confirm("Two-slot queue does not bound async consumers", peak > 2,
+    $"async consumers started={started}; peak active={peak}; intended maximum=2");
+
+string settingsPath = AppSettings.GetSettingsPath();
+string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+Confirm("Missing bundled settings resolves outside executable directory",
+    !settingsPath.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase),
+    $"base={baseDir}; resolved={settingsPath}");
+
+Console.WriteLine($"Review result: {observed}/6 defect probes reproduced. These checks document existing bugs; no fixes were applied.");
+Environment.ExitCode = observed == 6 ? 0 : 1;
+
+sealed class MockHandler : HttpMessageHandler
+{
+    public const string Error = "INVALID LANGUAGE PAIR";
+    public int Requests { get; private set; }
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        Requests++;
+        string body = Requests == 1
+            ? "{\"sentences\":[{\"trans\":\"Hello\"}]}"
+            : "{\"responseData\":{\"translatedText\":\"INVALID LANGUAGE PAIR\"},\"responseStatus\":400}";
+        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
+    }
+}
