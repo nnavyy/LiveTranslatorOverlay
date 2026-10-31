@@ -16,9 +16,9 @@
 
 ## Features
 
-- **100% Free and Unlimited by Default (No API Key Required)**
+- **Key-Free Text Translation by Default**
   - Operates out-of-the-box using Google Translate's high-speed endpoint (~100–200ms latency).
-  - No account creation, no credit card, and no token quotas.
+  - No account or API key is required for this text translation path; provider availability and service limits still apply. Audio transcription requires a Deepgram or Groq key.
 - **Real-Time Speech-to-Text (STT)**
   - **Deepgram Streaming (Recommended)**: Sub-second latency WebSocket streaming with live word-by-word interim preview and multi-speaker diarization with distinct color identification.
   - **Groq Whisper (Large-v3)**: Cloud batch transcription powered by Whisper Large-v3.
@@ -32,18 +32,20 @@
   - **Freely repositionable**: Move the subtitle banner and settings dialog anywhere on your monitors via drag-and-drop.
   - **Screen Capture Exclusion (Privacy Mode)**: Employs Windows Graphics Capture Exclusion (`SetWindowDisplayAffinity`) to keep captions and all application windows completely hidden from OBS Studio, Discord screen sharing, Zoom, and screen recordings, with built-in Snipping Tool deadlock protection.
   - **Translation History**: Integrated history log to review past spoken and translated statements with AI-powered conversation summaries.
-- **Silent Background Auto-Updater**
+- **Background Updates with Release Notes**
   - Starting from v1.2.0, the app checks for new releases on GitHub and downloads updates silently in the background.
-  - Updates are applied automatically on application restart or exit while strictly preserving user API keys and configurations.
+  - Choose **Restart to apply** when convenient. Quitting or reading settings no longer triggers an automatic update restart.
+  - **What's new** appears once for each installed version and can be reopened from App Updates.
 - **Multi-Language User Interface & Target Translation**
-  - Fully localized in **English**, **Indonesian (Bahasa Indonesia)**, and **Russian (Русский)**.
+  - Interface languages: **English**, **Indonesian (Bahasa Indonesia)**, **Russian (Русский)**, and **Spanish (Español)**. Spanish is an initial translation awaiting native-speaker review.
+  - Version 1.4.0 adds Malay, Vietnamese, Thai, Portuguese, Italian, Dutch, Polish, Hindi, and Turkish translation choices. Speech support depends on the selected provider; OCR requires an installed Windows language pack.
   - Automatically matches your Windows display language by default, with dynamic in-app language switching and auto target language detection.
 - **Instant Groq AI Key Verification & Engine Auto-Switching**
   - Live API key verification with real-time connection feedback and automatic model population (powered by `llama-3.3-70b-versatile`).
 - **In-App Bug Reporting & Resolution Tracker**
   - Report bugs, feature suggestions, and criticism directly inside the application without needing third-party accounts.
   - **My Reports History**: Track previously submitted reports and monitor resolution progress (*Pending*, *In Progress*, *Fixed*) per device.
-  - Automatic status resolution sync when newer application updates are released.
+  - Report resolution follows explicit developer status mappings; a newer release alone never proves a report was fixed.
 
 ---
 
@@ -79,9 +81,9 @@ The application operates without charge using **Google Translate**. If you prefe
 
 | Service | Category | Pricing | Intended Use Case |
 |---|---|---|---|
-| **Google Translate** | Translation | **Free** (No Key Required) | Daily translation, streaming, and gaming without rate limits |
-| **Deepgram** | Speech-to-Text | **Free Tier** ($200 credit / ~12,000 mins) | Low-latency streaming transcription and speaker separation |
-| **Groq AI** | Translation & Whisper STT | **Free Tier** (Rate-limited tokens) | Context-aware LLM translations and Whisper Large-v3 |
+| **Google Translate** | Translation | No key required; service limits apply | Text translation |
+| **Deepgram** | Speech-to-Text | Check your provider plan and limits | Streaming transcription and speaker separation |
+| **Groq AI** | Translation & Whisper STT | Check your provider plan and limits | LLM translations and Whisper Large-v3 |
 
 ### Supplying API Keys (Optional)
 Keys can be configured directly inside the interface:
@@ -91,7 +93,7 @@ Keys can be configured directly inside the interface:
 4. Preferences automatically persist to your local `appsettings.json` file.
 
 > [!NOTE]
-> All credentials and configurations remain strictly stored on your local machine within `appsettings.json` and are never transmitted to external third-party servers.
+> Credentials are stored locally in `appsettings.json` and sent only to the selected service for authentication. This file currently stores keys in plaintext; keep it private.
 
 ---
 

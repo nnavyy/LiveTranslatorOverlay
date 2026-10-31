@@ -41,6 +41,10 @@ The Software allows users to connect to third-party providers for machine transl
 2. **Deepgram (Optional)**: If you supply a Deepgram API key for streaming transcription, PCM audio streams are transmitted via encrypted WebSockets (`wss://api.deepgram.com`) directly to Deepgram servers in accordance with [Deepgram's Privacy Policy](https://deepgram.com/privacy).
 3. **Groq (Optional)**: If you supply a Groq API key, text prompts and audio chunks are transmitted via encrypted HTTPS (`https://api.groq.com`) directly to Groq servers in accordance with [Groq's Privacy Policy](https://groq.com/privacy-policy).
 
+4. **MyMemory (Fallback)**: If the default text translation service fails, text may be sent over HTTPS to `api.mymemory.translated.net` for fallback translation.
+
+Starting with version 1.4.0, normal operation does not write raw Deepgram or Groq transcripts to debug files. Older versions may have created `deepgram_debug.txt` or `groq_debug.txt` in their working folder. Those existing files are not automatically deleted. Translation history can still be explicitly exported by the user.
+
 **Security of API Keys**:
 All API keys entered in the application are saved exclusively on your local machine in the `appsettings.json` file. They are never sent to the Software's developer or any intermediary server.
 

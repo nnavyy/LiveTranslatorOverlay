@@ -114,41 +114,6 @@ namespace LiveTranslatorOverlay.Core
             "no text to translate", "please provide the text"
         };
 
-        private static readonly string[] ExactMatches =
-        {
-            // Exact standalone hallucination words produced when hearing silence/hiss
-            "thank you", "thanks", "thank you very much", "thanks a lot",
-            "okay", "ok", "oh",
-            "hmm", "mm", "mmm", "mhm", "uh", "um", "ah", "huh",
-            "yeah", "yes", "no", "yep", "nope",
-            "spasiba", "spasibo",
-            "\u0441\u043f\u0430\u0441\u0438\u0431\u043e",             // спасибо
-            "\u0441\u043f\u0430\u0441\u0438\u0431\u043e.",            // спасибо.
-            "\u0441\u043f\u0430\u0441\u0438\u0431\u043e!",            // спасибо!
-            "\u0431\u043e\u043b\u044c\u0448\u043e\u0435 \u0441\u043f\u0430\u0441\u0438\u0431\u043e", // большое спасибо
-            "\u0434\u0430",                           // да (yes - Russian)
-            "\u043d\u0435\u0442",                     // нет (no - Russian)
-            "terima kasih", "terimakasih", "terima kasih banyak",
-            "bye", "bye bye", "goodbye", "bye-bye",
-            "you", "you.",
-            ".", "..", "...", "!", "?",
-            "\u3042\u308a\u304c\u3068\u3046",         // ありがとう (arigatou)
-            "\u3042\u308a\u304c\u3068\u3046\u3054\u3056\u3044\u307e\u3059", // ありがとうございます
-            "\u306f\u3044",                           // はい (hai - yes)
-            "\u3044\u3044\u3048",                     // いいえ (iie - no)
-            "音楽", "music", "bgm", "singing", "song",
-            "日本語の会話を正確に書き起こしてください",
-            "会話の書き起こし",
-            "書き起こし",
-            "正確に書き起こしてください",
-            // Ukrainian, Balkan, Caucasian, Turkic standalone silence hallucinations
-            "дякую", "дякую.", "дякую!",
-            "təşəkkürlər", "rahmat", "მადლობა", "баярлалаа",
-            "hvala", "хвала", "благодаря", "mulțumesc", "ευχαριστώ", "faleminderit",
-            "субтитри", "субтитры", "subtitles", "subtitle", "titlovi", "altyazı",
-            "mbc 뉴스", "kbs 뉴스", "sbs 뉴스"
-        };
-
         public static bool IsHallucination(string? text)
         {
             if (string.IsNullOrWhiteSpace(text)) return true;
@@ -160,21 +125,10 @@ namespace LiveTranslatorOverlay.Core
             string stripped = new string(lower.Where(c => !char.IsPunctuation(c) && c != '\u266a' && c != '\u266b').ToArray()).Trim();
             if (stripped.Length == 0) return true;
 
-            // Short-text rejection: transcripts <= 2 meaningful characters are noise
-            if (stripped.Length <= 2) return true;
-
-            // Check exact stripped matches (e.g. "спасибо", "thank you", "spasiba")
-            foreach (var match in ExactMatches)
-            {
-                string matchStripped = new string(match.Where(c => !char.IsPunctuation(c)).ToArray()).Trim();
-                if (stripped == matchStripped || lower == match)
-                    return true;
-            }
-
-            // Check substring blacklist (e.g. "Субтитры создавал DimaTorzok", "Продолжение следует...")
+            // Reject explicit non-speech tags; natural phrases alone do not prove hallucination.
             foreach (var kw in SubstringBlacklist)
             {
-                if (lower.Contains(kw))
+                if (lower == kw && (kw.StartsWith("[") || kw.StartsWith("(")))
                     return true;
             }
 

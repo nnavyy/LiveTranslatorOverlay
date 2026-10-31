@@ -127,7 +127,7 @@ namespace LiveTranslatorOverlay.Core.Update
                     foreach (var asset in assets.EnumerateArray())
                     {
                         string name = asset.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? "" : "";
-                        if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                        if (name.Equals("LiveTranslatorOverlay-Windows-x64.zip", StringComparison.OrdinalIgnoreCase))
                         {
                             downloadUrl = asset.TryGetProperty("browser_download_url", out var urlEl) ? urlEl.GetString() ?? "" : "";
                             expectedSize = asset.TryGetProperty("size", out var sizeEl) ? sizeEl.GetInt64() : 0;
@@ -141,16 +141,6 @@ namespace LiveTranslatorOverlay.Core.Update
                     StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Update {tagName} found, but zip asset is not ready yet.", 0, isError: true));
                     return false;
                 }
-
-                // Pre-clean: terminate any lingering robocopy from older update attempts
-                try
-                {
-                    foreach (var proc in Process.GetProcessesByName("robocopy"))
-                    {
-                        try { proc.Kill(); } catch { }
-                    }
-                }
-                catch { }
 
                 // Setup version-isolated local temp directories to prevent file locking collisions
                 string cleanTag = tagName.Replace("/", "_").Replace("\\", "_");
@@ -209,6 +199,9 @@ namespace LiveTranslatorOverlay.Core.Update
                 StatusChanged?.Invoke(this, new UpdateStatusEventArgs("Extracting update files...", 92, newVersion: tagName));
                 ZipFile.ExtractToDirectory(zipFilePath, updateStagedDir, overwriteFiles: true);
 
+                if (!File.Exists(Path.Combine(updateStagedDir, "LiveTranslatorOverlay.exe")))
+                    throw new InvalidDataException("Update package does not contain the application.");
+
                 // CRITICAL SAFETY: Delete appsettings.json from staged directory to preserve user settings!
                 string stagedAppSettings = Path.Combine(updateStagedDir, "appsettings.json");
                 if (File.Exists(stagedAppSettings))
@@ -255,28 +248,28 @@ set ""OLD_PID=%~4""
 
 echo [%date% %time%] Updater started. Target=%TARGET_DIR% OldPID=%OLD_PID% > ""%~dp0updater.log""
 
-:: Kill any hanging robocopy processes
-taskkill /f /im robocopy.exe >nul 2>&1
-
-:: Kill old process by PID if still alive
-if not ""%OLD_PID%""=="""" (
-    taskkill /f /pid %OLD_PID% >nul 2>&1
-)
-
-:: Terminate any duplicate instances to guarantee clean single-instance restart
-taskkill /f /im ""%TARGET_EXE%"" >nul 2>&1
-timeout /t 2 /nobreak >nul
+:: Wait for this app instance to exit; never terminate unrelated processes.
+set WAIT_COUNT=0
+:wait_for_exit
+tasklist /FI ""PID eq %OLD_PID%"" /NH | findstr /R /C:"" %OLD_PID% "" >nul
+if errorlevel 1 goto copy_files
+set /a WAIT_COUNT+=1
+if %WAIT_COUNT% GEQ 30 exit /b 1
+timeout /t 1 /nobreak >nul
+goto wait_for_exit
+:copy_files
 
 echo [%date% %time%] Starting file copy from %SOURCE_DIR% to %TARGET_DIR%... >> ""%~dp0updater.log""
 
 :: Robocopy everything except user config with fast retry flags
 robocopy ""%SOURCE_DIR%"" ""%TARGET_DIR%"" /E /IS /IT /XF appsettings.json /R:2 /W:1 >> ""%~dp0updater.log"" 2>&1
 set ROBO_ERR=%ERRORLEVEL%
+if %ROBO_ERR% GEQ 8 exit /b %ROBO_ERR%
 echo [%date% %time%] Robocopy finished with exit code %ROBO_ERR% >> ""%~dp0updater.log""
 
 :: Clean up staging folder
 timeout /t 1 /nobreak >nul
-rmdir /s /q ""%SOURCE_DIR%"" >nul 2>&1
+:: Keep staged files for recovery; clean them on the next download.
 
 :: Relaunch updated application exactly once
 echo [%date% %time%] Launching updated %TARGET_DIR%\%TARGET_EXE% >> ""%~dp0updater.log""
@@ -323,15 +316,7 @@ exit /b 0
 
                 Process.Start(psi);
 
-                // Instantly kill process at kernel level to immediately unlock all files
-                try
-                {
-                    Process.GetCurrentProcess().Kill();
-                }
-                catch
-                {
-                    Environment.Exit(0);
-                }
+                Application.Current.Shutdown();
             }
             catch (Exception ex)
             {

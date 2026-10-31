@@ -445,7 +445,8 @@ namespace LiveTranslatorOverlay.Core
         {
             try
             {
-                string localAppData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiveTranslatorOverlay");
+                string localAppData = AppContext.GetData("LiveTranslatorOverlay.QuotaCacheDirectory") as string
+                    ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiveTranslatorOverlay");
                 Directory.CreateDirectory(localAppData);
                 return Path.Combine(localAppData, "quota_state.json");
             }

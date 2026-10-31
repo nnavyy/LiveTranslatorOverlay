@@ -17,3 +17,4 @@ check_audio.ps1
 TestTranslation.cs
 
 publish/
+publish-verify/
