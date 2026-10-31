@@ -52,11 +52,10 @@ namespace LiveTranslatorOverlay.Core
                 _webSocket.Options.SetRequestHeader("Authorization", $"Token {_apiKey}");
 
                 // Build query string
-                // When no language param is sent, Deepgram nova-2 defaults to English
-                // but can still pick up other languages. When a specific language is set,
-                // we send it explicitly for best accuracy.
+                // Nova-2 multilingual mode covers English/Spanish, not universal auto-detection.
+                // Other supported languages must be selected explicitly.
                 string langParam = string.IsNullOrEmpty(_language) || _language == "auto" || _language == "multi"
-                    ? ""
+                    ? "&language=multi"
                     : $"&language={_language}";
 
                 var uri = new Uri(
@@ -129,11 +128,6 @@ namespace LiveTranslatorOverlay.Core
                     if (sb.Length > 0)
                     {
                         string msg = sb.ToString();
-                        // Log ALL messages for debugging - NOT just first 200 chars
-                        Console.WriteLine($"[Deepgram] Received ({msg.Length} chars): {msg[..Math.Min(msg.Length, 500)]}");
-                        // Also write to file for debugging
-                        try { System.IO.File.AppendAllText("deepgram_debug.txt",
-                            $"[{DateTime.Now:HH:mm:ss.fff}] {msg}\n"); } catch { }
                         ParseAndEmit(msg);
                     }
                 }
@@ -264,8 +258,8 @@ namespace LiveTranslatorOverlay.Core
             if (string.IsNullOrWhiteSpace(text)) return true;
 
             string stripped = new string(text.Trim().ToLowerInvariant().Where(c => !char.IsPunctuation(c)).ToArray()).Trim();
-            // Abaikan jika hanya 1 huruf atau simbol aneh (noise)
-            if (stripped.Length <= 1) return true;
+            // Reject punctuation-only noise without rejecting short words.
+            if (stripped.Length == 0) return true;
 
             return HallucinationDetector.IsHallucination(text);
         }

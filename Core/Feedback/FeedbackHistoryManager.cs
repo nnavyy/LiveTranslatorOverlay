@@ -86,119 +86,37 @@ public static class FeedbackHistoryManager
 
     public static async Task<bool> RefreshStatusesAsync(string? currentAppVersion = null)
     {
-        currentAppVersion ??= LiveTranslatorOverlay.Core.Update.AppVersion.DisplayString;
         var records = Load();
         if (records.Count == 0) return false;
-
-        bool modified = false;
-
-        // 1. Check reports_status.json from GitHub repo (developer remote override)
-        try
-        {
-            string statusFileUrl = "https://raw.githubusercontent.com/nnavyy/LiveTranslatorOverlay/main/reports_status.json";
-            var response = await HttpClient.GetAsync(statusFileUrl);
-            if (response.IsSuccessStatusCode)
-            {
-                string json = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(json);
-                foreach (var record in records)
-                {
-                    if (doc.RootElement.TryGetProperty(record.Id, out var prop))
-                    {
-                        if (prop.TryGetProperty("status", out var sProp))
-                        {
-                            string newStatus = sProp.GetString() ?? "";
-                            if (!string.IsNullOrWhiteSpace(newStatus) && record.Status != newStatus)
-                            {
-                                record.Status = newStatus;
-                                modified = true;
-                            }
-                        }
-                        if (prop.TryGetProperty("note", out var nProp))
-                        {
-                            string note = nProp.GetString() ?? "";
-                            if (record.ResolutionNote != note)
-                            {
-                                record.ResolutionNote = note;
-                                modified = true;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        catch { }
-
-        // 2. Check latest GitHub Release version
-        try
-        {
-            string releaseUrl = "https://api.github.com/repos/nnavyy/LiveTranslatorOverlay/releases/latest";
-            var response = await HttpClient.GetAsync(releaseUrl);
-            if (response.IsSuccessStatusCode)
-            {
-                string json = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.TryGetProperty("tag_name", out var tagProp))
-                {
-                    string latestTag = tagProp.GetString() ?? "";
-                    if (!string.IsNullOrWhiteSpace(latestTag))
-                    {
-                        foreach (var record in records)
-                        {
-                            // If reported in an older version and a newer version has been released
-                            if (IsVersionNewer(latestTag, record.AppVersion))
-                            {
-                                if (record.Status == "Pending")
-                                {
-                                    record.Status = "Fixed";
-                                    record.ResolutionNote = $"Resolved in {latestTag}";
-                                    modified = true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        catch { }
-
-        // 3. Fallback: Check if current installed app is newer than report version
-        foreach (var record in records)
-        {
-            if (IsVersionNewer(currentAppVersion, record.AppVersion))
-            {
-                if (record.Status == "Pending")
-                {
-                    record.Status = "Fixed";
-                    record.ResolutionNote = $"Resolved in {currentAppVersion}";
-                    modified = true;
-                }
-            }
-        }
-
-        if (modified)
-        {
-            Save(records);
-        }
-
+        using var response = await HttpClient.GetAsync("https://raw.githubusercontent.com/nnavyy/LiveTranslatorOverlay/main/reports_status.json");
+        response.EnsureSuccessStatusCode();
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        bool modified = ApplyStatuses(records, doc.RootElement);
+        if (modified) Save(records);
         return modified;
     }
 
-    private static bool IsVersionNewer(string vCandidate, string vBase)
+    // A release/version change is never evidence that a particular report was fixed.
+    internal static bool ApplyStatuses(List<FeedbackRecord> records, JsonElement statuses)
     {
-        try
+        bool modified = false;
+        foreach (var record in records)
         {
-            string cleanCandidate = vCandidate.TrimStart('v', 'V');
-            string cleanBase = vBase.TrimStart('v', 'V');
-
-            if (Version.TryParse(cleanCandidate, out var parsedCandidate) &&
-                Version.TryParse(cleanBase, out var parsedBase))
+            if (!statuses.TryGetProperty(record.Id, out var entry) || entry.ValueKind != JsonValueKind.Object) continue;
+            if (entry.TryGetProperty("status", out var status) && status.ValueKind == JsonValueKind.String
+                && status.GetString() is string newStatus && newStatus is "Pending" or "InProgress" or "Fixed"
+                && record.Status != newStatus)
             {
-                return parsedCandidate > parsedBase;
+                record.Status = newStatus;
+                modified = true;
+            }
+            if (entry.TryGetProperty("note", out var note) && note.ValueKind == JsonValueKind.String
+                && record.ResolutionNote != note.GetString())
+            {
+                record.ResolutionNote = note.GetString() ?? "";
+                modified = true;
             }
         }
-        catch { }
-
-        return false;
+        return modified;
     }
 }

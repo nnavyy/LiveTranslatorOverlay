@@ -36,7 +36,6 @@ public partial class MainWindow : Window
     private ITranslationProvider _translationProvider;
     private string _lastOcrText = string.Empty;
     private DateTime _lastUserActivity = DateTime.UtcNow;
-    private System.Windows.Threading.DispatcherTimer? _idleUpdateTimer;
 
     // Audio STT
     private AudioCaptureService? _audioCaptureService;
@@ -98,6 +97,11 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        foreach (var language in AdditionalLanguages.Names)
+        {
+            CmbSourceLang.Items.Add(new ComboBoxItem { Content = $"{language.Value} ({language.Key})", Tag = language.Key });
+            CmbTargetLang.Items.Add(new ComboBoxItem { Content = $"{language.Value} ({language.Key})", Tag = language.Key });
+        }
         _ocrService = new ScreenOcrService();
         
         var loadedSettings = LiveTranslatorOverlay.Core.AppSettings.Load();
@@ -123,14 +127,7 @@ public partial class MainWindow : Window
         _savedAudioDeviceName = loadedSettings.AudioDeviceName;
 
         // UI Language setup (English default, can follow system default)
-        if (loadedSettings.UiLanguageIndex >= 0 && loadedSettings.UiLanguageIndex < CmbUiLanguage.Items.Count)
-        {
-            CmbUiLanguage.SelectedIndex = loadedSettings.UiLanguageIndex;
-        }
-        else
-        {
-            CmbUiLanguage.SelectedIndex = 0; // Default: English
-        }
+        SelectLanguageByTag(CmbUiLanguage, loadedSettings.UiLanguage, 0);
         if (ChkHideAllWindows != null)
         {
             ChkHideAllWindows.IsChecked = loadedSettings.HideFromCapture;
@@ -256,6 +253,7 @@ public partial class MainWindow : Window
         
         SetupApiKeyVerification();
         SetupAutoUpdater();
+        Loaded += (_, _) => ShowReleaseNotesIfNew();
     }
     
         private bool _isDraggingCaption = false;
@@ -321,6 +319,7 @@ public partial class MainWindow : Window
         {
             var settings = new LiveTranslatorOverlay.Core.AppSettings
             {
+                HideFromCapture = ChkHideAllWindows.IsChecked == true,
                 GroqApiKey = TxtApiKey.Text,
                 DeepgramApiKey = TxtDeepgramKey.Text,
                 SourceLangIndex = CmbSourceLang.SelectedIndex,
@@ -349,10 +348,7 @@ public partial class MainWindow : Window
         QuotaTracker.Instance.Flush();
 
         // Opsi A: Seamlessly apply update when closing window
-        if (AutoUpdaterService.Instance.IsUpdateReady)
-        {
-            AutoUpdaterService.Instance.ApplyUpdateAndRestart();
-        }
+
     }
 
     private async Task RefreshGroqModelsAsync()
@@ -599,6 +595,7 @@ public partial class MainWindow : Window
         if (_diarizedSttService != null)
         {
             _diarizedSttService.SetLanguage(srcLang == "auto" ? "multi" : srcLang);
+            TxtAudioStatus.Text = LocalizationManager.Instance.Get("RestartLanguage");
         }
     }
 
@@ -1092,7 +1089,7 @@ public partial class MainWindow : Window
                     BtnApplyUpdateNow.Visibility = Visibility.Visible;
                     BtnApplyUpdateNow.Content = $"{LocalizationManager.Instance.Get("BtnRestartUpdate")} ({e.NewVersion})";
 
-                    StartIdleUpdateWatcher();
+
                 }
             });
         };
@@ -1109,39 +1106,12 @@ public partial class MainWindow : Window
                 BtnApplyUpdateNow.Visibility = Visibility.Visible;
                 BtnApplyUpdateNow.Content = $"{LocalizationManager.Instance.Get("BtnRestartUpdate")} ({version})";
 
-                StartIdleUpdateWatcher();
+
             });
         };
 
         // Start background silent check
         _ = AutoUpdaterService.Instance.StartBackgroundCheckAsync(silent: true);
-    }
-
-    private void StartIdleUpdateWatcher()
-    {
-        if (_idleUpdateTimer != null) return;
-        _idleUpdateTimer = new System.Windows.Threading.DispatcherTimer
-        {
-            Interval = TimeSpan.FromSeconds(5)
-        };
-        _idleUpdateTimer.Tick += (s, ev) =>
-        {
-            if (!AutoUpdaterService.Instance.IsUpdateReady) return;
-
-            // Opsi A: Auto-apply silent update when idle
-            // 1. Audio recording is NOT active (!_isAudioMode)
-            // 2. Screen Live OCR is NOT running (!_isLiveMode)
-            // 3. No user activity or ongoing translations in the last 15 seconds
-            bool isIdle = !_isAudioMode && !_isLiveMode && (DateTime.UtcNow - _lastUserActivity).TotalSeconds >= 15;
-            if (isIdle)
-            {
-                _idleUpdateTimer.Stop();
-                TxtUpdateStatus.Text = "App idle. Applying update...";
-                SaveCurrentSettings();
-                AutoUpdaterService.Instance.ApplyUpdateAndRestart();
-            }
-        };
-        _idleUpdateTimer.Start();
     }
 
     private async void BtnCheckUpdate_Click(object sender, RoutedEventArgs e)
@@ -1159,6 +1129,12 @@ public partial class MainWindow : Window
 
     private void BtnApplyUpdateNow_Click(object sender, RoutedEventArgs e)
     {
+        if (_isAudioMode || _isLiveMode)
+        {
+            MessageBox.Show(LocalizationManager.Instance.Get("StopBeforeUpdate"));
+            return;
+        }
+        SaveCurrentSettings();
         AutoUpdaterService.Instance.ApplyUpdateAndRestart();
     }
 
@@ -1191,6 +1167,7 @@ public partial class MainWindow : Window
             {
                 string sys = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
                 string installedSys = CultureInfo.InstalledUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+                if (AdditionalLanguages.Names.ContainsKey(sys)) return sys;
                 return sys switch
                 {
                     "ru" or "id" or "ja" or "ko" or "zh" or "uk" or "az" or "uz" or "mn" or "ka"
@@ -1332,6 +1309,7 @@ public partial class MainWindow : Window
 
         if (!_isLiveMode)
         {
+            _lastOcrText = string.Empty;
             _isLiveMode = true;
             SelectionRect.Stroke = new SolidColorBrush(Colors.Green);
             SelectionRect.Fill = null;
@@ -1395,7 +1373,7 @@ public partial class MainWindow : Window
                     string cleanText = text.Trim();
 
                     // If text is an OCR system warning/error (e.g. language pack missing), display it directly
-                    if (cleanText.StartsWith("[OCR:"))
+                    if (cleanText.StartsWith("[OCR") || cleanText.StartsWith("[Error:"))
                     {
                         Dispatcher.Invoke(() => TranslatedTextBlock.Text = cleanText);
                         continue;
@@ -1403,9 +1381,10 @@ public partial class MainWindow : Window
 
                     _lastUserActivity = DateTime.UtcNow;
 
-                    if (cleanText != _lastOcrText)
+                    string requestIdentity = $"{sourceLang}|{targetLang}|{CmbEngine.SelectedIndex}|{GetSelectedJapaneseScriptStyle()}|{cleanText}";
+                    if (requestIdentity != _lastOcrText)
                     {
-                        _lastOcrText = cleanText;
+                        _lastOcrText = requestIdentity;
                         TranslatedTextBlock.Text = "Translating...";
 
                         Dispatcher.Invoke(() => TranslatedTextBlock.Text = "");
@@ -1978,6 +1957,7 @@ public partial class MainWindow : Window
 
         // Silent Auto Update
         if (LblAutoUpdate != null) LblAutoUpdate.Text = loc.Get("LblUpdates");
+        if (BtnReleaseNotes != null) BtnReleaseNotes.Content = loc.Get("WhatsNew");
         if (BtnCheckUpdate != null) BtnCheckUpdate.Content = loc.Get("BtnCheckUpdate");
         if (BtnApplyUpdateNow != null && BtnApplyUpdateNow.Visibility == Visibility.Visible)
             BtnApplyUpdateNow.Content = loc.Get("BtnRestartUpdate");
@@ -2183,11 +2163,7 @@ public partial class MainWindow : Window
         SaveCurrentSettings();
 
         // Opsi A: Seamlessly apply update when closing window
-        if (AutoUpdaterService.Instance.IsUpdateReady)
-        {
-            AutoUpdaterService.Instance.ApplyUpdateAndRestart();
-            return;
-        }
+
 
         this.Close();
     }

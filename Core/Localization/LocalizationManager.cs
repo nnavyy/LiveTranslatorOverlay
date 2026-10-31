@@ -19,6 +19,32 @@ namespace LiveTranslatorOverlay.Core.Localization
 
         public LocalizationManager()
         {
+            using var spanish = typeof(LocalizationManager).Assembly.GetManifestResourceStream("LiveTranslatorOverlay.Core.Localization.es.json")
+                ?? throw new InvalidOperationException("Spanish localization resource missing.");
+            _strings["es"] = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(spanish)
+                ?? throw new InvalidOperationException("Spanish localization resource invalid.");
+            _strings["en"]["WhatsNew"] = "What’s new";
+            _strings["en"]["StopBeforeUpdate"] = "Stop audio translation and live OCR before installing the update.";
+            _strings["en"]["RestartLanguage"] = "Source language changed. Stop and restart audio to apply it.";
+            _strings["en"]["ReleaseNotes140"] = "Live Translator Overlay v1.4.0\n\nADDED\n• Spanish interface, including menus, feedback, history, and release notes.\n• Nine translation/speech choices: Malay, Vietnamese, Thai, Portuguese, Italian, Dutch, Polish, Hindi, and Turkish. Speech support depends on the selected provider; OCR requires an installed Windows language pack.\n• This release-notes window appears once for each installed version. Open it again from App Updates → What’s new.\n\nFIXED\n• Changed numbers and similar sentences receive fresh translations.\n• Short replies and short Chinese, Japanese, and Korean text are no longer rejected just because of their length or wording.\n• Short voiced playback can be sent to Whisper after playback pauses.\n• An unchanged successful Google translation no longer calls fallback unnecessarily; fallback error responses are rejected.\n• New versions no longer mark unrelated reports as Fixed.\n• Static OCR text is translated again after changing target language, engine, or script style.\n\nIMPROVED\n• Restart to install is your choice. Reading history, changing settings, and quitting no longer trigger an automatic update restart.\n• The updater no longer terminates unrelated copy processes; it retains staged files after a copy failure.\n• Raw transcripts are no longer written to debug files during normal use. Existing debug files are not deleted automatically.\n\nKNOWN LIMITS\n• Audio requires a Deepgram or Groq key. The key-free option translates text.\n• Deepgram Auto uses Nova-2 multilingual English/Spanish mode. Select an explicit language for other supported languages, and restart audio after changing it.\n• Spanish wording needs native-speaker review. Additional interface languages and the remaining review findings are planned; they are not claimed fixed in this release.";
+            _strings["id"]["WhatsNew"] = "Yang baru";
+            _strings["id"]["StopBeforeUpdate"] = "Hentikan terjemahan audio dan OCR sebelum memasang pembaruan.";
+            _strings["id"]["RestartLanguage"] = "Bahasa sumber berubah. Hentikan dan mulai ulang audio untuk menerapkannya.";
+            _strings["id"]["ReleaseNotes140"] = "Live Translator Overlay v1.4.0\n\nDITAMBAHKAN\n• Antarmuka bahasa Spanyol.\n• Pilihan bahasa Melayu, Vietnam, Thailand, Portugis, Italia, Belanda, Polandia, Hindi, dan Turki. Dukungan audio mengikuti penyedia; OCR memerlukan paket bahasa Windows.\n• Catatan rilis tampil satu kali per versi dan dapat dibuka lagi dari Pembaruan Aplikasi.\n\nDIPERBAIKI\n• Perubahan angka dan kalimat serupa diterjemahkan ulang.\n• Jawaban pendek serta teks Mandarin, Jepang, dan Korea tidak lagi dibuang hanya karena panjang atau katanya.\n• Audio pendek dapat dikirim ke Whisper setelah pemutaran berhenti.\n• Terjemahan Google yang sama dengan teks asal tidak lagi memicu penyedia cadangan; pesan kesalahan cadangan ditolak.\n• Rilis baru tidak lagi menandai semua laporan sebagai selesai.\n• OCR statis diterjemahkan ulang saat bahasa tujuan, mesin, atau gaya tulisan berubah.\n\nDITINGKATKAN\n• Mulai ulang untuk memasang pembaruan hanya melalui pilihan Anda. Menutup aplikasi tidak lagi membukanya kembali untuk pembaruan.\n• Pembaruan tidak lagi menghentikan proses penyalinan lain dan menyimpan berkas sementara jika penyalinan gagal.\n• Transkrip tidak lagi ditulis ke berkas debug. Berkas debug lama tidak dihapus otomatis.\n\nBATASAN\n• Audio memerlukan kunci Deepgram atau Groq.\n• Mode Auto Deepgram adalah multibahasa Inggris/Spanyol Nova-2. Pilih bahasa lain secara eksplisit dan mulai ulang audio setelah menggantinya.\n• Terjemahan antarmuka Spanyol masih perlu peninjauan penutur asli. Temuan ulasan lainnya belum semuanya diperbaiki.";
+            _strings["ru"]["WhatsNew"] = "Что нового";
+            _strings["ru"]["StopBeforeUpdate"] = "Остановите перевод аудио и OCR перед установкой обновления.";
+            _strings["ru"]["RestartLanguage"] = "Язык изменён. Остановите и снова запустите аудио.";
+            _strings["ru"]["ReleaseNotes140"] = "Live Translator Overlay v1.4.0\n\nДОБАВЛЕНО\n• Испанский интерфейс.\n• Малайский, вьетнамский, тайский, португальский, итальянский, нидерландский, польский, хинди и турецкий. Поддержка речи зависит от сервиса, а OCR — от установленных языковых пакетов Windows.\n• Заметки о выпуске показываются один раз для каждой установленной версии и доступны в настройках обновлений.\n\nИСПРАВЛЕНО\n• Изменённые числа и похожие предложения переводятся заново.\n• Короткие ответы больше не удаляются только из-за длины или формулировки.\n• Короткие фрагменты речи отправляются в Whisper после паузы воспроизведения.\n• Успешный перевод Google без изменения текста не вызывает резервный сервис; ошибки резервного сервиса не выводятся как перевод.\n• Новый выпуск не помечает все старые отчёты как исправленные.\n• Неподвижный текст OCR переводится заново при изменении языка, движка или стиля письма.\n\nУЛУЧШЕНО\n• Перезапуск для обновления выполняется только по вашему выбору; выход больше не перезапускает приложение.\n• Обновление не завершает посторонние процессы копирования и сохраняет файлы при ошибке копирования.\n• Транскрипты больше не записываются в отладочные файлы. Старые файлы автоматически не удаляются.\n\nОГРАНИЧЕНИЯ\n• Для аудио нужен ключ Deepgram или Groq.\n• Автоматический режим Deepgram использует английский/испанский Nova-2. Для других языков выберите язык явно и перезапустите аудио.\n• Испанские тексты требуют проверки носителем языка. Остальные замечания обзора ещё не все устранены.";
+            _strings["es"]["WhatsNew"] = "Novedades";
+            _strings["es"]["StopBeforeUpdate"] = "Detén la traducción de audio y el OCR antes de instalar la actualización.";
+            _strings["es"]["RestartLanguage"] = "Idioma de origen cambiado. Detén y reinicia el audio para aplicarlo.";
+            _strings["es"]["ReleaseNotes140"] = "Live Translator Overlay v1.4.0\n\nAÑADIDO\n• Interfaz en español: menús, comentarios, historial y notas de versión.\n• Malayo, vietnamita, tailandés, portugués, italiano, neerlandés, polaco, hindi y turco. La transcripción depende del proveedor; el OCR requiere paquetes de idioma de Windows.\n• Notas de versión una vez por versión instalada, disponibles también en Actualizaciones → Novedades.\n\nCORREGIDO\n• Los cambios de números y las frases similares reciben traducciones nuevas.\n• Las respuestas cortas y el texto breve en chino, japonés y coreano ya no se descartan solo por su longitud o sus palabras.\n• El audio breve se envía a Whisper tras una pausa de reproducción.\n• Una traducción correcta sin cambios de Google ya no invoca el servicio alternativo. Sus respuestas de error se rechazan.\n• Las versiones nuevas ya no marcan informes ajenos como corregidos.\n• El OCR estático vuelve a traducirse al cambiar idioma de destino, motor o escritura.\n\nMEJORADO\n• Tú eliges cuándo reiniciar para instalar. Cerrar la aplicación ya no la reinicia automáticamente.\n• El actualizador no termina procesos de copia ajenos y conserva los archivos si falla la copia.\n• Las transcripciones ya no se escriben en archivos de depuración. Los archivos antiguos no se eliminan automáticamente.\n\nLIMITACIONES\n• El audio requiere una clave de Deepgram o Groq.\n• El modo automático de Deepgram usa Nova-2 multilingüe inglés/español. Para otros idiomas, selecciona el idioma y reinicia el audio.\n• El español requiere revisión por hablantes nativos. Todavía quedan hallazgos pendientes del informe.";
+            _strings["en"]["EngineGoogle"] = "Google Translate (No key; service limits apply)";
+            _strings["en"]["DeepgramTooltip"] = "A Deepgram account and API key are required; check your plan limits.";
+            _strings["id"]["EngineGoogle"] = "Google Translate (Tanpa kunci; mengikuti batas layanan)";
+            _strings["id"]["DeepgramTooltip"] = "Akun dan kunci API Deepgram diperlukan; periksa batas paket Anda.";
+            _strings["ru"]["EngineGoogle"] = "Google Translate (Без ключа; действуют ограничения сервиса)";
+            _strings["ru"]["DeepgramTooltip"] = "Нужны аккаунт и ключ Deepgram; проверьте ограничения тарифа.";
             SetLanguage("en");
         }
 
@@ -31,12 +57,18 @@ namespace LiveTranslatorOverlay.Core.Localization
                 string sys = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
                 string sysInstalled = CultureInfo.InstalledUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
                 
-                if (sys == "ru" || sysInstalled == "ru")
+                if (sys == "es")
+                    _activeLang = "es";
+                else if (sys == "ru" || sysInstalled == "ru")
                     _activeLang = "ru";
                 else if (sys == "id" || sysInstalled == "id")
                     _activeLang = "id";
                 else
                     _activeLang = "en";
+            }
+            else if (_configuredLang == "es")
+            {
+                _activeLang = "es";
             }
             else if (_configuredLang == "ru")
             {

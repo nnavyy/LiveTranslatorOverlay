@@ -219,6 +219,7 @@ namespace LiveTranslatorOverlay.Core
             }
 
             int stagnantLoops = 0;
+            int freshSamples = 0;
 
             while (_isCapturing)
             {
@@ -227,6 +228,7 @@ namespace LiveTranslatorOverlay.Core
                 while (_audioBuffer.TryDequeue(out float sample))
                 {
                     currentChunk.Add(sample);
+                    freshSamples++;
                     gotData = true;
                 }
 
@@ -240,7 +242,7 @@ namespace LiveTranslatorOverlay.Core
                     // Paksa potong kalau sudah terlalu panjang
                     shouldEmit = true;
                 }
-                else if (currentChunk.Count >= minChunkSamples)
+                else if (currentChunk.Count >= minChunkSamples || (freshSamples > 0 && currentChunk.Count >= sampleRate / 5 && stagnantLoops > 16))
                 {
                     // Cek apakah ada jeda diam di akhir chunk (VAD)
                     int checkFrom = Math.Max(0, currentChunk.Count - silenceWindowSamples);
@@ -278,6 +280,7 @@ namespace LiveTranslatorOverlay.Core
                     {
                         // Hening total atau hanya klik sesaat, kosongkan buffer tanpa mengirim ke STT
                         currentChunk.Clear();
+                        freshSamples = 0;
                         _overlapBuffer = null;
                         await Task.Delay(50);
                         continue;
@@ -295,6 +298,7 @@ namespace LiveTranslatorOverlay.Core
 
                     float[] chunkToEmit = currentChunk.ToArray();
                     currentChunk.Clear();
+                    freshSamples = 0;
 
                     // Prepend overlap from previous chunk into next chunk
                     if (_overlapBuffer != null)
@@ -328,6 +332,7 @@ namespace LiveTranslatorOverlay.Core
 
         private void OnRecordingStopped(object? sender, EventArgs e)
         {
+            _isCapturing = false;
             _capture?.Dispose();
             _capture = null;
         }

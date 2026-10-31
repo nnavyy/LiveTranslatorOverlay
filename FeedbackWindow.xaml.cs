@@ -342,7 +342,7 @@ public partial class FeedbackWindow : Window
                 { "Contact Email", contactEmail },
                 { "Subject", subject },
                 { "Description", message },
-                { "App Version", "v1.1.0" },
+                { "App Version", AppVersion.DisplayString },
                 { "OS Version", systemOs },
                 { ".NET Runtime", Environment.Version.ToString() },
                 { "Timestamp", timestamp },
@@ -357,17 +357,18 @@ public partial class FeedbackWindow : Window
                 payload["_replyto"] = contact;
             }
 
-            var request = new HttpRequestMessage(HttpMethod.Post, FormSubmitEndpoint)
+            using var request = new HttpRequestMessage(HttpMethod.Post, FormSubmitEndpoint)
             {
                 Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
             };
             request.Headers.Add("Origin", "https://livetranslator.app");
             request.Headers.Add("Referer", "https://livetranslator.app");
 
-            var response = await HttpClient.SendAsync(request);
+            using var response = await HttpClient.SendAsync(request);
             string responseBody = await response.Content.ReadAsStringAsync();
+            using var delivery = JsonDocument.Parse(responseBody);
 
-            if (response.IsSuccessStatusCode || responseBody.Contains("Activation", StringComparison.OrdinalIgnoreCase))
+            if (response.IsSuccessStatusCode && delivery.RootElement.TryGetProperty("success", out var delivered) && delivered.ToString().Equals("true", StringComparison.OrdinalIgnoreCase))
             {
                 _lastStatusKey = "FeedbackSuccess";
                 TxtStatus.Foreground = Brushes.LightGreen;

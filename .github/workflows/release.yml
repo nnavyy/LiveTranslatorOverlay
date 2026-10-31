@@ -2,8 +2,11 @@ name: Build & Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -25,8 +28,22 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore LiveTranslatorOverlay.csproj
 
+      - name: Build and run offline regression checks
+        run: |
+          dotnet build LiveTranslatorOverlay.csproj -c Release --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet run --project tests/RegressionChecks/RegressionChecks.csproj -c Release --nologo
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify release tag matches application version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          [xml]$project = Get-Content LiveTranslatorOverlay.csproj
+          $expectedTag = 'v' + $project.Project.PropertyGroup.Version
+          if ($env:GITHUB_REF_NAME -ne $expectedTag) { throw "Release tag must be $expectedTag" }
+
       - name: Publish Release Build
-        run: dotnet publish LiveTranslatorOverlay.csproj -c Release -o ./publish
+        run: dotnet publish LiveTranslatorOverlay.csproj -c Release -r win-x64 --self-contained false -o ./publish
 
       - name: Copy Clean appsettings Template
         run: |
@@ -43,5 +60,5 @@ jobs:
           name: "Live Translator Overlay ${{ github.ref_name }}"
           draft: false
           prerelease: false
-          generate_release_notes: true
+          body_path: RELEASE_NOTES.md
           files: ./LiveTranslatorOverlay-Windows-x64.zip

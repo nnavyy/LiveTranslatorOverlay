@@ -160,7 +160,6 @@ namespace LiveTranslatorOverlay.Core
                 if (!response.IsSuccessStatusCode)
                 {
                     string errJson = await response.Content.ReadAsStringAsync();
-                    try { File.AppendAllText("groq_debug.txt", $"[HTTP ERROR] {response.StatusCode} - {errJson}\n"); } catch {}
                     
                     if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                         throw new Exception("API Key Groq tidak valid (Invalid API Key)!");
@@ -208,7 +207,6 @@ namespace LiveTranslatorOverlay.Core
                             avgLogProb < -1.15 ||
                             compressionRatio > 2.40)
                         {
-                            try { File.AppendAllText("groq_debug.txt", $"[SEGMENT FILTERED nsp={noSpeechProb:F2} alp={avgLogProb:F2} cr={compressionRatio:F2}] {segText}\n"); } catch {}
                             continue;
                         }
 
@@ -222,8 +220,6 @@ namespace LiveTranslatorOverlay.Core
                     string combined = validTextBuilder.ToString().Trim();
                     if (string.IsNullOrWhiteSpace(combined) || HallucinationDetector.IsHallucination(combined))
                         return string.Empty;
-
-                    try { File.AppendAllText("groq_debug.txt", $"[TRANSCRIPT] {combined}\n"); } catch {}
                     return combined;
                 }
 
@@ -233,11 +229,8 @@ namespace LiveTranslatorOverlay.Core
                     string text = textEl.GetString()?.Trim() ?? "";
                     if (HallucinationDetector.IsHallucination(text))
                     {
-                        try { File.AppendAllText("groq_debug.txt", $"[FILTERED] {text}\n"); } catch {}
                         return "";
                     }
-                    
-                    try { File.AppendAllText("groq_debug.txt", $"[TRANSCRIPT] {text}\n"); } catch {}
                     return text;
                 }
 
@@ -245,7 +238,6 @@ namespace LiveTranslatorOverlay.Core
             }
             catch (Exception ex)
             {
-                try { File.AppendAllText("groq_debug.txt", $"[EXCEPTION] {ex.Message}\n"); } catch {}
                 if (ex.Message.Contains("TooManyRequests") || ex.Message.Contains("429"))
                 {
                     _rateLimitCooldownUntil = DateTime.UtcNow.AddSeconds(8);

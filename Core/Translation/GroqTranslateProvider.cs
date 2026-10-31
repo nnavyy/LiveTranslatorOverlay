@@ -323,7 +323,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                 "de" => "German",
                 "ru" => "Russian",
                 "ar" => "Arabic",
-                _ => targetLanguage
+                _ => LiveTranslatorOverlay.Core.Localization.AdditionalLanguages.NameOrCode(targetLanguage)
             };
         }
 
@@ -356,7 +356,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                 "de" => "German",
                 "ru" => "Russian",
                 "ar" => "Arabic",
-                _ => sourceLanguage
+                _ => LiveTranslatorOverlay.Core.Localization.AdditionalLanguages.NameOrCode(sourceLanguage)
             };
         }
 
@@ -374,9 +374,6 @@ namespace LiveTranslatorOverlay.Core.Translation
             if (text == _cachedInput && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource && JapaneseStyle == _cachedStyle && !string.IsNullOrEmpty(_cachedResult))
                 return _cachedResult;
 
-            // Deduplication: skip if new text is >88% similar to last translated text in same language pair
-            if (!string.IsNullOrEmpty(_lastTranslatedInput) && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource && JapaneseStyle == _cachedStyle && StringSimilarity(text, _lastTranslatedInput) > 0.88)
-                return _cachedResult;
 
             if (string.IsNullOrEmpty(_model) || !IsValidTextModel(_model))
             {
@@ -497,13 +494,8 @@ namespace LiveTranslatorOverlay.Core.Translation
                 return;
             }
 
-            // Return cached result immediately if identical or near-identical
+            // Return cached result only for identical requests
             if (text == _cachedInput && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource && JapaneseStyle == _cachedStyle && !string.IsNullOrEmpty(_cachedResult))
-            {
-                onTokenReceived(_cachedResult);
-                return;
-            }
-            if (!string.IsNullOrEmpty(_lastTranslatedInput) && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource && JapaneseStyle == _cachedStyle && StringSimilarity(text, _lastTranslatedInput) > 0.88 && !string.IsNullOrEmpty(_cachedResult))
             {
                 onTokenReceived(_cachedResult);
                 return;

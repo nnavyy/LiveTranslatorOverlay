@@ -40,7 +40,7 @@ namespace LiveTranslatorOverlay.Core.Translation
             // Try Google first, then MyMemory fallback
             string result = await TryGoogleTranslateAsync(text, effectiveTarget, effectiveSource, targetLanguage);
 
-            if (!string.IsNullOrWhiteSpace(result) && result.Trim() != text.Trim())
+            if (!string.IsNullOrWhiteSpace(result))
             {
                 _cachedInput = text;
                 _cachedTarget = targetLanguage;
@@ -154,6 +154,9 @@ namespace LiveTranslatorOverlay.Core.Translation
 
                 var json = await response.Content.ReadAsStringAsync();
                 using var doc = JsonDocument.Parse(json);
+
+                if (!doc.RootElement.TryGetProperty("responseStatus", out var status) || !status.TryGetInt32(out int code) || code != 200)
+                    return string.Empty;
 
                 if (doc.RootElement.TryGetProperty("responseData", out var data)
                     && data.TryGetProperty("translatedText", out var trans))

@@ -402,8 +402,8 @@
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel VerticalAlignment="Center">
-                                    <TextBlock x:Name="TxtBannerUpdateTitle" Text="New Update Ready" Foreground="#F8FAFC" FontSize="12" FontFamily="Segoe UI Semibold"/>
-                                    <TextBlock x:Name="TxtBannerUpdateDesc" Text="Restart to apply update" Foreground="#94A3B8" FontSize="11" Margin="0,2,0,0"/>
+                                    <TextBlock x:Name="TxtBannerUpdateTitle" Text="New Update Ready" Foreground="#F8FAFC" FontSize="12" FontFamily="Segoe UI Semibold" TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="TxtBannerUpdateDesc" Text="Restart to apply update" Foreground="#94A3B8" FontSize="11" Margin="0,2,0,0" TextWrapping="Wrap"/>
                                 </StackPanel>
                                 <Button x:Name="BtnBannerRestart" Grid.Column="1" Content="Restart" Click="BtnApplyUpdateNow_Click" Style="{StaticResource ActionPrimaryButton}" Padding="10,4" FontSize="11" Margin="8,0,0,0"/>
                             </Grid>
@@ -609,6 +609,7 @@
                                     <ComboBoxItem x:Name="ItemUiLangId" Content="Indonesian (Bahasa Indonesia)" Tag="id"/>
                                     <ComboBoxItem x:Name="ItemUiLangRu" Content="Russian (Русский)" Tag="ru"/>
                                     <ComboBoxItem x:Name="ItemUiLangAuto" Content="Auto (System Default)" Tag="auto"/>
+                                    <ComboBoxItem Content="Español" Tag="es"/>
                                 </ComboBox>
 
                                 <TextBlock x:Name="LblAutoUpdate" Text="App Updates:" Foreground="#AEAEB2" FontSize="11" Margin="0,0,0,4"/>
@@ -617,9 +618,10 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock x:Name="TxtUpdateStatus" Grid.Column="0" Text="App is up to date (v1.2.0)" Foreground="#8E8E93" FontSize="10.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="TxtUpdateStatus" Grid.Column="0" Text="Checking installed version..." Foreground="#8E8E93" FontSize="10.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                     <Button x:Name="BtnCheckUpdate" Grid.Column="1" Content="Check" Width="58" Margin="6,0,0,0" Click="BtnCheckUpdate_Click" Style="{StaticResource ModernButton}" Padding="4,3"/>
                                 </Grid>
+                                <Button x:Name="BtnReleaseNotes" Content="What’s new" Click="BtnReleaseNotes_Click" Style="{StaticResource ModernButton}" Margin="0,6,0,2" Padding="6,5"/>
                                 <Button x:Name="BtnApplyUpdateNow" Visibility="Collapsed" Content="Restart to Apply Update" Click="BtnApplyUpdateNow_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,4,0,2" Padding="6,5"/>
                             </StackPanel>
                         </Border>
