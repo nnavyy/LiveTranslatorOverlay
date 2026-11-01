@@ -36,6 +36,7 @@ public partial class MainWindow
             Padding = new Thickness(22),
             FontSize = 15
         };
+        ReleaseNotesScroll.Attach(text);
         var window = new Window
         {
             Title = $"{loc.Get("WhatsNew")} — {AppVersion.DisplayString}",

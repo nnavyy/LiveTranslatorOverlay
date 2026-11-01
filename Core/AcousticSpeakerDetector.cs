@@ -1,222 +1,118 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
-namespace LiveTranslatorOverlay.Core
+namespace LiveTranslatorOverlay.Core;
+
+public class SpeakerIdentity
 {
-    public class SpeakerIdentity
+    public string Label { get; set; } = "Unknown speaker";
+    public string Gender { get; set; } = "Unknown";
+    public int SpeakerIndex { get; set; } = -1;
+    public bool IsEstimate { get; set; }
+    public float PitchHz { get; set; }
+    public string ColorHex { get; set; } = "#A1A1AA";
+}
+
+/// <summary>
+/// Conservative, session-local voice estimates for Whisper, which supplies no speaker IDs.
+/// Pitch is not a biometric identity: ambiguous/mixed/unvoiced audio is left unassigned.
+/// Use the diarized speech provider for word-level multi-speaker attribution.
+/// </summary>
+public static class AcousticSpeakerDetector
+{
+    private static readonly List<SpeakerProfile> _knownSpeakers = new();
+    private static readonly object _lock = new();
+    private static readonly string[] Colors = { "#38BDF8", "#FBBF24", "#A78BFA", "#34D399", "#FB7185", "#22D3EE", "#FB923C", "#E879F9" };
+    private sealed class SpeakerProfile
     {
-        public string Label { get; set; } = "Speaker";
-        public string Gender { get; set; } = "Unknown"; // "Man", "Woman"
-        public float PitchHz { get; set; }
-        public string ColorHex { get; set; } = "#38BDF8";
+        public float AveragePitch { get; set; }
     }
 
-    /// <summary>
-    /// Lightweight, zero-dependency acoustic pitch analyzer using Normalized Autocorrelation (NACF)
-    /// to detect fundamental frequency (F0) and distinguish speaker gender (Man / Woman) and speaker IDs.
-    /// </summary>
-    public static class AcousticSpeakerDetector
+    public static SpeakerIdentity DetectSpeaker(float[] pcm16k, CancellationToken token = default)
     {
-        private static readonly List<SpeakerProfile> _knownSpeakers = new();
-        private static readonly object _lock = new();
-
-        private class SpeakerProfile
+        if (token.IsCancellationRequested) return new SpeakerIdentity();
+        float pitch = EstimateChunkPitch(pcm16k);
+        if (pitch <= 0) return new SpeakerIdentity();
+        lock (_lock)
         {
-            public string Label { get; set; } = "";
-            public string Gender { get; set; } = "";
-            public string ColorHex { get; set; } = "#38BDF8";
-            public float AveragePitch { get; set; }
-            public int DetectionCount { get; set; }
-        }
-
-        /// <summary>
-        /// Analyze 16kHz mono PCM float audio chunk and return speaker identity.
-        /// </summary>
-        public static SpeakerIdentity DetectSpeaker(float[] pcm16k)
-        {
-            float pitch = EstimateChunkPitch(pcm16k, 16000);
-
-            lock (_lock)
+            if (token.IsCancellationRequested) return new SpeakerIdentity();
+            int closest = -1;
+            double best = double.MaxValue, second = double.MaxValue;
+            for (int i = 0; i < _knownSpeakers.Count; i++)
             {
-                if (pitch <= 0)
-                {
-                    // Pitch unvoiced or faint noise; return last active speaker or default
-                    if (_knownSpeakers.Count > 0)
-                    {
-                        var last = _knownSpeakers[^1];
-                        return new SpeakerIdentity
-                        {
-                            Label = last.Label,
-                            Gender = last.Gender,
-                            PitchHz = last.AveragePitch,
-                            ColorHex = last.ColorHex
-                        };
-                    }
-
-                    return new SpeakerIdentity
-                    {
-                        Label = "Speaker 1",
-                        Gender = "Unknown",
-                        PitchHz = 0,
-                        ColorHex = "#38BDF8"
-                    };
-                }
-
-                // Phonetic threshold: Male pitch avg ~110-140Hz, Female pitch avg ~180-240Hz
-                bool isFemale = pitch >= 155f;
-                string gender = isFemale ? "Woman" : "Man";
-
-                SpeakerProfile? matched = null;
-                foreach (var s in _knownSpeakers)
-                {
-                    if (s.Gender == gender && Math.Abs(s.AveragePitch - pitch) < 28f)
-                    {
-                        matched = s;
-                        break;
-                    }
-                }
-
-                if (matched == null)
-                {
-                    int countOfGender = 0;
-                    foreach (var s in _knownSpeakers)
-                    {
-                        if (s.Gender == gender) countOfGender++;
-                    }
-
-                    int speakerNum = countOfGender + 1;
-                    string label = $"{gender} {speakerNum}";
-
-                    // Modern distinct colors
-                    string color;
-                    if (isFemale)
-                    {
-                        color = (speakerNum % 2 == 1) ? "#F472B6" : "#FB7185"; // Pink / Rose
-                    }
-                    else
-                    {
-                        color = (speakerNum % 2 == 1) ? "#38BDF8" : "#818CF8"; // Sky Blue / Indigo
-                    }
-
-                    matched = new SpeakerProfile
-                    {
-                        Label = label,
-                        Gender = gender,
-                        ColorHex = color,
-                        AveragePitch = pitch,
-                        DetectionCount = 1
-                    };
-                    _knownSpeakers.Add(matched);
-                }
-                else
-                {
-                    // Smooth rolling average pitch
-                    matched.AveragePitch = (matched.AveragePitch * matched.DetectionCount + pitch) / (matched.DetectionCount + 1);
-                    matched.DetectionCount++;
-                }
-
-                return new SpeakerIdentity
-                {
-                    Label = matched.Label,
-                    Gender = matched.Gender,
-                    PitchHz = pitch,
-                    ColorHex = matched.ColorHex
-                };
+                double distance = Math.Abs(Math.Log(pitch / _knownSpeakers[i].AveragePitch));
+                if (distance < best) { second = best; best = distance; closest = i; }
+                else second = Math.Min(second, distance);
             }
-        }
-
-        public static void Reset()
-        {
-            lock (_lock)
+            // Compare relative pitch, without a male/female boundary or first-match bias.
+            if (best <= Math.Log(1.22))
             {
-                _knownSpeakers.Clear();
+                if (second - best < 0.04) return new SpeakerIdentity();
+                _knownSpeakers[closest].AveragePitch = 0.8f * _knownSpeakers[closest].AveragePitch + 0.2f * pitch;
             }
-        }
-
-        /// <summary>
-        /// Estimate fundamental frequency (F0) across multiple voiced frames in the chunk.
-        /// </summary>
-        private static float EstimateChunkPitch(float[] audio, int sampleRate)
-        {
-            if (audio == null || audio.Length < 1600) return 0f;
-
-            int frameSize = 1200; // 75ms window at 16kHz
-            int stepSize = 800;   // 50ms step
-            List<float> pitchEstimates = new List<float>();
-
-            for (int i = 0; i <= audio.Length - frameSize; i += stepSize)
+            else
             {
-                float frameEnergy = 0f;
-                for (int j = 0; j < frameSize; j++)
-                {
-                    float s = audio[i + j];
-                    frameEnergy += s * s;
-                }
-
-                // Skip quiet or unvoiced frames
-                if (frameEnergy < 0.04f) continue;
-
-                float pitch = EstimateFramePitch(audio, i, frameSize, sampleRate);
-                if (pitch >= 95f && pitch <= 420f)
-                {
-                    pitchEstimates.Add(pitch);
-                }
+                if (_knownSpeakers.Count >= Colors.Length) return new SpeakerIdentity();
+                closest = _knownSpeakers.Count;
+                _knownSpeakers.Add(new SpeakerProfile { AveragePitch = pitch });
             }
-
-            // Require at least 3 consistent voiced frames to avoid mistaking isolated music notes for a speaker
-            if (pitchEstimates.Count < 3) return 0f;
-
-            // Use median pitch to filter out octave jumps
-            pitchEstimates.Sort();
-            return pitchEstimates[pitchEstimates.Count / 2];
+            return new SpeakerIdentity
+            {
+                Label = $"Speaker {closest + 1}", SpeakerIndex = closest, IsEstimate = true,
+                PitchHz = pitch, ColorHex = Colors[closest]
+            };
         }
+    }
 
-        /// <summary>
-        /// Computes normalized autocorrelation for vocal pitch range [95Hz, 420Hz]
-        /// (filters out deep sub-bass instruments, bass guitars, and kick drums below 95Hz).
-        /// </summary>
-        private static float EstimateFramePitch(float[] audio, int start, int length, int sampleRate)
+    public static void Reset() { lock (_lock) _knownSpeakers.Clear(); }
+
+    private static float EstimateChunkPitch(float[] audio)
+    {
+        if (audio == null || audio.Length < 2800) return 0;
+        const int frameSize = 1200, step = 800;
+        var pitches = new List<float>();
+        for (int offset = 0; offset <= audio.Length - frameSize; offset += step)
         {
-            int minLag = sampleRate / 420; // ~38 samples (high female / singing pitch)
-            int maxLag = sampleRate / 95;  // ~168 samples (filters out sub-bass below 95Hz)
+            double energy = 0, sum = 0;
+            for (int j = 0; j < frameSize; j++)
+            {
+                double sample = audio[offset + j];
+                energy += sample * sample; sum += sample;
+            }
+            double mean = sum / frameSize;
+            if (!double.IsFinite(energy) || energy - sum * mean < 0.04) continue;
+            float pitch = EstimateFramePitch(audio, offset, frameSize, mean);
+            if (pitch >= 95 && pitch <= 420) pitches.Add(pitch);
+        }
+        if (pitches.Count < 3) return 0;
+        pitches.Sort();
+        // A chunk containing substantially different pitch groups may contain multiple people.
+        if (pitches[(int)((pitches.Count - 1) * 0.9)] / pitches[(int)((pitches.Count - 1) * 0.1)] > 1.35f) return 0;
+        return pitches[pitches.Count / 2];
+    }
 
-            if (length <= maxLag) return 0f;
-
-            float r0 = 0f;
+    private static float EstimateFramePitch(float[] audio, int start, int length, double mean)
+    {
+        const int minLag = 16000 / 420, maxLag = 16000 / 95;
+        var correlation = new double[maxLag + 1];
+        double best = 0;
+        for (int lag = minLag; lag <= maxLag; lag++)
+        {
+            double cross = 0, left = 0, right = 0;
             for (int j = 0; j < length - maxLag; j++)
             {
-                float s = audio[start + j];
-                r0 += s * s;
+                double a = audio[start + j] - mean, b = audio[start + j + lag] - mean;
+                cross += a * b; left += a * a; right += b * b;
             }
-
-            if (r0 < 0.001f) return 0f;
-
-            float bestCorr = -1f;
-            int bestLag = 0;
-
-            for (int lag = minLag; lag <= maxLag; lag++)
-            {
-                float corr = 0f;
-                for (int j = 0; j < length - maxLag; j++)
-                {
-                    corr += audio[start + j] * audio[start + j + lag];
-                }
-
-                float normalized = corr / r0;
-                if (normalized > bestCorr)
-                {
-                    bestCorr = normalized;
-                    bestLag = lag;
-                }
-            }
-
-            // Stricter confidence threshold: correlation peak > 0.52 indicates genuine voiced periodic speech
-            if (bestCorr > 0.52f && bestLag > 0)
-            {
-                return (float)sampleRate / bestLag;
-            }
-
-            return 0f;
+            correlation[lag] = left > 0 && right > 0 ? cross / Math.Sqrt(left * right) : 0;
+            best = Math.Max(best, correlation[lag]);
         }
+        if (best < 0.75) return 0;
+        // Prefer the first strong peak instead of a later harmonic that halves the pitch.
+        for (int lag = minLag + 1; lag < maxLag; lag++)
+            if (correlation[lag] >= best * 0.95 && correlation[lag] >= correlation[lag - 1] && correlation[lag] >= correlation[lag + 1])
+                return 16000f / lag;
+        return 0;
     }
 }

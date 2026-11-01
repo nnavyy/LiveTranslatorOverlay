@@ -1,4 +1,4 @@
-# Mac developer preview — v1.5.0
+# Mac developer preview — v1.5.1
 
 This starts the macOS port for both Apple Silicon (`osx-arm64`) and Intel (`osx-x64`). It is a developer preview, separate from the stable Windows updater.
 

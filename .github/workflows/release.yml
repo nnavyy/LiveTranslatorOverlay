@@ -38,6 +38,9 @@ jobs:
       - name: Additional audit regressions
         run: dotnet run --project tests/AuditChecks/AuditChecks.csproj -c Release --nologo
 
+      - name: Speaker attribution and popup scrolling checks
+        run: dotnet run --project tests/SpeakerChecks/SpeakerChecks.csproj -c Release --nologo
+
       - name: Verify release tag matches application version
         if: startsWith(github.ref, 'refs/tags/')
         run: |
