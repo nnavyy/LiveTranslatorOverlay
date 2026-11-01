@@ -12,6 +12,8 @@ The stable overlay is for Windows. A separate **Mac developer preview** for Appl
 
 Mac requires macOS 14 or newer. The preview bundles are ad-hoc signed and not notarized; read the [Mac preview notes](MacApp/RELEASE_NOTES.md). The **Source code** archives on GitHub are for developers, not the runnable app packages.
 
+If macOS shows **“LiveTranslator” Not Opened**, follow the [Mac installation guide](MacApp/INSTALL.md) for Apple's per-app **Open Anyway** process. Apple Developer ID signing and notarization are still pending.
+
 <p align="center">
   <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 10" />
   <img src="https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows" />
