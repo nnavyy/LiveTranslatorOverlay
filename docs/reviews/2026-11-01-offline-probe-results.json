@@ -1,0 +1,164 @@
+{
+  "date": "2026-11-01",
+  "purpose": "Batch execution and throughput checks only; no accuracy benchmark or live capture.",
+  "hardware": {
+    "cpu": "Intel Core i5-13420H",
+    "physicalMemoryGiB": 7.7,
+    "gpu": "NVIDIA GeForce RTX 2050, 4 GiB (unused)",
+    "os": "Windows 11 build 26300"
+  },
+  "whisperNetVersion": "1.9.1",
+  "modelRevision": "5359861c739e955e79d9a303bcbc70fb988958b1",
+  "runs": [
+    {
+      "model": "ggml-small-q5_1.bin",
+      "modelSha256": "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
+      "audio": "jfk.wav",
+      "language": "en",
+      "pass": 1,
+      "runtime": "CPU",
+      "threads": 4,
+      "audioSeconds": 11,
+      "modelLoadSeconds": 1.1114734,
+      "firstSegmentSeconds": 6.0975385,
+      "inferenceSeconds": 6.1277117,
+      "realTimeFactor": 0.5570647,
+      "peakWorkingSetMiB": 529.6796875,
+      "transcript": "And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+      "audioSha256": "59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e"
+    },
+    {
+      "model": "ggml-small-q5_1.bin",
+      "modelSha256": "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
+      "audio": "jfk.wav",
+      "language": "en",
+      "pass": 2,
+      "runtime": "CPU",
+      "threads": 4,
+      "audioSeconds": 11,
+      "modelLoadSeconds": 1.1114734,
+      "firstSegmentSeconds": 6.3317853,
+      "inferenceSeconds": 6.3613286,
+      "realTimeFactor": 0.5783026,
+      "peakWorkingSetMiB": 533.51953125,
+      "transcript": "And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.",
+      "audioSha256": "59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e"
+    },
+    {
+      "model": "ggml-small-q5_1.bin",
+      "modelSha256": "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
+      "audio": "ru-russian.wav",
+      "language": "ru",
+      "pass": 1,
+      "runtime": "CPU",
+      "threads": 4,
+      "audioSeconds": 3.552625,
+      "modelLoadSeconds": 0.4951646,
+      "firstSegmentSeconds": 6.5756868,
+      "inferenceSeconds": 6.6140164,
+      "realTimeFactor": 1.861726582456634,
+      "peakWorkingSetMiB": 513.1484375,
+      "transcript": "нет провала, кроме того, чтобы больше не пытаться.",
+      "audioSha256": "83cd75f6406ab2afd10f380ac320ddb15bc42cc07bb7dcb843d925674a9b1c4e"
+    },
+    {
+      "model": "ggml-small-q5_1.bin",
+      "modelSha256": "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
+      "audio": "ru-russian.wav",
+      "language": "ru",
+      "pass": 2,
+      "runtime": "CPU",
+      "threads": 4,
+      "audioSeconds": 3.552625,
+      "modelLoadSeconds": 0.4951646,
+      "firstSegmentSeconds": 7.5909774,
+      "inferenceSeconds": 7.6237576,
+      "realTimeFactor": 2.145950557686218,
+      "peakWorkingSetMiB": 513.1484375,
+      "transcript": "нет провала, кроме того, чтобы больше не пытаться.",
+      "audioSha256": "83cd75f6406ab2afd10f380ac320ddb15bc42cc07bb7dcb843d925674a9b1c4e"
+    }
+  ],
+  "translationCoverage": {
+    "targetCount": 34,
+    "targets": [
+      "ar",
+      "az",
+      "bg",
+      "bs",
+      "de",
+      "el",
+      "en",
+      "es",
+      "fr",
+      "hi",
+      "hr",
+      "id",
+      "it",
+      "ja",
+      "ka",
+      "ko",
+      "mk",
+      "mn",
+      "ms",
+      "nl",
+      "pl",
+      "pt",
+      "ro",
+      "ru",
+      "sl",
+      "sq",
+      "sr",
+      "th",
+      "tr",
+      "uk",
+      "uz",
+      "vi",
+      "zh",
+      "zh-TW"
+    ],
+    "sourceLanguages": [
+      "ru",
+      "en"
+    ],
+    "m2m100MissingNativeCodes": [
+      "zh-TW"
+    ],
+    "m2m100MissingAfterScriptMapping": [],
+    "requiredScriptConversion": {
+      "zh-TW": "zh model output plus local Traditional Chinese conversion"
+    },
+    "argosMissingEvenWithPivots": {
+      "ru": [
+        "bs",
+        "hr",
+        "ka",
+        "mk",
+        "mn",
+        "sr",
+        "uz",
+        "zh-TW"
+      ],
+      "en": [
+        "bs",
+        "hr",
+        "ka",
+        "mk",
+        "mn",
+        "sr",
+        "uz",
+        "zh-TW"
+      ]
+    },
+    "metadataSha256": {
+      "m2m100-model-card.md": "1fd660f130aedc5ecf1796b47ab47d43d3c4b36541f5387b7adb3df75cb5dfdb",
+      "argos-package-index.json": "a65ae909a97ddc89a01cbf0596932dc6415df9815a11d85fe8240b367926b7b0"
+    },
+    "qualityTested": false
+  },
+  "m2m100Revision": "55c2e61bbf05dfb8d7abccdc3fae6fc8512fd636",
+  "argosIndexRevision": "ff90de60728f7c1338ff6b75974e4c89b2442d22",
+  "translationInferenceTested": false,
+  "gpuTested": false,
+  "macTested": false
+}
