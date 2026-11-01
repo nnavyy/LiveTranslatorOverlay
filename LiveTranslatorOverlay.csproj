@@ -6,13 +6,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>1.4.0</Version>
-    <AssemblyVersion>1.4.0.0</AssemblyVersion>
-    <FileVersion>1.4.0.0</FileVersion>
+    <Version>1.5.0</Version>
+    <AssemblyVersion>1.5.0.0</AssemblyVersion>
+    <FileVersion>1.5.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Core\Localization\es.json" />
+    <ProjectReference Include="Shared\LiveTranslatorOverlay.Shared.csproj" />
     <PackageReference Include="NAudio" Version="3.0.1" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.11" />
   </ItemGroup>
@@ -21,6 +21,7 @@
   <ItemGroup>
     <Compile Remove="AudioDiag\**" />
     <Compile Remove="tests\**" />
+    <Compile Remove="Shared\**;MacApp\**;Core\Translation\**;Core\Localization\**;Core\Feedback\**;Core\Japanese\JapaneseScriptConverter.cs;Core\AppSettings.cs;Core\QuotaTracker.cs;Core\HallucinationDetector.cs;Core\Update\AppVersion.cs;Core\Update\ReleaseNotes.cs" />
     <None Include="AudioDiag\**" />
     <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

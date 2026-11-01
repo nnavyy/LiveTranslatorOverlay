@@ -247,15 +247,6 @@ namespace LiveTranslatorOverlay.Core
                 }
             }
 
-            // 2. Strip accidental history format echoes like "[source] -> [target]"
-            if (result.Contains("->"))
-            {
-                int arrowIdx = result.LastIndexOf("->", StringComparison.Ordinal);
-                string afterArrow = result.Substring(arrowIdx + 2).Trim();
-                if (!string.IsNullOrWhiteSpace(afterArrow))
-                    result = afterArrow;
-            }
-
             // 3. Strip common LLM meta-prefixes
             string[] prefixes =
             {

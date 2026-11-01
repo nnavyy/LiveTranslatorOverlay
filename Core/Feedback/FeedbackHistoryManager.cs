@@ -9,93 +9,81 @@ namespace LiveTranslatorOverlay.Core.Feedback;
 
 public static class FeedbackHistoryManager
 {
-    private static readonly string HistoryFolder = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "LiveTranslatorOverlay");
-
-    private static readonly string HistoryFile = Path.Combine(HistoryFolder, "feedback_history.json");
-
-    private static readonly HttpClient HttpClient = new HttpClient
-    {
-        Timeout = TimeSpan.FromSeconds(8)
-    };
-
-    static FeedbackHistoryManager()
-    {
-        if (!HttpClient.DefaultRequestHeaders.Contains("User-Agent"))
-        {
-            HttpClient.DefaultRequestHeaders.Add("User-Agent", "LiveTranslatorOverlay");
-        }
-    }
+    private static readonly object Gate = new();
+    private static string HistoryFile => Path.Combine(AppSettings.DataDirectory, "feedback_history.json");
+    private static readonly HttpClient HttpClient = new() { Timeout = TimeSpan.FromSeconds(8) };
+    static FeedbackHistoryManager() => HttpClient.DefaultRequestHeaders.Add("User-Agent", "LiveTranslatorOverlay");
 
     public static List<FeedbackRecord> Load()
     {
-        try
+        lock (Gate)
         {
-            if (File.Exists(HistoryFile))
-            {
-                string json = File.ReadAllText(HistoryFile);
-                var items = JsonSerializer.Deserialize<List<FeedbackRecord>>(json);
-                if (items != null)
-                {
-                    items.Sort((a, b) => b.Timestamp.CompareTo(a.Timestamp));
-                    return items;
-                }
-            }
+            if (!File.Exists(HistoryFile)) return new();
+            var records = JsonSerializer.Deserialize<List<FeedbackRecord>>(File.ReadAllText(HistoryFile))
+                ?? throw new InvalidDataException("The report history file is invalid.");
+            records.Sort((a, b) => b.Timestamp.CompareTo(a.Timestamp));
+            return records;
         }
-        catch { }
-
-        return new List<FeedbackRecord>();
     }
 
     public static void Save(List<FeedbackRecord> items)
     {
-        try
+        lock (Gate)
         {
-            Directory.CreateDirectory(HistoryFolder);
-            string json = JsonSerializer.Serialize(items, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(HistoryFile, json);
+            Directory.CreateDirectory(AppSettings.DataDirectory);
+            string temporary = HistoryFile + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                File.WriteAllText(temporary, JsonSerializer.Serialize(items, new JsonSerializerOptions { WriteIndented = true }));
+                File.Move(temporary, HistoryFile, overwrite: true);
+            }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
         }
-        catch { }
     }
 
-    public static FeedbackRecord AddRecord(string type, string subject, string description, string contactEmail, string? appVersion = null)
+    public static FeedbackRecord AddRecord(string type, string subject, string description, string contactEmail, string? appVersion = null, string deliveryState = "Sending")
     {
-        string raw = Guid.NewGuid().ToString("N").ToUpperInvariant();
-        string id = $"REP-{raw.Substring(0, 6)}";
-
-        var record = new FeedbackRecord
+        lock (Gate)
         {
-            Id = id,
-            DeviceId = AppSettings.GetOrCreateDeviceId(),
-            Timestamp = DateTime.UtcNow,
-            Type = type,
-            Subject = subject,
-            Description = description,
-            ContactEmail = contactEmail,
-            AppVersion = appVersion ?? LiveTranslatorOverlay.Core.Update.AppVersion.DisplayString,
-            Status = "Pending",
-            ResolutionNote = ""
-        };
+            var record = new FeedbackRecord
+            {
+                Id = "REP-" + Guid.NewGuid().ToString("N").ToUpperInvariant(),
+                DeviceId = AppSettings.GetOrCreateDeviceId(),
+                Timestamp = DateTime.UtcNow, Type = type, Subject = subject, Description = description,
+                ContactEmail = contactEmail, AppVersion = appVersion ?? Update.AppVersion.DisplayString,
+                Status = "Pending", DeliveryState = deliveryState
+            };
+            var records = Load(); records.Insert(0, record); Save(records);
+            return record;
+        }
+    }
 
-        var list = Load();
-        list.Insert(0, record);
-        Save(list);
-        return record;
+    public static void SetDeliveryState(string id, string state)
+    {
+        if (state is not ("Sending" or "Sent" or "Failed" or "ComposerOpened")) throw new ArgumentException("Unknown delivery state.");
+        lock (Gate)
+        {
+            var records = Load();
+            var record = records.Find(r => r.Id == id) ?? throw new InvalidDataException("Report history entry is missing.");
+            record.DeliveryState = state; Save(records);
+        }
     }
 
     public static async Task<bool> RefreshStatusesAsync(string? currentAppVersion = null)
     {
-        var records = Load();
-        if (records.Count == 0) return false;
+        if (Load().Count == 0) return false;
         using var response = await HttpClient.GetAsync("https://raw.githubusercontent.com/nnavyy/LiveTranslatorOverlay/main/reports_status.json");
         response.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        bool modified = ApplyStatuses(records, doc.RootElement);
-        if (modified) Save(records);
-        return modified;
+        lock (Gate)
+        {
+            // Reload after the network request so reports created while it ran are retained.
+            var records = Load();
+            bool modified = ApplyStatuses(records, doc.RootElement);
+            if (modified) Save(records);
+            return modified;
+        }
     }
-
     // A release/version change is never evidence that a particular report was fixed.
     internal static bool ApplyStatuses(List<FeedbackRecord> records, JsonElement statuses)
     {

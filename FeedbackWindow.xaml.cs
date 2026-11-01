@@ -26,7 +26,9 @@ public partial class FeedbackWindow : Window
     {
         InitializeComponent();
         ApplyLocalization();
-        LocalizationManager.Instance.LanguageChanged += (s, e) => Dispatcher.Invoke(ApplyLocalization);
+        EventHandler onLanguageChanged = (s, e) => Dispatcher.Invoke(ApplyLocalization);
+        LocalizationManager.Instance.LanguageChanged += onLanguageChanged;
+        Closed += (_, _) => LocalizationManager.Instance.LanguageChanged -= onLanguageChanged;
         if (CaptureExclusion.IsExclusionEnabled)
         {
             CaptureExclusion.SetExclusion(this, true);
@@ -215,6 +217,12 @@ public partial class FeedbackWindow : Window
 
             headerDock.Children.Add(badgePanel);
             stack.Children.Add(headerDock);
+            stack.Children.Add(new TextBlock
+            {
+                Text = loc.Get("Delivery" + item.DeliveryState),
+                Foreground = item.DeliveryState == "Failed" ? Brushes.OrangeRed : Brushes.LightGray,
+                TextWrapping = TextWrapping.Wrap, FontSize = 11, Margin = new Thickness(0, 2, 0, 4)
+            });
 
             // Subject
             var txtSubject = new TextBlock
@@ -320,10 +328,11 @@ public partial class FeedbackWindow : Window
         TxtStatus.Foreground = Brushes.LightSkyBlue;
         TxtStatus.Text = loc.Get("FeedbackSending");
 
+        FeedbackRecord? record = null;
         try
         {
             // Create local history record first
-            var record = FeedbackHistoryManager.AddRecord(type, subject, message, contact, AppVersion.DisplayString);
+            record = FeedbackHistoryManager.AddRecord(type, subject, message, contact, AppVersion.DisplayString);
 
             string user = Environment.UserName;
             string device = Environment.MachineName;
@@ -370,6 +379,7 @@ public partial class FeedbackWindow : Window
 
             if (response.IsSuccessStatusCode && delivery.RootElement.TryGetProperty("success", out var delivered) && delivered.ToString().Equals("true", StringComparison.OrdinalIgnoreCase))
             {
+                FeedbackHistoryManager.SetDeliveryState(record.Id, "Sent");
                 _lastStatusKey = "FeedbackSuccess";
                 TxtStatus.Foreground = Brushes.LightGreen;
                 TxtStatus.Text = loc.Get("FeedbackSuccess");
@@ -380,6 +390,7 @@ public partial class FeedbackWindow : Window
             }
             else
             {
+                FeedbackHistoryManager.SetDeliveryState(record.Id, "Failed");
                 _lastStatusKey = "FeedbackError";
                 TxtStatus.Foreground = Brushes.OrangeRed;
                 TxtStatus.Text = loc.Get("FeedbackError");
@@ -388,6 +399,10 @@ public partial class FeedbackWindow : Window
         }
         catch
         {
+            if (record != null)
+            {
+                try { FeedbackHistoryManager.SetDeliveryState(record.Id, "Failed"); } catch { }
+            }
             _lastStatusKey = "FeedbackError";
             TxtStatus.Foreground = Brushes.OrangeRed;
             TxtStatus.Text = loc.Get("FeedbackError");
@@ -406,7 +421,7 @@ public partial class FeedbackWindow : Window
         string message = TxtMessage.Text?.Trim() ?? "";
         string contact = TxtContact.Text?.Trim() ?? "";
 
-        var record = FeedbackHistoryManager.AddRecord(type, subject, message, contact, AppVersion.DisplayString);
+        var record = FeedbackHistoryManager.AddRecord(type, subject, message, contact, AppVersion.DisplayString, "ComposerOpened");
         UpdateTabCounts();
 
         string mailtoSubject = Uri.EscapeDataString($"[Live Translator] {type} from {user} ({record.Id}): {subject}");

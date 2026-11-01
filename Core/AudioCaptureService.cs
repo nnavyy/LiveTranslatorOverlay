@@ -17,6 +17,7 @@ namespace LiveTranslatorOverlay.Core
         private WaveFormat? _captureFormat;
 
         public event EventHandler<float[]>? AudioChunkReady;
+        public Func<float[], Task>? AudioChunkHandler { get; set; }
         // Raw PCM16 bytes streamed continuously for Deepgram WebSocket mode
         public event EventHandler<byte[]>? RawPcmBytesAvailable;
         private bool _isCapturing;
@@ -125,21 +126,24 @@ namespace LiveTranslatorOverlay.Core
             int sampleRate = _captureFormat.SampleRate;
             int totalSamples = buffer.Length / bytesPerSample;
 
-            // Step 1: Read raw samples as float
+            // Decode the negotiated PCM subtype rather than treating all integers as Int16.
             float[] rawSamples = new float[totalSamples];
             bool isFloat = _captureFormat.Encoding == WaveFormatEncoding.IeeeFloat ||
-                           (_captureFormat.Encoding == WaveFormatEncoding.Extensible && _captureFormat.BitsPerSample == 32);
-
-            if (isFloat)
+                (_captureFormat is WaveFormatExtensible ext && ext.SubFormat == new Guid("00000003-0000-0010-8000-00aa00389b71"));
+            for (int i = 0; i < totalSamples; i++)
             {
-                var floatSpan = MemoryMarshal.Cast<byte, float>(buffer);
-                floatSpan.CopyTo(rawSamples);
-            }
-            else
-            {
-                var shortSpan = MemoryMarshal.Cast<byte, short>(buffer);
-                for (int i = 0; i < totalSamples; i++)
-                    rawSamples[i] = shortSpan[i] / 32768f;
+                var bytes = buffer.Slice(i * bytesPerSample, bytesPerSample);
+                rawSamples[i] = (isFloat, _captureFormat.BitsPerSample) switch
+                {
+                    (true, 32) => BitConverter.ToSingle(bytes),
+                    (true, 64) => (float)BitConverter.ToDouble(bytes),
+                    (false, 8) => (bytes[0] - 128) / 128f,
+                    (false, 16) => System.Buffers.Binary.BinaryPrimitives.ReadInt16LittleEndian(bytes) / 32768f,
+                    (false, 24) => ((bytes[0] | bytes[1] << 8 | bytes[2] << 16) << 8 >> 8) / 8388608f,
+                    (false, 32) => System.Buffers.Binary.BinaryPrimitives.ReadInt32LittleEndian(bytes) / 2147483648f,
+                    _ => throw new NotSupportedException("Unsupported audio sample format.")
+                };
+                if (!float.IsFinite(rawSamples[i])) rawSamples[i] = 0;
             }
 
             // Step 2: Mix down to mono
@@ -316,6 +320,8 @@ namespace LiveTranslatorOverlay.Core
                             {
                                 try { System.IO.File.AppendAllText("chunk_debug.txt", $"[{DateTime.Now:HH:mm:ss.fff}] Emitting chunk with {chunkToEmit.Length} samples (~{chunkToEmit.Length / 16000.0:F1}s)\n"); } catch {}
                                 AudioChunkReady?.Invoke(this, chunkToEmit);
+                                var handler = AudioChunkHandler;
+                                if (handler != null) await handler(chunkToEmit);
                             }
                             finally
                             {

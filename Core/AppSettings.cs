@@ -28,7 +28,7 @@ namespace LiveTranslatorOverlay.Core
         {
             try
             {
-                string appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiveTranslatorOverlay");
+                string appDataFolder = DataDirectory;
                 string idFile = Path.Combine(appDataFolder, "device_id.txt");
                 if (File.Exists(idFile))
                 {
@@ -65,18 +65,27 @@ namespace LiveTranslatorOverlay.Core
             }
         }
         
+        public static string DataDirectory => AppContext.GetData("LiveTranslatorOverlay.DataDirectory") as string
+            ?? (OperatingSystem.IsMacOS()
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Library", "Application Support", "LiveTranslatorOverlay")
+                : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiveTranslatorOverlay"));
+
         public static string GetSettingsPath()
         {
-            string exeDir = AppDomain.CurrentDomain.BaseDirectory;
-            string settingsPath = Path.Combine(exeDir, "appsettings.json");
-            if (!File.Exists(settingsPath))
+            string path = Path.Combine(DataDirectory, "appsettings.json");
+            if (OperatingSystem.IsWindows() && !File.Exists(path) && AppContext.GetData("LiveTranslatorOverlay.DataDirectory") == null)
             {
-                string projectRoot = Path.GetFullPath(Path.Combine(exeDir, "..", "..", ".."));
-                settingsPath = Path.Combine(projectRoot, "appsettings.json");
+                string legacy = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
+                if (!File.Exists(legacy)) legacy = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "appsettings.json"));
+                if (File.Exists(legacy))
+                {
+                    Directory.CreateDirectory(DataDirectory);
+                    try { File.Copy(legacy, path, overwrite: false); }
+                    catch (IOException) when (File.Exists(path)) { }
+                }
             }
-            return settingsPath;
+            return path;
         }
-
         public static AppSettings Load()
         {
             try
@@ -94,15 +103,15 @@ namespace LiveTranslatorOverlay.Core
 
         public void Save()
         {
+            string path = GetSettingsPath();
+            Directory.CreateDirectory(DataDirectory);
+            string temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
             try
             {
-                string path = GetSettingsPath();
-                string json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(path, json);
+                File.WriteAllText(temporary, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+                File.Move(temporary, path, overwrite: true);
             }
-            catch { }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
         }
     }
 }
-
-

@@ -48,6 +48,8 @@ Starting with version 1.4.0, normal operation does not write raw Deepgram or Gro
 **Security of API Keys**:
 All API keys entered in the application are saved exclusively on your local machine in the `appsettings.json` file. They are never sent to the Software's developer or any intermediary server.
 
+From v1.5.0, Windows settings use `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json`; existing settings are migrated without deleting the older file. Keys in Windows settings are still plaintext. The Mac developer preview keeps its Groq key only in session memory. Session history holds up to 500 entries and is exported only through an explicit save action.
+
 ---
 
 ## 5. Voluntary Bug Reporting, Feedback, and Diagnostics

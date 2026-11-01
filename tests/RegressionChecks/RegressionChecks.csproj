@@ -7,9 +7,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="LiveTranslatorOverlay">
-      <HintPath>../../bin/Release/net10.0-windows10.0.19041.0/LiveTranslatorOverlay.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="../../LiveTranslatorOverlay.csproj" />
     <PackageReference Include="NAudio" Version="3.0.1" />
   </ItemGroup>
 </Project>

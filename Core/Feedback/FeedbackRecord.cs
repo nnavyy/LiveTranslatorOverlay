@@ -14,4 +14,5 @@ public class FeedbackRecord
     public string AppVersion { get; set; } = LiveTranslatorOverlay.Core.Update.AppVersion.DisplayString;
     public string Status { get; set; } = "Pending"; // "Pending", "InProgress", "Fixed"
     public string ResolutionNote { get; set; } = "";
+    public string DeliveryState { get; set; } = "Unknown";
 }

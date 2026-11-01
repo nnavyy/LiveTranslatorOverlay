@@ -53,7 +53,7 @@ public partial class MainWindow : Window
 
     // Extras
     private HistoryWindow? _historyWindow;
-    private readonly System.Text.StringBuilder _historyBuffer = new();
+    private readonly TranslationHistory _historyBuffer = new();
 
     public void ClearHistoryBuffer()
     {
@@ -66,16 +66,15 @@ public partial class MainWindow : Window
     private void AppendToHistory(string sourceText, string translatedText)
     {
         if (string.IsNullOrWhiteSpace(translatedText)) return;
-        string entry = $"[{DateTime.Now:HH:mm:ss}]\r\nOriginal: {sourceText}\r\nTranslated: {translatedText}\r\n----------------------------------------\r\n\r\n";
         lock (_historyBuffer)
         {
-            _historyBuffer.Append(entry);
+            _historyBuffer.Add(sourceText, translatedText);
         }
         Dispatcher.Invoke(() =>
         {
             if (_historyWindow != null && _historyWindow.IsVisible)
             {
-                _historyWindow.AppendText(sourceText, translatedText);
+                lock (_historyBuffer) _historyWindow.SetHistory(_historyBuffer.ToString());
             }
         });
     }
@@ -1747,9 +1746,12 @@ public partial class MainWindow : Window
         _audioCaptureService = new AudioCaptureService();
         _audioCts = new CancellationTokenSource();
 
-        _audioCaptureService.AudioChunkReady += async (s, chunk) =>
+        var sessionToken = _audioCts.Token;
+        _audioCaptureService.AudioChunkHandler = async chunk =>
         {
-            if (_audioCts?.IsCancellationRequested == true) return;
+            if (sessionToken.IsCancellationRequested) return;
+            try { await _translateSemaphore.WaitAsync(sessionToken); }
+            catch (OperationCanceledException) { return; }
             try
             {
                 string targetLang = "", sourceLang = "";
@@ -1779,7 +1781,7 @@ public partial class MainWindow : Window
 
                 Dispatcher.Invoke(() =>
                 {
-                    if (!_isAudioMode) return;
+                    if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
                     CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(speaker.ColorHex));
                     CaptionSpeaker.Text = speaker.Label;
                     CaptionSpeaker.Visibility = Visibility.Visible;
@@ -1788,7 +1790,8 @@ public partial class MainWindow : Window
                     ShowSubtitleWithAnimation();
                 });
 
-                Dispatcher.Invoke(() => CaptionTranslated.Text = "");
+                if (sessionToken.IsCancellationRequested) return;
+                Dispatcher.Invoke(() => { if (!sessionToken.IsCancellationRequested) CaptionTranslated.Text = ""; });
                 
                 string finalTranslation = "";
                 await _translationProvider.TranslateStreamAsync(transcribed, targetLang, sourceLang, chunk => 
@@ -1796,7 +1799,7 @@ public partial class MainWindow : Window
                     finalTranslation = chunk;
                     Dispatcher.Invoke(() =>
                     {
-                        if (!_isAudioMode) return;
+                        if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
                         if (IsWhisperHallucination(chunk))
                         {
                             CaptionTranslated.Text = "";
@@ -1815,7 +1818,7 @@ public partial class MainWindow : Window
                         finalTranslation = formatted;
                         Dispatcher.Invoke(() =>
                         {
-                            if (!_isAudioMode) return;
+                            if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
                             CaptionTranslated.Text = finalTranslation;
                         });
                     }
@@ -1823,14 +1826,15 @@ public partial class MainWindow : Window
 
                 Dispatcher.Invoke(() =>
                 {
-                    if (!_isAudioMode) return;
+                    if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
                     AppendToHistory($"[{speaker.Label}] {transcribed}", finalTranslation);
                 });
             }
             catch (Exception ex)
             {
-                Dispatcher.Invoke(() => CaptionTranslated.Text = $"[Error: {ex.Message}]");
+                Dispatcher.Invoke(() => { if (!sessionToken.IsCancellationRequested) CaptionTranslated.Text = $"[Error: {ex.Message}]"; });
             }
+            finally { _translateSemaphore.Release(); }
         };
 
         await _audioCaptureService.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId());
