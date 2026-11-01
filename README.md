@@ -1,5 +1,7 @@
 # Live Translator Overlay
 
+The stable overlay is for Windows. A separate **Mac developer preview** for Apple Silicon and Intel starts with manual text translation and session history; it does not yet include audio, screen OCR, overlay captions, or capture protection. See [Mac preview notes](MacApp/RELEASE_NOTES.md) and the [November 1 review](docs/reviews/2026-11-01.md).
+
 <p align="center">
   <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 10" />
   <img src="https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows" />
@@ -90,7 +92,7 @@ Keys can be configured directly inside the interface:
 1. Open the **Settings** menu on the overlay.
 2. Enter your Deepgram key under **Deepgram API Key** ([console.deepgram.com](https://console.deepgram.com/)).
 3. Enter your Groq key under **API Key (Groq/DeepL)** ([console.groq.com](https://console.groq.com/)) if utilizing Groq LLM or Groq Whisper.
-4. Preferences automatically persist to your local `appsettings.json` file.
+4. Windows preferences persist in `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json`. Existing configuration is migrated on first launch of v1.5.0. Writes are atomic; keys remain plaintext, so keep the file private. Mac preview keys stay in session memory.
 
 > [!NOTE]
 > Credentials are stored locally in `appsettings.json` and sent only to the selected service for authentication. This file currently stores keys in plaintext; keep it private.

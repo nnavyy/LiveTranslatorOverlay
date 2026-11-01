@@ -49,8 +49,15 @@ namespace LiveTranslatorOverlay.Core.Translation
             _httpClient.Timeout = TimeSpan.FromSeconds(20);
         }
 
+        private void ResetTranslationCache()
+        {
+            _cachedInput = _cachedResult = _cachedSource = _cachedTarget = _lastTranslatedInput = "";
+            _history.Clear();
+        }
+
         public void UpdateApiKey(string newKey)
         {
+            if (_apiKey != newKey) ResetTranslationCache();
             _apiKey = newKey;
             _model = ""; // Reset model so it refetches on next call
         }
@@ -581,21 +588,26 @@ namespace LiveTranslatorOverlay.Core.Translation
                 string rawBuffer = "";
                 string lastEmitted = "";
 
+                bool receivedDone = false;
+                string? finishReason = null;
+                using var readDeadline = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(20));
                 string? line;
-                while ((line = await reader.ReadLineAsync()) != null)
+                while ((line = await reader.ReadLineAsync(readDeadline.Token)) != null)
                 {
                     if (string.IsNullOrWhiteSpace(line)) continue;
                     
                     if (line.StartsWith("data: "))
                     {
                         string data = line.Substring(6).Trim();
-                        if (data == "[DONE]") break;
+                        if (data == "[DONE]") { receivedDone = true; break; }
 
                         try
                         {
                             using var doc = JsonDocument.Parse(data);
                             if (doc.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
                             {
+                                if (choices[0].TryGetProperty("finish_reason", out var reason) && reason.ValueKind == JsonValueKind.String)
+                                    finishReason = reason.GetString();
                                 var delta = choices[0].GetProperty("delta");
                                 if (delta.TryGetProperty("content", out var contentElement) && contentElement.ValueKind == JsonValueKind.String)
                                 {
@@ -616,6 +628,9 @@ namespace LiveTranslatorOverlay.Core.Translation
                         catch { }
                     }
                 }
+
+                if (!receivedDone || finishReason is "length" or "content_filter")
+                    throw new System.IO.InvalidDataException("Translation stream did not complete.");
 
                 string finalClean = HallucinationDetector.CleanTranslationOutput(rawBuffer, text);
                 if (!string.IsNullOrWhiteSpace(finalClean))
@@ -655,10 +670,12 @@ namespace LiveTranslatorOverlay.Core.Translation
         {
             if (string.IsNullOrWhiteSpace(model) || !IsValidTextModel(model))
             {
+                ResetTranslationCache();
                 _model = "";
                 return;
             }
 
+            if (_model != model) ResetTranslationCache();
             _model = model;
         }
 

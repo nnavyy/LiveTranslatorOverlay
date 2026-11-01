@@ -24,6 +24,7 @@ namespace LiveTranslatorOverlay.Core
         private readonly string _apiKey;
         private string _language = "auto";
         private Task? _receiveTask;
+        private readonly SemaphoreSlim _sendLock = new(1, 1);
 
         /// <summary>
         /// Fired for every transcript update.
@@ -87,16 +88,23 @@ namespace LiveTranslatorOverlay.Core
 
         public async Task SendAudioAsync(byte[] pcm16Bytes)
         {
-            if (_webSocket?.State != WebSocketState.Open) return;
+            var socket = _webSocket;
+            if (socket?.State != WebSocketState.Open) return;
+            bool acquired = false;
             try
             {
-                await _webSocket.SendAsync(
+                var token = _cts?.Token ?? CancellationToken.None;
+                await _sendLock.WaitAsync(token);
+                acquired = true;
+                if (socket.State != WebSocketState.Open) return;
+                await socket.SendAsync(
                     new ArraySegment<byte>(pcm16Bytes),
                     WebSocketMessageType.Binary,
                     endOfMessage: true,
-                    _cts?.Token ?? CancellationToken.None);
+                    token);
             }
             catch { /* Ignore send errors; ReceiveLoop will detect disconnect */ }
+            finally { if (acquired) _sendLock.Release(); }
         }
 
         private async Task ReceiveLoopAsync(CancellationToken token)

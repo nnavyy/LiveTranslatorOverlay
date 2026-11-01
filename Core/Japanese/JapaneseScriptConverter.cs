@@ -519,33 +519,12 @@ namespace LiveTranslatorOverlay.Core.Japanese
             return text;
         }
 
+        public static Func<string, string>? NativePhoneticReader { get; set; }
+
         private static string TryWindowsImeToHiragana(string text)
         {
-            try
-            {
-                var words = Windows.Globalization.JapanesePhoneticAnalyzer.GetWords(text);
-                if (words == null || words.Count == 0) return text;
-
-                var sb = new StringBuilder();
-                foreach (var word in words)
-                {
-                    string yomi = word.YomiText;
-                    if (!string.IsNullOrWhiteSpace(yomi))
-                    {
-                        // Windows JapanesePhoneticAnalyzer returns YomiText in Katakana
-                        sb.Append(KatakanaToHiragana(yomi));
-                    }
-                    else
-                    {
-                        sb.Append(word.DisplayText);
-                    }
-                }
-                return sb.ToString();
-            }
-            catch
-            {
-                return text;
-            }
+            try { return NativePhoneticReader?.Invoke(text) ?? text; }
+            catch { return text; }
         }
 
         public static string KatakanaToHiragana(string katakana)

@@ -7,11 +7,15 @@ namespace LiveTranslatorOverlay
 {
     public partial class HistoryWindow : Window
     {
+        private System.Threading.CancellationTokenSource? _summaryCts;
         public HistoryWindow()
         {
             InitializeComponent();
             ApplyLocalization();
-            LocalizationManager.Instance.LanguageChanged += (s, e) => Dispatcher.Invoke(ApplyLocalization);
+            EventHandler onLanguageChanged = (s, e) => Dispatcher.Invoke(ApplyLocalization);
+            LocalizationManager.Instance.LanguageChanged += onLanguageChanged;
+            Closed += (_, _) => LocalizationManager.Instance.LanguageChanged -= onLanguageChanged;
+            Closing += (_, _) => _summaryCts?.Cancel();
         }
 
         public HistoryWindow(string initialHistory) : this()
@@ -30,6 +34,12 @@ namespace LiveTranslatorOverlay
             if (BtnSummarize != null) BtnSummarize.Content = loc.Get("BtnSummarize");
             if (BtnClear != null) BtnClear.Content = loc.Get("BtnClear");
             if (BtnSave != null) BtnSave.Content = loc.Get("BtnSave");
+        }
+
+        public void SetHistory(string text)
+        {
+            TxtHistory.Text = text;
+            TxtHistory.ScrollToEnd();
         }
 
         public void AppendText(string sourceText, string translatedText)
@@ -60,6 +70,10 @@ namespace LiveTranslatorOverlay
                 return;
             }
 
+            Window? loadingWindow = null;
+            BtnSummarize.IsEnabled = false;
+            using var summaryCts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(35));
+            _summaryCts = summaryCts;
             try
             {
                 string apiKey = "";
@@ -78,7 +92,7 @@ namespace LiveTranslatorOverlay
                 if (conversation.Length > 15000)
                     conversation = conversation.Substring(conversation.Length - 15000);
 
-                var loadingWindow = new Window()
+                loadingWindow = new Window()
                 {
                     Title = loc.Get("WindowSummarizingTitle"),
                     Width = 300,
@@ -92,17 +106,18 @@ namespace LiveTranslatorOverlay
                         VerticalAlignment = VerticalAlignment.Center 
                     }
                 };
+                loadingWindow.SourceInitialized += (_, _) => Core.CaptureExclusion.ExcludeFromCapture(loadingWindow);
                 loadingWindow.Show();
 
                 using var client = new System.Net.Http.HttpClient();
                 client.Timeout = TimeSpan.FromSeconds(30);
-                var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions");
+                using var request = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Post, "https://api.groq.com/openai/v1/chat/completions");
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
 
                 string systemPrompt = loc.Get("AiSummaryPrompt");
 
                 var tempProvider = new LiveTranslatorOverlay.Core.Translation.GroqTranslateProvider(apiKey);
-                string bestModel = await tempProvider.GetBestAvailableModelAsync();
+                string bestModel = await tempProvider.GetBestAvailableModelAsync().WaitAsync(summaryCts.Token);
 
                 var payload = new
                 {
@@ -118,8 +133,8 @@ namespace LiveTranslatorOverlay
 
                 request.Content = new System.Net.Http.StringContent(System.Text.Json.JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
 
-                var response = await client.SendAsync(request);
-                loadingWindow.Close();
+                using var response = await client.SendAsync(request, summaryCts.Token);
+                if (!IsLoaded) return;
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -157,6 +172,7 @@ namespace LiveTranslatorOverlay
                             VerticalScrollBarVisibility = System.Windows.Controls.ScrollBarVisibility.Auto
                         };
                         
+                        summaryWindow.SourceInitialized += (_, _) => Core.CaptureExclusion.ExcludeFromCapture(summaryWindow);
                         summaryWindow.Content = txtOut;
                         summaryWindow.Show();
                     }
@@ -169,7 +185,13 @@ namespace LiveTranslatorOverlay
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"{loc.Get("TitleError")}: {ex.Message}", loc.Get("TitleError"), MessageBoxButton.OK, MessageBoxImage.Error);
+                if (IsLoaded) MessageBox.Show($"{loc.Get("TitleError")}: {ex.Message}", loc.Get("TitleError"), MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                if (loadingWindow?.IsLoaded == true) loadingWindow.Close();
+                _summaryCts = null;
+                BtnSummarize.IsEnabled = true;
             }
         }
 
@@ -178,9 +200,13 @@ namespace LiveTranslatorOverlay
             var loc = LocalizationManager.Instance;
             try
             {
-                string docsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-                string fileName = $"LiveTranslator_History_{DateTime.Now:yyyyMMdd_HHmmss}.txt";
-                string fullPath = Path.Combine(docsPath, fileName);
+                var picker = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = $"LiveTranslator_History_{DateTime.Now:yyyyMMdd_HHmmss}.txt",
+                    Filter = "Text files (*.txt)|*.txt", DefaultExt = ".txt", OverwritePrompt = true
+                };
+                if (picker.ShowDialog(this) != true) return;
+                string fullPath = picker.FileName;
                 
                 File.WriteAllText(fullPath, TxtHistory.Text);
                 MessageBox.Show(loc.Get("MsgSavedSuccess", fullPath), loc.Get("TitleSuccess"), MessageBoxButton.OK, MessageBoxImage.Information);

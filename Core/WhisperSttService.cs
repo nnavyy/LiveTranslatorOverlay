@@ -118,8 +118,7 @@ namespace LiveTranslatorOverlay.Core
             }
 
             // Non-blocking lock check
-            if (!await _processingLock.WaitAsync(0))
-                return string.Empty;
+            await _processingLock.WaitAsync();
 
             try
             {

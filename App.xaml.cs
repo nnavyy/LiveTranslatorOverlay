@@ -58,6 +58,7 @@ public partial class App : Application
             return;
         }
 
+        Core.Japanese.JapaneseScriptConverter.NativePhoneticReader = Core.Japanese.WindowsPhoneticReader.Read;
         base.OnStartup(e);
     }
 

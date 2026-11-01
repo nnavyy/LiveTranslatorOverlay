@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <Version>1.5.0</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../Core/Translation/*.cs" Link="Translation/%(Filename)%(Extension)" />
+    <Compile Include="../Core/Localization/*.cs" Link="Localization/%(Filename)%(Extension)" />
+    <Compile Include="../Core/Japanese/JapaneseScriptConverter.cs" Link="Japanese/JapaneseScriptConverter.cs" />
+    <Compile Include="../Core/HallucinationDetector.cs" Link="HallucinationDetector.cs" />
+    <Compile Include="../Core/QuotaTracker.cs" Link="QuotaTracker.cs" />
+    <Compile Include="../Core/AppSettings.cs" Link="AppSettings.cs" />
+    <Compile Include="../Core/Feedback/*.cs" Link="Feedback/%(Filename)%(Extension)" />
+    <Compile Include="../Core/Update/AppVersion.cs" Link="Update/AppVersion.cs" />
+    <Compile Include="../Core/Update/ReleaseNotes.cs" Link="Update/ReleaseNotes.cs" />
+    <Compile Include="TranslationHistory.cs" />
+    <EmbeddedResource Include="../Core/Localization/es.json" LogicalName="LiveTranslatorOverlay.Core.Localization.es.json" />
+  </ItemGroup>
+</Project>
