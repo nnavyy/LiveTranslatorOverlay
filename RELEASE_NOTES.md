@@ -1,5 +1,13 @@
 # Live Translator Overlay v1.5.1
 
+## Windows download — stable
+
+**For Windows 10/11, x64 PCs:** download [LiveTranslatorOverlay-Windows-x64.zip](https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.5.1/LiveTranslatorOverlay-Windows-x64.zip), extract it, and run `LiveTranslatorOverlay.exe`. This package requires the [.NET 10 Desktop Runtime for Windows x64](https://dotnet.microsoft.com/download/dotnet/10.0).
+
+**Using a Mac?** Open the separate [Mac developer preview v1.5.1](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.1-mac-preview). Choose **Apple Silicon (M-series)** or **Intel** there. The Mac preview currently supports manual text translation and session history only; audio, OCR, and overlay captions are not available yet.
+
+GitHub's **Source code** archives are for developers; use the platform ZIP above to run the app.
+
 ## Popup scrolling
 
 The What's new window scrolls in smaller steps up and down. Accelerated wheel events are bounded, so they no longer jump through the release notes. Keyboard navigation, copying text, and scrollbar dragging remain native.

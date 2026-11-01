@@ -100,7 +100,7 @@ jobs:
       - name: Create versioned release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Live Translator Overlay ${{ github.ref_name }}"
+          name: "Windows x64 — Live Translator Overlay ${{ github.ref_name }}"
           draft: false
           prerelease: false
           body_path: RELEASE_NOTES.md
@@ -110,7 +110,7 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}-mac-preview
           target_commitish: ${{ github.sha }}
-          name: "Live Translator Mac developer preview ${{ github.ref_name }}"
+          name: "macOS — Apple Silicon & Intel developer preview ${{ github.ref_name }}"
           prerelease: true
           make_latest: false
           body_path: MacApp/RELEASE_NOTES.md
