@@ -11,7 +11,7 @@ namespace LiveTranslatorOverlay.Core
 {
     public class SpeakerTranscriptEventArgs : EventArgs
     {
-        public int SpeakerIndex { get; set; }
+        public int SpeakerIndex { get; set; } = -1;
         public string Text { get; set; } = "";
         /// <summary>True = interim (still speaking), False = final (sentence complete)</summary>
         public bool IsInterim { get; set; }
@@ -25,6 +25,7 @@ namespace LiveTranslatorOverlay.Core
         private string _language = "auto";
         private Task? _receiveTask;
         private readonly SemaphoreSlim _sendLock = new(1, 1);
+        private int _disposed;
 
         /// <summary>
         /// Fired for every transcript update.
@@ -62,7 +63,7 @@ namespace LiveTranslatorOverlay.Core
                 var uri = new Uri(
                     $"wss://api.deepgram.com/v1/listen" +
                     $"?model=nova-2" +
-                    $"&diarize=true" +
+                    $"&diarize_model=v1" +
                     $"&punctuate=true" +
                     $"{langParam}" +
                     $"&encoding=linear16" +
@@ -177,12 +178,12 @@ namespace LiveTranslatorOverlay.Core
                 // noise or silence. They come from training data artifacts.
                 if (IsHallucination(transcript)) return;
 
-                // If no words/diarization info, emit as speaker 0 (no confidence check)
-                if (!alt.TryGetProperty("words", out var wordsEl) || wordsEl.GetArrayLength() == 0)
+                // Missing diarization must not be presented as a confirmed first speaker.
+                if (!alt.TryGetProperty("words", out var wordsEl) || wordsEl.ValueKind != JsonValueKind.Array || wordsEl.GetArrayLength() == 0)
                 {
                     TranscriptReady?.Invoke(this, new SpeakerTranscriptEventArgs 
                     { 
-                        SpeakerIndex = 0, 
+                        SpeakerIndex = -1,
                         Text = transcript,
                         IsInterim = !isFinal
                     });
@@ -228,7 +229,7 @@ namespace LiveTranslatorOverlay.Core
 
                 foreach (var word in wordsEl.EnumerateArray())
                 {
-                    int speaker = word.TryGetProperty("speaker", out var spEl) ? spEl.GetInt32() : 0;
+                    int speaker = word.TryGetProperty("speaker", out var spEl) && spEl.ValueKind == JsonValueKind.Number && spEl.TryGetInt32(out int index) && index >= 0 ? index : -1;
                     string wordText = word.TryGetProperty("punctuated_word", out var pw) ? pw.GetString() ?? ""
                                     : word.TryGetProperty("word", out var wEl) ? wEl.GetString() ?? "" : "";
 
@@ -276,12 +277,14 @@ namespace LiveTranslatorOverlay.Core
 
         public async ValueTask DisposeAsync()
         {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
             _cts?.Cancel();
             if (_webSocket?.State == WebSocketState.Open)
             {
                 try
                 {
-                    await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", CancellationToken.None);
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                    await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "done", timeout.Token);
                 }
                 catch { }
             }

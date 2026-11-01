@@ -1,30 +1,21 @@
-# Live Translator Overlay v1.5.0
+# Live Translator Overlay v1.5.1
 
-## Fixed
+## Popup scrolling
 
-- Preserve meaningful arrows and the instructions around them when cleaning translated text.
-- Invalidate old translations and context when the Groq model or key changes.
-- Reject truncated streams and bound stream reads before caching a translation as complete.
-- Decode integer audio according to its actual sample format, including 24-bit and 32-bit PCM.
-- Await Whisper consumers so its two-slot limit covers asynchronous processing; session tokens guard late Whisper results.
-- Release localization subscriptions when history/feedback windows close.
-- Close summary loading windows on failure, cancel summary requests on close, and apply summary capture exclusion.
+The What's new window scrolls in smaller steps up and down. Accelerated wheel events are bounded, so they no longer jump through the release notes. Keyboard navigation, copying text, and scrollbar dragging remain native.
 
-## Feedback and history
+## Speaker labels
 
-- Track delivery separately from resolution: Sending, Sent, Failed, Composer opened, or Unknown for older records.
-- Use full report IDs, atomic writes, and synchronized changes. Refresh reloads records after the network request so new reports are preserved.
-- Store settings per user with atomic writes and migration of existing Windows configuration. Release packages contain no user keys.
-- Keep the latest 500 history entries. Export uses a save dialog with an overwrite prompt.
+- Groq's local voice estimates use neutral Speaker 1 / Speaker 2 labels instead of guessing gender.
+- Small pitch changes are less likely to create another label; harmonic pitch errors are reduced.
+- Accepted transcriptions update the voice groups; identical words from a later turn are not suppressed for 20 seconds.
+- Silent, constant, mixed, or ambiguous audio is left unassigned instead of borrowing a known person's label.
+- Cancelled audio sessions cannot register new speaker profiles. Labels/colors remain session-local and explicitly marked as estimates.
+- Deepgram results without speaker IDs stay unknown. Interim text cannot overwrite another finalized turn while it is being translated; speaker, original, and translation stay paired.
+- Callbacks from old connections are ignored, and socket cleanup is bounded and safe to repeat.
 
-## Mac developer preview
+For word-level speaker separation, select Deepgram streaming and configure its API key. Whisper's local pitch groups cannot reliably identify people with similar voices or separate overlapping speech. This update does not claim a measured real-conversation accuracy percentage. See [speaker-label details](https://github.com/nnavyy/LiveTranslatorOverlay/blob/main/docs/speaker-labels.md).
 
-Shared translation, localization, settings, and feedback code now compiles for plain .NET 10. A separate Avalonia preview adds manual text translation, session history, clear/export, and an issue link for Apple Silicon and Intel.
+## Verification
 
-Mac downloads are a separate prerelease so older Windows updaters cannot select a Mac ZIP. The preview is English-only and does not include audio, screen OCR, overlay captions, capture protection, or a Mac updater yet. Bundles are ad-hoc signed, not Developer ID signed or notarized: they are development artifacts, not a production Mac release.
-
-## Verification and remaining work
-
-12 existing regression checks and 9 new audit checks cover offline behaviour with synthetic audio and mocked HTTP. Six small live text checks preserve their tested meanings, numbers, and negations. This is not a general accuracy score or a speech-recognition benchmark.
-
-Real-provider speech evaluation, native Mac capture/OCR, full updater rollback/signing, encrypted credentials, capture/DPI hardware tests, and clearer provider-fallback status remain open. The November 1 review documents these limits. Two existing NU1510 warnings concern the Windows System.Drawing.Common reference.
+Existing regression/audit suites plus new synthetic-speaker, mocked-diarization, and actual WPF wheel-event tests cover the targeted changes. Native Windows and both Mac preview builds run in CI. The Mac preview still supports manual text translation/history only; it does not yet have audio or OCR, and remains ad-hoc signed rather than notarized.

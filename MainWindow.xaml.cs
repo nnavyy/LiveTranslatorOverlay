@@ -43,8 +43,6 @@ public partial class MainWindow : Window
     private DiarizedSttService? _diarizedSttService;
     private bool _isAudioMode = false;
     private CancellationTokenSource? _audioCts;
-    private string _lastWhisperTranscript = string.Empty;
-    private DateTime _lastWhisperTranscriptTime = DateTime.MinValue;
     // Semaphore ensures only one translation runs at a time (prevents queued-up delays)
     private readonly SemaphoreSlim _translateSemaphore = new SemaphoreSlim(1, 1);
 
@@ -1498,12 +1496,16 @@ public partial class MainWindow : Window
         CaptionSpeaker.Visibility = Visibility.Visible;
         CaptionSpeaker.Text = loc.Get("SpeakerDetectionOn");
 
-        _diarizedSttService = new DiarizedSttService(TxtDeepgramKey.Text);
+        var service = new DiarizedSttService(TxtDeepgramKey.Text);
+        _diarizedSttService = service;
+        bool IsCurrent() => _isAudioMode && ReferenceEquals(_diarizedSttService, service);
         string sourceLang = GetSourceLanguage();
         _diarizedSttService.SetLanguage(sourceLang == "auto" ? "multi" : sourceLang);
         
-        bool ok = await _diarizedSttService.ConnectAsync(msg =>
-            Dispatcher.Invoke(() => { TxtAudioStatus.Text = msg; CaptionTranslated.Text = msg; }));
+        bool ok = await service.ConnectAsync(msg =>
+            Dispatcher.Invoke(() => { if (IsCurrent()) { TxtAudioStatus.Text = msg; CaptionTranslated.Text = msg; } }));
+
+        if (!IsCurrent()) { await service.DisposeAsync(); return; }
 
         if (!ok)
         {
@@ -1512,19 +1514,17 @@ public partial class MainWindow : Window
             BtnStartAudio.Style = (Style)FindResource("ActionPrimaryButton");
             CaptionSpeaker.Visibility = Visibility.Collapsed;
             TxtAudioStatus.Text = loc.Get("FailedDeepgram");
-            if (_diarizedSttService != null)
-            {
-                await _diarizedSttService.DisposeAsync();
-                _diarizedSttService = null;
-            }
+            if (ReferenceEquals(_diarizedSttService, service)) _diarizedSttService = null;
+            await service.DisposeAsync();
             return;
         }
 
-        _diarizedSttService.TranscriptReady += async (s, args) =>
+        service.TranscriptReady += async (s, args) =>
         {
-            if (!_isAudioMode) return;
+            if (!IsCurrent()) return;
 
-            string color = SpeakerColors[args.SpeakerIndex % SpeakerColors.Length];
+            string color = args.SpeakerIndex >= 0 ? SpeakerColors[args.SpeakerIndex % SpeakerColors.Length] : "#A1A1AA";
+            string speakerLabel = args.SpeakerIndex >= 0 ? LocalizationManager.Instance.Get("SpeakerLabel", args.SpeakerIndex + 1) : LocalizationManager.Instance.Get("SpeakerUnknown");
 
             if (args.IsInterim)
             {
@@ -1532,11 +1532,12 @@ public partial class MainWindow : Window
                 // This makes words appear in real-time as the person is speaking
                 Dispatcher.Invoke(() =>
                 {
-                    if (!_isAudioMode) return;
-                    CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
-                    CaptionSpeaker.Text = LocalizationManager.Instance.Get("SpeakerLabel", args.SpeakerIndex + 1);
+                    if (!IsCurrent() || _translateSemaphore.CurrentCount == 0) return;
+                    CaptionSpeaker.Text = LocalizationManager.Instance.Get("SpeakerPreview");
+                    CaptionSpeaker.Foreground = Brushes.Gray;
                     CaptionSpeaker.Visibility = Visibility.Visible;
                     CaptionOriginal.Text = args.Text + "..."; // interim indicator
+                    CaptionTranslated.Text = "";
                     ShowSubtitleWithAnimation();
                 });
                 return; // Don't translate interim — wait for final
@@ -1546,25 +1547,24 @@ public partial class MainWindow : Window
             string targetLang = "", sourceLang = "";
             Dispatcher.Invoke(() => { targetLang = GetTargetLanguage(); sourceLang = GetSourceLanguage(); });
 
-            string displayOriginal = await FormatJapaneseTextIfNeededAsync(args.Text, sourceLang);
-
-            // Show the finalized original text immediately (remove the blinking cursor)
-            Dispatcher.Invoke(() =>
-            {
-                if (!_isAudioMode) return;
-                CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
-                CaptionSpeaker.Text = LocalizationManager.Instance.Get("SpeakerLabel", args.SpeakerIndex + 1);
-                CaptionSpeaker.Visibility = Visibility.Visible;
-                CaptionOriginal.Text = displayOriginal;
-                CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
-                ShowSubtitleWithAnimation();
-            });
-
             // Wait up to 5s for translation slot (queue instead of drop)
             if (!await _translateSemaphore.WaitAsync(5000)) return;
             try
             {
-                Dispatcher.Invoke(() => CaptionTranslated.Text = "");
+                if (!IsCurrent()) return;
+                string displayOriginal = await FormatJapaneseTextIfNeededAsync(args.Text, sourceLang);
+                if (!IsCurrent()) return;
+                Dispatcher.Invoke(() =>
+                {
+                    if (!IsCurrent()) return;
+                    CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+                    CaptionSpeaker.Text = speakerLabel;
+                    CaptionSpeaker.Visibility = Visibility.Visible;
+                    CaptionOriginal.Text = displayOriginal;
+                    CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(color));
+                    CaptionTranslated.Text = "";
+                    ShowSubtitleWithAnimation();
+                });
                 
                 string finalTranslation = "";
                 await _translationProvider.TranslateStreamAsync(args.Text, targetLang, sourceLang, chunk => 
@@ -1572,7 +1572,7 @@ public partial class MainWindow : Window
                     finalTranslation = chunk;
                     Dispatcher.Invoke(() =>
                     {
-                        if (!_isAudioMode) return;
+                        if (!IsCurrent()) return;
                         if (IsWhisperHallucination(chunk))
                         {
                             CaptionTranslated.Text = "";
@@ -1591,7 +1591,7 @@ public partial class MainWindow : Window
                         finalTranslation = formatted;
                         Dispatcher.Invoke(() =>
                         {
-                            if (!_isAudioMode) return;
+                            if (!IsCurrent()) return;
                             CaptionTranslated.Text = finalTranslation;
                         });
                     }
@@ -1599,13 +1599,13 @@ public partial class MainWindow : Window
 
                 Dispatcher.Invoke(() =>
                 {
-                    if (!_isAudioMode) return;
-                    AppendToHistory($"[Speaker {args.SpeakerIndex + 1}] {args.Text}", finalTranslation);
+                    if (!IsCurrent()) return;
+                    AppendToHistory($"[{speakerLabel}] {args.Text}", finalTranslation);
                 });
             }
             catch (Exception ex)
             {
-                Dispatcher.Invoke(() => CaptionTranslated.Text = $"[Error: {ex.Message}]");
+                Dispatcher.Invoke(() => { if (IsCurrent()) CaptionTranslated.Text = $"[Error: {ex.Message}]"; });
             }
             finally
             {
@@ -1613,13 +1613,14 @@ public partial class MainWindow : Window
             }
         };
 
-        _audioCaptureService = new AudioCaptureService();
-        _audioCaptureService.RawPcmBytesAvailable += async (s, pcmBytes) =>
+        var capture = new AudioCaptureService();
+        _audioCaptureService = capture;
+        capture.RawPcmBytesAvailable += async (s, pcmBytes) =>
         {
-            if (_diarizedSttService != null && _isAudioMode)
-                await _diarizedSttService.SendAudioAsync(pcmBytes);
+            if (IsCurrent()) await service.SendAudioAsync(pcmBytes);
         };
-        await _audioCaptureService.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId());
+        await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId());
+        if (!IsCurrent()) { capture.Dispose(); return; }
         TxtAudioStatus.Text = " Deepgram Streaming + Speaker Detection active";
         CaptionTranslated.Text = "[Waiting for audio...]";
     }
@@ -1741,13 +1742,13 @@ public partial class MainWindow : Window
             }
         }
 
-        _lastWhisperTranscript = string.Empty;
         AcousticSpeakerDetector.Reset();
-        _audioCaptureService = new AudioCaptureService();
+        var capture = new AudioCaptureService();
+        _audioCaptureService = capture;
         _audioCts = new CancellationTokenSource();
 
         var sessionToken = _audioCts.Token;
-        _audioCaptureService.AudioChunkHandler = async chunk =>
+        capture.AudioChunkHandler = async chunk =>
         {
             if (sessionToken.IsCancellationRequested) return;
             try { await _translateSemaphore.WaitAsync(sessionToken); }
@@ -1757,25 +1758,18 @@ public partial class MainWindow : Window
                 string targetLang = "", sourceLang = "";
                 Dispatcher.Invoke(() => { targetLang = GetTargetLanguage(); sourceLang = GetSourceLanguage(); });
 
-                // Acoustic pitch detection: Pisahkan Man 1, Man 2, Woman 1, Woman 2 berdasarkan nada suara (F0)
-                var speaker = AcousticSpeakerDetector.DetectSpeaker(chunk);
-
                 await _whisperSttService!.ChangeLanguageAsync(sourceLang);
                 string transcribed = await _whisperSttService!.ProcessAudioChunkAsync(chunk);
-                if (string.IsNullOrWhiteSpace(transcribed)) return;
+                if (sessionToken.IsCancellationRequested || string.IsNullOrWhiteSpace(transcribed)) return;
 
                 // ── HALLUCINATION FILTER (same as Deepgram path) ──
                 // Groq Whisper also hallucinates "subtitles by...", "спасибо", etc. from noise
                 if (IsWhisperHallucination(transcribed)) return;
 
-                // Suppress consecutive identical transcripts within 20s (e.g. repeated music/pause hallucinations)
-                string cleanTrimmed = transcribed.Trim();
-                if (cleanTrimmed == _lastWhisperTranscript && (DateTime.UtcNow - _lastWhisperTranscriptTime).TotalSeconds < 20)
-                {
-                    return;
-                }
-                _lastWhisperTranscript = cleanTrimmed;
-                _lastWhisperTranscriptTime = DateTime.UtcNow;
+                // Whisper has no word-level diarization; keep its local estimates explicit.
+                var speaker = AcousticSpeakerDetector.DetectSpeaker(chunk, sessionToken);
+                if (sessionToken.IsCancellationRequested) return;
+                string speakerLabel = speaker.SpeakerIndex >= 0 ? LocalizationManager.Instance.Get("SpeakerEstimateLabel", speaker.SpeakerIndex + 1) : LocalizationManager.Instance.Get("SpeakerUnknown");
 
                 string displayOriginal = await FormatJapaneseTextIfNeededAsync(transcribed, sourceLang);
 
@@ -1783,15 +1777,15 @@ public partial class MainWindow : Window
                 {
                     if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
                     CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(speaker.ColorHex));
-                    CaptionSpeaker.Text = speaker.Label;
+                    CaptionSpeaker.Text = speakerLabel;
                     CaptionSpeaker.Visibility = Visibility.Visible;
                     CaptionOriginal.Text = displayOriginal;
                     CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(speaker.ColorHex));
+                    CaptionTranslated.Text = "";
                     ShowSubtitleWithAnimation();
                 });
 
                 if (sessionToken.IsCancellationRequested) return;
-                Dispatcher.Invoke(() => { if (!sessionToken.IsCancellationRequested) CaptionTranslated.Text = ""; });
                 
                 string finalTranslation = "";
                 await _translationProvider.TranslateStreamAsync(transcribed, targetLang, sourceLang, chunk => 
@@ -1827,7 +1821,7 @@ public partial class MainWindow : Window
                 Dispatcher.Invoke(() =>
                 {
                     if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
-                    AppendToHistory($"[{speaker.Label}] {transcribed}", finalTranslation);
+                    AppendToHistory($"[{speakerLabel}] {transcribed}", finalTranslation);
                 });
             }
             catch (Exception ex)
@@ -1837,8 +1831,9 @@ public partial class MainWindow : Window
             finally { _translateSemaphore.Release(); }
         };
 
-        await _audioCaptureService.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId());
-        TxtAudioStatus.Text = "Groq Whisper active (Speaker Detection ON)";
+        await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId());
+        if (sessionToken.IsCancellationRequested) { capture.Dispose(); return; }
+        TxtAudioStatus.Text = LocalizationManager.Instance.Get("WhisperSpeakerHint");
         CaptionTranslated.Text = "[Waiting for audio...]";
     }
 
@@ -1852,11 +1847,10 @@ public partial class MainWindow : Window
 
         AcousticSpeakerDetector.Reset();
 
-        if (_diarizedSttService != null)
-        {
-            await _diarizedSttService.DisposeAsync();
-            _diarizedSttService = null;
-        }
+        var stoppedService = _diarizedSttService;
+        _diarizedSttService = null;
+        if (stoppedService != null) await stoppedService.DisposeAsync();
+        if (_isAudioMode) return; // A new session started while the old socket was closing.
 
         _subtitleHideTimer.Stop();
         BtnStartAudio.Content = LocalizationManager.Instance.Get("BtnStartAudio");
@@ -2068,6 +2062,7 @@ public partial class MainWindow : Window
 
         if (ItemSttDeepgram != null) ItemSttDeepgram.Content = loc.Get("SttDeepgram");
         if (ItemSttGroq != null) ItemSttGroq.Content = loc.Get("SttGroq");
+        if (ItemSttGroq != null) ItemSttGroq.ToolTip = loc.Get("WhisperSpeakerHint");
 
         if (ItemFontSmall != null) ItemFontSmall.Content = loc.Get("FontSmall");
         if (ItemFontMed != null) ItemFontMed.Content = loc.Get("FontMedium");
