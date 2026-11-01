@@ -2,6 +2,8 @@
 
 The stable overlay is for Windows. A separate **Mac developer preview** for Apple Silicon and Intel starts with manual text translation and session history; it does not yet include audio, screen OCR, overlay captions, or capture protection. See [Mac preview notes](MacApp/RELEASE_NOTES.md) and the [November 1 review](docs/reviews/2026-11-01.md).
 
+Fully local captions without API keys are under evaluation. See the [offline feasibility report and measured speech results](docs/reviews/2026-11-01-offline-accuracy.md); this mode is not included in the current release.
+
 ## Downloads
 
 | Platform | Download | Status |
