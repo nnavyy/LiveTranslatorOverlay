@@ -2,6 +2,16 @@
 
 The stable overlay is for Windows. A separate **Mac developer preview** for Apple Silicon and Intel starts with manual text translation and session history; it does not yet include audio, screen OCR, overlay captions, or capture protection. See [Mac preview notes](MacApp/RELEASE_NOTES.md) and the [November 1 review](docs/reviews/2026-11-01.md).
 
+## Downloads
+
+| Platform | Download | Status |
+| --- | --- | --- |
+| Windows 10/11 — x64 | [Windows release](https://github.com/nnavyy/LiveTranslatorOverlay/releases/latest) — choose `LiveTranslatorOverlay-Windows-x64.zip` | Stable overlay with audio, OCR, and history |
+| Mac — Apple Silicon (M-series) | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.1-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-arm64.zip` | Developer preview: manual text translation and session history |
+| Mac — Intel | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.1-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-x64.zip` | Developer preview: manual text translation and session history |
+
+Mac requires macOS 14 or newer. The preview bundles are ad-hoc signed and not notarized; read the [Mac preview notes](MacApp/RELEASE_NOTES.md). The **Source code** archives on GitHub are for developers, not the runnable app packages.
+
 <p align="center">
   <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 10" />
   <img src="https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows" />
