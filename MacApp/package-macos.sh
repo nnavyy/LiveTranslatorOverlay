@@ -25,8 +25,12 @@ cat > "$app/Contents/Info.plist" <<EOF
 EOF
 plutil -lint "$app/Contents/Info.plist"
 while IFS= read -r -d '' binary; do
-    if file "$binary" | grep -q 'Mach-O'; then codesign --force --sign - "$binary"; fi
+    # The app host seals its bundle: sign managed assemblies/resources before it.
+    if [[ "$binary" != "$app/Contents/MacOS/LiveTranslatorMac" ]]; then
+        codesign --force --sign - "$binary"
+    fi
 done < <(find "$app/Contents/MacOS" -type f -print0)
+codesign --force --sign - "$app/Contents/MacOS/LiveTranslatorMac"
 codesign --force --sign - "$app"
 codesign --verify --deep --strict "$app"
 "$app/Contents/MacOS/LiveTranslatorMac" --smoke-test

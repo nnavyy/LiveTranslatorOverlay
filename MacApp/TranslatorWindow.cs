@@ -59,7 +59,7 @@ public sealed class TranslatorWindow : Window
         content.Children.Add(new TextBlock { Text = "Mac preview: text translation and session history. Audio, screen OCR, and capture privacy are not available in this preview.", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
         content.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { _sourceLang, _targetLang } });
         content.Children.Add(_engine); content.Children.Add(_key);
-        content.Children.Add(new TextBlock { Text = "Text is sent to the selected translation service. Service limits apply.", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+        content.Children.Add(new TextBlock { Text = "Text goes to cloud translation services. Google/MyMemory may be used as fallbacks. Service limits apply.", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
         content.Children.Add(_source); content.Children.Add(_translate); content.Children.Add(_result); content.Children.Add(_status);
         content.Children.Add(new TextBlock { Text = "Translation history", FontSize = 18 });
         content.Children.Add(_historyText);
