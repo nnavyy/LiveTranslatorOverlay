@@ -4,7 +4,7 @@ The current Mac ZIPs are **ad-hoc signed, not Apple Developer ID signed or notar
 
 ## Download and open
 
-1. Download from the [official Mac preview release](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.1-mac-preview). Use `osx-arm64` for Apple Silicon (M-series) or `osx-x64` for Intel. macOS 14 or newer is required.
+1. Download from the [official Mac preview release](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.2-mac-preview). Use `osx-arm64` for Apple Silicon (M-series) or `osx-x64` for Intel. macOS 14 or newer is required.
 2. Extract the ZIP and move `LiveTranslator.app` to Applications.
 3. Open the app. If the verification dialog appears, choose **Done** to keep the app.
 4. If you trust this official download, open **Apple menu > System Settings > Privacy & Security**. In the **Security** section, find the message about LiveTranslator being blocked and choose **Open Anyway**.

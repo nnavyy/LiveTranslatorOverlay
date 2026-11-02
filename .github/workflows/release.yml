@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   windows:
+    if: ${{ !endsWith(github.ref_name, '-mac-preview') }}
     runs-on: windows-latest
 
     steps:
@@ -79,6 +80,14 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Verify Mac preview tag matches application version
+        if: startsWith(github.ref, 'refs/tags/') && endsWith(github.ref_name, '-mac-preview')
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version=$(python3 -c 'import xml.etree.ElementTree as e; print(e.parse("MacApp/LiveTranslatorMac.csproj").findtext("PropertyGroup/Version"))')
+          test "$RELEASE_TAG" = "v$version-mac-preview"
       - name: Build, package and smoke-test native Mac preview
         shell: bash
         run: bash MacApp/package-macos.sh '${{ matrix.rid }}' "$RUNNER_TEMP/mac-preview"
@@ -88,7 +97,7 @@ jobs:
           path: ${{ runner.temp }}/mac-preview/*.zip
 
   publish:
-    if: startsWith(github.ref, 'refs/tags/')
+    if: ${{ always() && startsWith(github.ref, 'refs/tags/') && needs.mac-preview.result == 'success' && (needs.windows.result == 'success' || (endsWith(github.ref_name, '-mac-preview') && needs.windows.result == 'skipped')) }}
     needs: [windows, mac-preview]
     runs-on: ubuntu-latest
     steps:
@@ -98,6 +107,7 @@ jobs:
           path: release-assets
           merge-multiple: true
       - name: Create versioned release
+        if: ${{ !endsWith(github.ref_name, '-mac-preview') }}
         uses: softprops/action-gh-release@v2
         with:
           name: "Windows x64 — Live Translator Overlay ${{ github.ref_name }}"
@@ -108,7 +118,7 @@ jobs:
       - name: Publish separate Mac developer preview
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}-mac-preview
+          tag_name: ${{ endsWith(github.ref_name, '-mac-preview') && github.ref_name || format('{0}-mac-preview', github.ref_name) }}
           target_commitish: ${{ github.sha }}
           name: "macOS — Apple Silicon & Intel developer preview ${{ github.ref_name }}"
           prerelease: true

@@ -1,0 +1,72 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="MacBackground">#F5F5F7</SolidColorBrush>
+          <SolidColorBrush x:Key="MacSurface">#FFFFFF</SolidColorBrush>
+          <SolidColorBrush x:Key="MacBorder">#DADAE0</SolidColorBrush>
+          <SolidColorBrush x:Key="MacText">#202126</SolidColorBrush>
+          <SolidColorBrush x:Key="MacSecondaryText">#63636E</SolidColorBrush>
+          <SolidColorBrush x:Key="MacAccent">#0067D4</SolidColorBrush>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="MacBackground">#202124</SolidColorBrush>
+          <SolidColorBrush x:Key="MacSurface">#2A2B2F</SolidColorBrush>
+          <SolidColorBrush x:Key="MacBorder">#494A51</SolidColorBrush>
+          <SolidColorBrush x:Key="MacText">#F5F5F7</SolidColorBrush>
+          <SolidColorBrush x:Key="MacSecondaryText">#B0B0BA</SolidColorBrush>
+          <SolidColorBrush x:Key="MacAccent">#0067D4</SolidColorBrush>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Styles.Resources>
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource MacBackground}" />
+    <Setter Property="Foreground" Value="{DynamicResource MacText}" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style Selector="TextBlock.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource MacSecondaryText}" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="Border.workspace">
+    <Setter Property="Background" Value="{DynamicResource MacSurface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource MacBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+  </Style>
+  <Style Selector="Border.divider">
+    <Setter Property="Background" Value="{DynamicResource MacBorder}" />
+  </Style>
+  <Style Selector="Button">
+    <Setter Property="MinHeight" Value="34" />
+    <Setter Property="Padding" Value="14,6" />
+    <Setter Property="CornerRadius" Value="7" />
+  </Style>
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource MacAccent}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="MinWidth" Value="118" />
+  </Style>
+  <Style Selector="TextBox">
+    <Setter Property="CornerRadius" Value="7" />
+  </Style>
+  <Style Selector="TextBox.editor">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="FontSize" Value="17" />
+  </Style>
+  <Style Selector="ComboBox">
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="CornerRadius" Value="7" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Expander">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+  </Style>
+</Styles>
