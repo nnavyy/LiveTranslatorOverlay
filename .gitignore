@@ -18,3 +18,11 @@ TestTranslation.cs
 
 publish/
 publish-verify/
+
+# Local ML experiments: only curated manifests, metrics, and reports belong in Git.
+__pycache__/
+*.pyc
+*.safetensors
+research/speech/.venv/
+research/speech/data/
+research/speech/runs/

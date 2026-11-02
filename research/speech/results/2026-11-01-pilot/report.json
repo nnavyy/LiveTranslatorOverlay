@@ -1,0 +1,325 @@
+{
+  "status": "pilot-only-not-approved-for-release",
+  "seed": 20261101,
+  "steps": 20,
+  "baseModel": "openai/whisper-tiny",
+  "baseRevision": "169d4a4341b33bc18d8881c4b69c2e104e1cc0af",
+  "manifestSha256": "1ea6e26a3c449a5f9e24d9b2a66e474e3a7d3a75e23b4e4ea986f6dd2faec2f2",
+  "device": "cpu",
+  "threads": 4,
+  "loraRank": 4,
+  "loraAlpha": 8,
+  "loraModules": [
+    "model.decoder.layers.0.self_attn.v_proj",
+    "model.decoder.layers.0.self_attn.q_proj",
+    "model.decoder.layers.0.encoder_attn.v_proj",
+    "model.decoder.layers.0.encoder_attn.q_proj",
+    "model.decoder.layers.1.self_attn.v_proj",
+    "model.decoder.layers.1.self_attn.q_proj",
+    "model.decoder.layers.1.encoder_attn.v_proj",
+    "model.decoder.layers.1.encoder_attn.q_proj",
+    "model.decoder.layers.2.self_attn.v_proj",
+    "model.decoder.layers.2.self_attn.q_proj",
+    "model.decoder.layers.2.encoder_attn.v_proj",
+    "model.decoder.layers.2.encoder_attn.q_proj",
+    "model.decoder.layers.3.self_attn.v_proj",
+    "model.decoder.layers.3.self_attn.q_proj",
+    "model.decoder.layers.3.encoder_attn.v_proj",
+    "model.decoder.layers.3.encoder_attn.q_proj"
+  ],
+  "trainableParameters": 49152,
+  "learningRate": 0.0001,
+  "batchSize": 1,
+  "decoder": "greedy, explicit language, max 128 new tokens",
+  "baseline": {
+    "dev": {
+      "speech": {
+        "en": {
+          "clips": 3,
+          "wordErrors": 13,
+          "referenceWords": 69,
+          "falseRejections": 0,
+          "wer": 0.18840579710144928,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 3,
+          "wordErrors": 17,
+          "referenceWords": 55,
+          "falseRejections": 0,
+          "wer": 0.3090909090909091,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 3,
+        "emittedClips": 3,
+        "emissionRate": 1.0
+      }
+    },
+    "test": {
+      "speech": {
+        "en": {
+          "clips": 4,
+          "wordErrors": 20,
+          "referenceWords": 88,
+          "falseRejections": 0,
+          "wer": 0.22727272727272727,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 4,
+          "wordErrors": 12,
+          "referenceWords": 62,
+          "falseRejections": 0,
+          "wer": 0.1935483870967742,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 3,
+        "emittedClips": 3,
+        "emissionRate": 1.0
+      }
+    }
+  },
+  "candidate": {
+    "dev": {
+      "speech": {
+        "en": {
+          "clips": 3,
+          "wordErrors": 13,
+          "referenceWords": 69,
+          "falseRejections": 0,
+          "wer": 0.18840579710144928,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 3,
+          "wordErrors": 18,
+          "referenceWords": 55,
+          "falseRejections": 0,
+          "wer": 0.32727272727272727,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 3,
+        "emittedClips": 3,
+        "emissionRate": 1.0
+      }
+    },
+    "test": {
+      "speech": {
+        "en": {
+          "clips": 4,
+          "wordErrors": 20,
+          "referenceWords": 88,
+          "falseRejections": 0,
+          "wer": 0.22727272727272727,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 4,
+          "wordErrors": 12,
+          "referenceWords": 62,
+          "falseRejections": 0,
+          "wer": 0.1935483870967742,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 3,
+        "emittedClips": 3,
+        "emissionRate": 1.0
+      }
+    }
+  },
+  "losses": [
+    {
+      "step": 1,
+      "id": "fleurs-en_us-train-10045215346264155892",
+      "loss": 0.9164806008338928
+    },
+    {
+      "step": 2,
+      "id": "fleurs-en_us-train-10045464480702227987",
+      "loss": 1.2168707847595215
+    },
+    {
+      "step": 3,
+      "id": "generated-train-silence",
+      "loss": 7.7650556564331055
+    },
+    {
+      "step": 4,
+      "id": "fleurs-ru_ru-train-10002203722064200187",
+      "loss": 1.738686203956604
+    },
+    {
+      "step": 5,
+      "id": "fleurs-ru_ru-train-1001630848620267639",
+      "loss": 1.5833920240402222
+    },
+    {
+      "step": 6,
+      "id": "fleurs-ru_ru-train-10059350002531149202",
+      "loss": 1.3319685459136963
+    },
+    {
+      "step": 7,
+      "id": "fleurs-ru_ru-train-10063904975963482359",
+      "loss": 1.7130910158157349
+    },
+    {
+      "step": 8,
+      "id": "generated-train-noise",
+      "loss": 7.8773698806762695
+    },
+    {
+      "step": 9,
+      "id": "fleurs-en_us-train-10041973057502883658",
+      "loss": 0.8933396935462952
+    },
+    {
+      "step": 10,
+      "id": "fleurs-en_us-train-10038782309165056980",
+      "loss": 1.977860450744629
+    },
+    {
+      "step": 11,
+      "id": "generated-train-tone",
+      "loss": 7.591187000274658
+    },
+    {
+      "step": 12,
+      "id": "fleurs-ru_ru-train-10030647851907803158",
+      "loss": 0.7851698398590088
+    },
+    {
+      "step": 13,
+      "id": "fleurs-ru_ru-train-10044588855073753644",
+      "loss": 0.8462649583816528
+    },
+    {
+      "step": 14,
+      "id": "fleurs-en_us-train-10004088536354799741",
+      "loss": 0.9546533226966858
+    },
+    {
+      "step": 15,
+      "id": "fleurs-ru_ru-train-10034323490556089936",
+      "loss": 0.645680844783783
+    },
+    {
+      "step": 16,
+      "id": "fleurs-en_us-train-10012216926115652402",
+      "loss": 1.2345479726791382
+    },
+    {
+      "step": 17,
+      "id": "fleurs-ru_ru-train-10040348467441289227",
+      "loss": 1.079451084136963
+    },
+    {
+      "step": 18,
+      "id": "fleurs-en_us-train-10038239648789136007",
+      "loss": 1.0422756671905518
+    },
+    {
+      "step": 19,
+      "id": "fleurs-en_us-train-10035729252730569448",
+      "loss": 1.6187498569488525
+    },
+    {
+      "step": 20,
+      "id": "fleurs-ru_ru-train-10034323490556089936",
+      "loss": 0.635612428188324
+    }
+  ],
+  "elapsedSeconds": 50.64100000000326,
+  "versions": {
+    "torch": "2.15.0",
+    "transformers": "4.57.3",
+    "peft": "0.17.1",
+    "numpy": "2.2.6",
+    "soundfile": "0.13.1"
+  },
+  "limitations": [
+    "Tiny non-random subset; no 95% accuracy claim",
+    "No model selection based on test results",
+    "No overlap, music, or spoken closing-phrase challenge recordings in this pilot",
+    "No local translation or diarization training; no production model update"
+  ],
+  "gateComparison": {
+    "train": {
+      "currentEnergyGate": {
+        "speechClips": 16,
+        "missedSpeech": 1,
+        "nonSpeechClips": 3,
+        "acceptedNonSpeech": 2
+      },
+      "neuralGate": {
+        "speechClips": 16,
+        "missedSpeech": 0,
+        "nonSpeechClips": 3,
+        "acceptedNonSpeech": 0
+      }
+    },
+    "dev": {
+      "currentEnergyGate": {
+        "speechClips": 6,
+        "missedSpeech": 1,
+        "nonSpeechClips": 3,
+        "acceptedNonSpeech": 2
+      },
+      "neuralGate": {
+        "speechClips": 6,
+        "missedSpeech": 0,
+        "nonSpeechClips": 3,
+        "acceptedNonSpeech": 0
+      }
+    },
+    "test": {
+      "currentEnergyGate": {
+        "speechClips": 8,
+        "missedSpeech": 2,
+        "nonSpeechClips": 3,
+        "acceptedNonSpeech": 2
+      },
+      "neuralGate": {
+        "speechClips": 8,
+        "missedSpeech": 0,
+        "nonSpeechClips": 3,
+        "acceptedNonSpeech": 0
+      }
+    },
+    "vadTotalSeconds": 1.3118526,
+    "note": "Pretrained Silero 6.2.0 at fixed 0.5 threshold, CPU; no VAD training or tuning. Gate outputs are not ASR accuracy."
+  },
+  "hardware": {
+    "cpu": "Intel Core i5-13420H",
+    "physicalMemoryGiB": 7.7,
+    "gpuUsed": false,
+    "os": "Windows 11 build 26300"
+  },
+  "dataset": {
+    "name": "google/fleurs + generated controls",
+    "revision": "70bb2e84b976b7e960aa89f1c648e09c59f894dd",
+    "speechClips": 30,
+    "nonSpeechClips": 9,
+    "splits": {
+      "train": 19,
+      "dev": 9,
+      "test": 11
+    },
+    "selection": "First eligible archive entries, 1-20 seconds; not random or representative"
+  },
+  "artifacts": {
+    "adapter/adapter_model.safetensors": "fad85e76e51fb3e9a8f9e3817ccca7b976e8b6eed73db80dba51be944aa71aba",
+    "baseline-dev.json": "b75a51fdc1dcd0a290b099c91ee89ecf2e397c0a6a3c0096cb3e7cbf56f5992e",
+    "baseline-test.json": "ca9c1156a997b1ee2b649758631c0de722425b38a4f8a28b13cd67169b13e0a3",
+    "candidate-dev.json": "4b65eed66042f2df5d8c7cbc7b9bd5c93cab36b2c95876b8e41db21d7c2211d1",
+    "candidate-test.json": "77b3f93309a776437a82b4817ac2712ccf9ee99403c7c221263dc7e98870a640"
+  }
+}
