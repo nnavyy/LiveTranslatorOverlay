@@ -1,0 +1,184 @@
+{
+  "analysisDate": "2026-11-02",
+  "wer": {
+    "dev": {
+      "en": {
+        "clips": 3,
+        "referenceWords": 69,
+        "baselineErrors": 13,
+        "candidateErrors": 13,
+        "baselineWer": 0.18840579710144928,
+        "candidateWer": 0.18840579710144928,
+        "baselineInterval": [
+          0.07431372549019608,
+          0.2745791245791245
+        ],
+        "candidateInterval": [
+          0.07431372549019608,
+          0.2745791245791245
+        ],
+        "pairedDifferenceInterval": [
+          0.0,
+          0.0
+        ],
+        "resamples": 27
+      },
+      "ru": {
+        "clips": 3,
+        "referenceWords": 55,
+        "baselineErrors": 17,
+        "candidateErrors": 18,
+        "baselineWer": 0.3090909090909091,
+        "candidateWer": 0.32727272727272727,
+        "baselineInterval": [
+          0.255050505050505,
+          0.3391666666666666
+        ],
+        "candidateInterval": [
+          0.3101513240857503,
+          0.34801020408163263
+        ],
+        "pairedDifferenceInterval": [
+          0.0,
+          0.07309941520467823
+        ],
+        "resamples": 27
+      }
+    },
+    "test": {
+      "en": {
+        "clips": 4,
+        "referenceWords": 88,
+        "baselineErrors": 20,
+        "candidateErrors": 20,
+        "baselineWer": 0.22727272727272727,
+        "candidateWer": 0.22727272727272727,
+        "baselineInterval": [
+          0.11538461538461539,
+          0.3611111111111111
+        ],
+        "candidateInterval": [
+          0.11538461538461539,
+          0.3611111111111111
+        ],
+        "pairedDifferenceInterval": [
+          0.0,
+          0.0
+        ],
+        "resamples": 256
+      },
+      "ru": {
+        "clips": 4,
+        "referenceWords": 62,
+        "baselineErrors": 12,
+        "candidateErrors": 12,
+        "baselineWer": 0.1935483870967742,
+        "candidateWer": 0.1935483870967742,
+        "baselineInterval": [
+          0.125,
+          0.2602739726027397
+        ],
+        "candidateInterval": [
+          0.125,
+          0.2602739726027397
+        ],
+        "pairedDifferenceInterval": [
+          0.0,
+          0.0
+        ],
+        "resamples": 256
+      }
+    }
+  },
+  "gates": {
+    "speech": {
+      "currentEnergyGate": {
+        "accepted": 6,
+        "clips": 8,
+        "wilson95": [
+          0.409275430310169,
+          0.928520787247891
+        ]
+      },
+      "neuralGate": {
+        "accepted": 8,
+        "clips": 8,
+        "wilson95": [
+          0.6755924351161198,
+          1
+        ]
+      },
+      "paired": {
+        "energyOnly": 0,
+        "neuralOnly": 2,
+        "exactMcnemarP": 0.5
+      }
+    },
+    "nonSpeech": {
+      "currentEnergyGate": {
+        "accepted": 2,
+        "clips": 3,
+        "wilson95": [
+          0.20765960080204782,
+          0.9385080552796038
+        ]
+      },
+      "neuralGate": {
+        "accepted": 0,
+        "clips": 3,
+        "wilson95": [
+          0,
+          0.5614970317550454
+        ]
+      },
+      "paired": {
+        "energyOnly": 2,
+        "neuralOnly": 0,
+        "exactMcnemarP": 0.5
+      }
+    }
+  },
+  "rawNonSpeech": {
+    "dev": {
+      "baseline": {
+        "emitted": 3,
+        "clips": 3,
+        "wilson95": [
+          0.4385029682449546,
+          1
+        ]
+      },
+      "candidate": {
+        "emitted": 3,
+        "clips": 3,
+        "wilson95": [
+          0.4385029682449546,
+          1
+        ]
+      }
+    },
+    "test": {
+      "baseline": {
+        "emitted": 3,
+        "clips": 3,
+        "wilson95": [
+          0.4385029682449546,
+          1
+        ]
+      },
+      "candidate": {
+        "emitted": 3,
+        "clips": 3,
+        "wilson95": [
+          0.4385029682449546,
+          1
+        ]
+      }
+    }
+  },
+  "samplePlanning": {
+    "zeroEventsForOneSided95UpperBelow1Percent": 299,
+    "assumption": "Independent representative Bernoulli trials; no multiple-stratum adjustment. Not satisfied by this convenience pilot."
+  },
+  "interpretation": "Exploratory only: convenience subset, synthetic controls, one seed. Bootstrap at clip level cannot model unseen domains or unknown speaker dependence; a zero-width paired interval is not equivalence evidence."
+}

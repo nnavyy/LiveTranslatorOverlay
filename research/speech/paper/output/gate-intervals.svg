@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="499.27559055118115" height="220" preserveAspectRatio="xMinYMin meet" viewBox="0 0 499 220" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="499.27559055118115" height="220"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-220)" style="clip-path: url(#clip)">
+		<g transform="">
+			<text x="0" y="185" style="font-family: Paper-Bold; font-size: 9.5px;fill: rgb(13%,27%,39%); stroke:none;" transform="translate(0,370) scale(1,-1)">Speech accepted (n=8)</text>
+			<text x="0" y="152" style="font-family: Paper; font-size: 9px;fill: rgb(32%,37%,42%); stroke:none;" transform="translate(0,304) scale(1,-1)">Energy gate</text>
+			<path d="M 287.718032,155 L 456.096627,155 Z" style="stroke: rgb(13%,27%,39%); stroke-linecap: butt; stroke-width: 2;"/>
+			<path d="M 287.718032,151 L 287.718032,159 Z" style="stroke: rgb(13%,27%,39%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 456.096627,151 L 456.096627,159 Z" style="stroke: rgb(13%,27%,39%); stroke-linecap: butt; stroke-width: 1;"/>
+			<circle cx="398.20669291338584" cy="155" r="3.5" style="stroke: rgb(13%,27%,39%); stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,27%,39%); fill-rule: evenodd;"/>
+			<text x="0" y="126" style="font-family: Paper; font-size: 9px;fill: rgb(32%,37%,42%); stroke:none;" transform="translate(0,252) scale(1,-1)">Neural VAD</text>
+			<path d="M 374.078136,129 L 479.275591,129 Z" style="stroke: rgb(12%,46%,41%); stroke-linecap: butt; stroke-width: 2;"/>
+			<path d="M 374.078136,125 L 374.078136,133 Z" style="stroke: rgb(12%,46%,41%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 479.275591,125 L 479.275591,133 Z" style="stroke: rgb(12%,46%,41%); stroke-linecap: butt; stroke-width: 1;"/>
+			<polygon points="479.2756 133, 483.2756 129, 479.2756 125, 475.2756 129" style="stroke: rgb(12%,46%,41%); stroke-linecap: butt; stroke-width: 1; fill: rgb(12%,46%,41%); fill-rule: evenodd;"/>
+			<text x="0" y="95" style="font-family: Paper-Bold; font-size: 9.5px;fill: rgb(13%,27%,39%); stroke:none;" transform="translate(0,190) scale(1,-1)">Non-speech accepted (n=3)</text>
+			<text x="0" y="62" style="font-family: Paper; font-size: 9px;fill: rgb(32%,37%,42%); stroke:none;" transform="translate(0,124) scale(1,-1)">Energy gate</text>
+			<path d="M 222.33894,65 L 459.335254,65 Z" style="stroke: rgb(13%,27%,39%); stroke-linecap: butt; stroke-width: 2;"/>
+			<path d="M 222.33894,61 L 222.33894,69 Z" style="stroke: rgb(13%,27%,39%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 459.335254,61 L 459.335254,69 Z" style="stroke: rgb(13%,27%,39%); stroke-linecap: butt; stroke-width: 1;"/>
+			<circle cx="371.18372703412075" cy="65" r="3.5" style="stroke: rgb(13%,27%,39%); stroke-linecap: butt; stroke-width: 1; fill: rgb(13%,27%,39%); fill-rule: evenodd;"/>
+			<text x="0" y="36" style="font-family: Paper; font-size: 9px;fill: rgb(32%,37%,42%); stroke:none;" transform="translate(0,72) scale(1,-1)">Neural VAD</text>
+			<path d="M 155,39 L 337.079782,39 Z" style="stroke: rgb(12%,46%,41%); stroke-linecap: butt; stroke-width: 2;"/>
+			<path d="M 155,35 L 155,43 Z" style="stroke: rgb(12%,46%,41%); stroke-linecap: butt; stroke-width: 1;"/>
+			<path d="M 337.079782,35 L 337.079782,43 Z" style="stroke: rgb(12%,46%,41%); stroke-linecap: butt; stroke-width: 1;"/>
+			<polygon points="155 43, 159 39, 155 35, 151 39" style="stroke: rgb(12%,46%,41%); stroke-linecap: butt; stroke-width: 1; fill: rgb(12%,46%,41%); fill-rule: evenodd;"/>
+			<path d="M 155,15 L 155,19 Z" style="stroke: rgb(32%,37%,42%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="149.21875" y="1" style="font-family: Paper; font-size: 8px;fill: rgb(32%,37%,42%); stroke:none;" transform="translate(0,2) scale(1,-1)">0%</text>
+			<path d="M 236.068898,15 L 236.068898,19 Z" style="stroke: rgb(32%,37%,42%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="228.0630382627953" y="1" style="font-family: Paper; font-size: 8px;fill: rgb(32%,37%,42%); stroke:none;" transform="translate(0,2) scale(1,-1)">25%</text>
+			<path d="M 317.137795,15 L 317.137795,19 Z" style="stroke: rgb(32%,37%,42%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="309.1319359005906" y="1" style="font-family: Paper; font-size: 8px;fill: rgb(32%,37%,42%); stroke:none;" transform="translate(0,2) scale(1,-1)">50%</text>
+			<path d="M 398.206693,15 L 398.206693,19 Z" style="stroke: rgb(32%,37%,42%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="390.20083353838584" y="1" style="font-family: Paper; font-size: 8px;fill: rgb(32%,37%,42%); stroke:none;" transform="translate(0,2) scale(1,-1)">75%</text>
+			<path d="M 479.275591,15 L 479.275591,19 Z" style="stroke: rgb(32%,37%,42%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="469.04512180118115" y="1" style="font-family: Paper; font-size: 8px;fill: rgb(32%,37%,42%); stroke:none;" transform="translate(0,2) scale(1,-1)">100%</text>
+			<path d="M 155,19 L 479.275591,19 Z" style="stroke: rgb(32%,37%,42%); stroke-linecap: butt; stroke-width: 1;"/>
+		</g>
+	</g>
+</svg>

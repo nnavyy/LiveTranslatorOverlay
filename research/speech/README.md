@@ -4,6 +4,8 @@ This is a developer research workspace. It does not install a model in the appli
 
 Read the [research review and decision](../../docs/reviews/2026-11-01-ml-training.md). The first [recorded experiment](results/2026-11-01-pilot/report.json) is **not approved for release**: its small adapter did not improve held-out speech recognition or non-speech hallucinations. The separate neural VAD comparison is promising on a tiny sample, not a validated fix for wrong words during speech.
 
+The [research manuscript and audit package](paper/README.md), dated 2 November 2026, adds a PDF, 44 DOI-verified references with Scopus source-coverage evidence, recomputed statistical intervals, a technical dataset audit and a prospective speech/translation study protocol. It reports the negative pilot honestly and separates future experiments from measured results.
+
 ## Reproduce the pilot
 
 Use a separate directory outside the repository for audio, models, the Python environment and run outputs. Internet is needed for setup downloads. Training/evaluation load only local files with Hugging Face offline mode enabled; no inference API is used. Downloads use pinned revisions and training verifies the recorded model/audio hashes.
