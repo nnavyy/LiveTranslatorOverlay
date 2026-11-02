@@ -1,0 +1,7 @@
+# Isolated developer experiment only; not application dependencies.
+# Install the CPU build of torch separately using the official PyTorch wheel index.
+torch==2.15.0
+transformers==4.57.3
+peft==0.17.1
+soundfile==0.13.1
+numpy==2.2.6

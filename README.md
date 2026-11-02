@@ -4,6 +4,8 @@ The stable overlay is for Windows. A separate **Mac developer preview** for Appl
 
 Fully local captions without API keys are under evaluation. See the [offline feasibility report and measured speech results](docs/reviews/2026-11-01-offline-accuracy.md); this mode is not included in the current release.
 
+The [speech hallucination and training review](docs/reviews/2026-11-01-ml-training.md) includes research papers, a local fine-tuning pilot, measured failures, a speech-detector comparison, and the plan for overlapping speakers. No 95% accuracy claim or trained-model release has been made.
+
 ## Downloads
 
 | Platform | Download | Status |

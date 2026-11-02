@@ -1,0 +1,200 @@
+[
+  {
+    "id": "fleurs-en_us-dev-10010138729160973689",
+    "language": "en",
+    "kind": "speech",
+    "inferenceSeconds": 2.422000000020489,
+    "metrics": {
+      "speech": {
+        "en": {
+          "clips": 1,
+          "wordErrors": 1,
+          "referenceWords": 15,
+          "falseRejections": 0,
+          "wer": 0.06666666666666667,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 0,
+        "emittedClips": 0,
+        "emissionRate": null
+      }
+    },
+    "referenceSha256": "4cb5621b5dc4111c7d1e479d0e89953dd9e07609694338b7b7e91c362a148949",
+    "predictionSha256": "c2e9e16e0eea64989cdadbe67b6a1b54b6c5f43651c233bf0520bdc0adf67265"
+  },
+  {
+    "id": "fleurs-en_us-dev-10035998729701048400",
+    "language": "en",
+    "kind": "speech",
+    "inferenceSeconds": 1.4060000000172295,
+    "metrics": {
+      "speech": {
+        "en": {
+          "clips": 1,
+          "wordErrors": 10,
+          "referenceWords": 33,
+          "falseRejections": 0,
+          "wer": 0.30303030303030304,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 0,
+        "emittedClips": 0,
+        "emissionRate": null
+      }
+    },
+    "referenceSha256": "2e56873a7dacfbddd6d4c16c886fa904884f7d04815bd00b9b3149cb3ef6d085",
+    "predictionSha256": "0c8a0cd637f7a06b6907285cf119cd1ccf914cbd760edf10424ae2444ddf1202"
+  },
+  {
+    "id": "fleurs-en_us-dev-1009709090964908274",
+    "language": "en",
+    "kind": "speech",
+    "inferenceSeconds": 0.9059999999881256,
+    "metrics": {
+      "speech": {
+        "en": {
+          "clips": 1,
+          "wordErrors": 2,
+          "referenceWords": 21,
+          "falseRejections": 0,
+          "wer": 0.09523809523809523,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 0,
+        "emittedClips": 0,
+        "emissionRate": null
+      }
+    },
+    "referenceSha256": "15ed08aaeaf3a87cb2cf4fef2b8831c9b23600d786b4d6a9f2c6ecf04b90418b",
+    "predictionSha256": "22348fd42247b2aeeb9c78454b759ee242ce524c246548e98c642a24a3f49399"
+  },
+  {
+    "id": "fleurs-ru_ru-dev-10005687533826592442",
+    "language": "ru",
+    "kind": "speech",
+    "inferenceSeconds": 1.7030000000086147,
+    "metrics": {
+      "speech": {
+        "ru": {
+          "clips": 1,
+          "wordErrors": 8,
+          "referenceWords": 26,
+          "falseRejections": 0,
+          "wer": 0.3076923076923077,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 0,
+        "emittedClips": 0,
+        "emissionRate": null
+      }
+    },
+    "referenceSha256": "43657194d198e7e5967ac68dce6bf16a0b7b6eb7c9d393feaf718366d1c192e9",
+    "predictionSha256": "fa5466e878cc0ac1d805dbfbf800cf7e50d3c6f162ca2bc5fc65d7b86c57b9d4"
+  },
+  {
+    "id": "fleurs-ru_ru-dev-10042203520901241191",
+    "language": "ru",
+    "kind": "speech",
+    "inferenceSeconds": 0.9539999999979045,
+    "metrics": {
+      "speech": {
+        "ru": {
+          "clips": 1,
+          "wordErrors": 2,
+          "referenceWords": 9,
+          "falseRejections": 0,
+          "wer": 0.2222222222222222,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 0,
+        "emittedClips": 0,
+        "emissionRate": null
+      }
+    },
+    "referenceSha256": "98d86326cdde6eaa63b772d995edcac68d13d7436a9c851b350a6a4a7aee5ec1",
+    "predictionSha256": "decd7780ea1b23ba94e4cc7ec288db7222cacf611d04770dc44db60a812a45e1"
+  },
+  {
+    "id": "fleurs-ru_ru-dev-10095490839809792710",
+    "language": "ru",
+    "kind": "speech",
+    "inferenceSeconds": 1.2650000000139698,
+    "metrics": {
+      "speech": {
+        "ru": {
+          "clips": 1,
+          "wordErrors": 7,
+          "referenceWords": 20,
+          "falseRejections": 0,
+          "wer": 0.35,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 0,
+        "emittedClips": 0,
+        "emissionRate": null
+      }
+    },
+    "referenceSha256": "78ecc81bb1136d747873c216b5ec41b9101367a6b8d3542af2dd3fb42b67296e",
+    "predictionSha256": "a7e0b37b6a93dfd07c410971108038c571a17306caa34e1b94039041ac14b13c"
+  },
+  {
+    "id": "generated-dev-silence",
+    "language": "en",
+    "kind": "non_speech",
+    "inferenceSeconds": 0.5309999999881256,
+    "metrics": {
+      "speech": {},
+      "nonSpeech": {
+        "clips": 1,
+        "emittedClips": 1,
+        "emissionRate": 1.0
+      }
+    },
+    "referenceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "predictionSha256": "bb0347a468d97e98a9c00e37cebec1ab930f6f1221cae0f1fbb92b07e1900ba2"
+  },
+  {
+    "id": "generated-dev-tone",
+    "language": "en",
+    "kind": "non_speech",
+    "inferenceSeconds": 0.48499999998603016,
+    "metrics": {
+      "speech": {},
+      "nonSpeech": {
+        "clips": 1,
+        "emittedClips": 1,
+        "emissionRate": 1.0
+      }
+    },
+    "referenceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "predictionSha256": "bb0347a468d97e98a9c00e37cebec1ab930f6f1221cae0f1fbb92b07e1900ba2"
+  },
+  {
+    "id": "generated-dev-noise",
+    "language": "en",
+    "kind": "non_speech",
+    "inferenceSeconds": 0.4370000000053551,
+    "metrics": {
+      "speech": {},
+      "nonSpeech": {
+        "clips": 1,
+        "emittedClips": 1,
+        "emissionRate": 1.0
+      }
+    },
+    "referenceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "predictionSha256": "bb0347a468d97e98a9c00e37cebec1ab930f6f1221cae0f1fbb92b07e1900ba2"
+  }
+]

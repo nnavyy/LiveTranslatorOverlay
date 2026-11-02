@@ -1,0 +1,791 @@
+[
+  {
+    "id": "fleurs-en_us-train-10004088536354799741",
+    "split": "train",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0381489,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "515af915b2734270ff2974f0f6ed1eab83157819d793ed423f53bf20b86e3869",
+    "segments": [
+      {
+        "start": 0.48,
+        "end": 6.05
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-train-10012216926115652402",
+    "split": "train",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0265621,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "c67c5e894850b571d1dec3e59d9aae3a456e845697a2d9b85674d75b0f4de809",
+    "segments": [
+      {
+        "start": 0.51,
+        "end": 2.7799999
+      },
+      {
+        "start": 3.27,
+        "end": 4.22
+      },
+      {
+        "start": 4.55,
+        "end": 6.97
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-train-10035729252730569448",
+    "split": "train",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0319045,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "6f04b86ce2a7460bf4b3c75e5e7aa1cf6e66d9cbb3cd0611a08a0c8026b8ef15",
+    "segments": [
+      {
+        "start": 0.61,
+        "end": 4
+      },
+      {
+        "start": 4.42,
+        "end": 9.85
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-train-10038239648789136007",
+    "split": "train",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0519561,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "46ff15b9e0a23c131547a4a08e853beb6f6feec00ac7ede57f39d8f8b8dccecd",
+    "segments": [
+      {
+        "start": 1.31,
+        "end": 2.56
+      },
+      {
+        "start": 2.75,
+        "end": 5.85
+      },
+      {
+        "start": 6.5,
+        "end": 7.97
+      },
+      {
+        "start": 8.23,
+        "end": 9.3699999
+      },
+      {
+        "start": 9.95,
+        "end": 11.68
+      },
+      {
+        "start": 12.2899999,
+        "end": 14.53
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-train-10038782309165056980",
+    "split": "train",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0497357,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "3c3daa8b571e666c0df008465c0edf929052565b252634e8beb4745c3c59e49b",
+    "segments": [
+      {
+        "start": 1.6,
+        "end": 4.64
+      },
+      {
+        "start": 5.09,
+        "end": 8.61
+      },
+      {
+        "start": 9.22,
+        "end": 10.88
+      },
+      {
+        "start": 11.23,
+        "end": 11.84
+      },
+      {
+        "start": 12.35,
+        "end": 13.95
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-train-10041973057502883658",
+    "split": "train",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": false,
+    "neuralGate": true,
+    "vadSeconds": 0.0328736,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "158ed49cd84ee4eadf40aefb80a0fbca9e5737bb05dc0459c16203383cfe9397",
+    "segments": [
+      {
+        "start": 1.6,
+        "end": 7.77
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-train-10045215346264155892",
+    "split": "train",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0283271,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "1553ad78fe0a8d6e59b68e9b1601fa1330cb05708cadd2e3f6f8a1adc24b9565",
+    "segments": [
+      {
+        "start": 1.19,
+        "end": 5.79
+      },
+      {
+        "start": 6.0199999,
+        "end": 7.29
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-train-10045464480702227987",
+    "split": "train",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0327526,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "8440c124a9d951fe009b131e51ad929a9cd3ab4e4cbe80ff862da57121bf6377",
+    "segments": [
+      {
+        "start": 0.77,
+        "end": 10.33
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-dev-10010138729160973689",
+    "split": "dev",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0234585,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "048169439c0328b758349af74aeb54a82a7a476e309709eb791dced06db25d48",
+    "segments": [
+      {
+        "start": 1.15,
+        "end": 4.13
+      },
+      {
+        "start": 4.29,
+        "end": 5.6
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-dev-10035998729701048400",
+    "split": "dev",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": false,
+    "neuralGate": true,
+    "vadSeconds": 0.0488151,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "5fefdcd12d4c136762cc7841b084126fc60c6d6410f983cc9f82b6cfc45737a2",
+    "segments": [
+      {
+        "start": 0.71,
+        "end": 10.46
+      },
+      {
+        "start": 10.63,
+        "end": 15.2
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-dev-1009709090964908274",
+    "split": "dev",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0225243,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "e5664ae10a6273fbe0009068e512f4c416cccbeff19d3d2d11e5fb8d72d03fb7",
+    "segments": [
+      {
+        "start": 0.77,
+        "end": 7.45
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-test-1003119935936341070",
+    "split": "test",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.029169,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "33aca50159ec2e3cbcc894eb26faa916d6badb1b49fb75994973561540a7f012",
+    "segments": [
+      {
+        "start": 1.06,
+        "end": 1.66
+      },
+      {
+        "start": 2.05,
+        "end": 3.77
+      },
+      {
+        "start": 4.42,
+        "end": 8.83
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-test-10052240106321793346",
+    "split": "test",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.030977,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "7603cae3294309ef70d234180cefccc3b13865ee525262228a636069b9b62841",
+    "segments": [
+      {
+        "start": 0.58,
+        "end": 3.45
+      },
+      {
+        "start": 3.65,
+        "end": 5.92
+      },
+      {
+        "start": 6.18,
+        "end": 8.13
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-test-10167324587744183095",
+    "split": "test",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": false,
+    "neuralGate": true,
+    "vadSeconds": 0.0644852,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "260bdd1a15e1d35bcc5d91667516ca3bc659285e10f94872182715bcd7880398",
+    "segments": [
+      {
+        "start": 0.45,
+        "end": 6.3
+      },
+      {
+        "start": 6.63,
+        "end": 10.91
+      }
+    ]
+  },
+  {
+    "id": "fleurs-en_us-test-10197164397713068203",
+    "split": "test",
+    "kind": "speech",
+    "language": "en",
+    "currentEnergyGate": false,
+    "neuralGate": true,
+    "vadSeconds": 0.0278872,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "b174be7730f0aab6a26762130b66f2125392b50550645727bd057d8479fb6219",
+    "segments": [
+      {
+        "start": 0.48,
+        "end": 5.3099999
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-train-10002203722064200187",
+    "split": "train",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0298958,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "7b5c556a47884943b974cdc8d1610a5bcb640d64fbe63a042d01ff569f1bb1d7",
+    "segments": [
+      {
+        "start": 0.42,
+        "end": 5.18
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-train-1001630848620267639",
+    "split": "train",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0655561,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "4c2168a0716648a7a9b861973b8379c68fa2438f3d7dc348fee237288c3afcc1",
+    "segments": [
+      {
+        "start": 0.64,
+        "end": 6.49
+      },
+      {
+        "start": 6.72,
+        "end": 15.17
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-train-10030647851907803158",
+    "split": "train",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0336638,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "8f733ae309b1a8acfe7ffc5911ac2247c9efb4d1b963c335b54e282ebffe09e8",
+    "segments": [
+      {
+        "start": 0.35,
+        "end": 9.31
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-train-10034323490556089936",
+    "split": "train",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0280025,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "3cd0b98a0172065e3de4d7f0be73ca25c1470093b8524b1f882e51607c382fbf",
+    "segments": [
+      {
+        "start": 1.54,
+        "end": 6.4
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-train-10040348467441289227",
+    "split": "train",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.055601,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "269d9a9d169ae3196eca58c1c023baa4a7c641da4ca1df445941fe2920ec7420",
+    "segments": [
+      {
+        "start": 1.03,
+        "end": 9.15
+      },
+      {
+        "start": 9.7899999,
+        "end": 11.58
+      },
+      {
+        "start": 11.91,
+        "end": 17.12
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-train-10044588855073753644",
+    "split": "train",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0232537,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "65b6a0da9e3eb0231b9d42a320e1f5f1621fc7318621f1e047d5f81015849d0c",
+    "segments": [
+      {
+        "start": 0.9,
+        "end": 3.17
+      },
+      {
+        "start": 3.49,
+        "end": 7.33
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-train-10059350002531149202",
+    "split": "train",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.028741,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "3e94e350cbb9f0891192a854e191c5862b69c4a14efe7fb9893add6fda2dc8a2",
+    "segments": [
+      {
+        "start": 0.29,
+        "end": 2.3
+      },
+      {
+        "start": 2.69,
+        "end": 4.45
+      },
+      {
+        "start": 4.96,
+        "end": 7.68
+      },
+      {
+        "start": 7.84,
+        "end": 9.6
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-train-10063904975963482359",
+    "split": "train",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0389846,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "15b1e4c4173fd9f91b2676cc3bfec6dc69ef65cf092cdb25287ea018f42ec725",
+    "segments": [
+      {
+        "start": 1.03,
+        "end": 11.2
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-dev-10005687533826592442",
+    "split": "dev",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0491335,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "0ebc61463e1e2db72f81f5261b865b5cead812851cbb07a799d5e98cf9df8654",
+    "segments": [
+      {
+        "start": 0.58,
+        "end": 6.43
+      },
+      {
+        "start": 6.75,
+        "end": 10.6199999
+      },
+      {
+        "start": 10.82,
+        "end": 12.8
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-dev-10042203520901241191",
+    "split": "dev",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0274575,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "363087f90513f5484750d8076da3cf7d029065d6b09f7ea68170bcf10b487d27",
+    "segments": [
+      {
+        "start": 1.86,
+        "end": 6.14
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-dev-10095490839809792710",
+    "split": "dev",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0422114,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "6322af8001ae8063cce679fa86dde252858f0f5354fb2dca2b8b0614b331fb3b",
+    "segments": [
+      {
+        "start": 1.3799999,
+        "end": 4.51
+      },
+      {
+        "start": 4.93,
+        "end": 6.91
+      },
+      {
+        "start": 7.17,
+        "end": 10.65
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-test-10000611681338527501",
+    "split": "test",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0513508,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "08d7f2cd51bb0de6d00655368d9926888930a8a2482ee48153c1b099dcc2a7e4",
+    "segments": [
+      {
+        "start": 2.34,
+        "end": 7.61
+      },
+      {
+        "start": 8.07,
+        "end": 10.85
+      },
+      {
+        "start": 11.36,
+        "end": 14.56
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-test-10002861505982796062",
+    "split": "test",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0368262,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "81673ad2f0eb6a463e13fd9d5a442d1469e745f9a67565a3b9d20fbff395599a",
+    "segments": [
+      {
+        "start": 2.4,
+        "end": 9.5
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-test-10008070632189747443",
+    "split": "test",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0323986,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "78e9c886fbfc247dc7743f9dc7473006b7a50b9401f1db9af16926cf9dae0d04",
+    "segments": [
+      {
+        "start": 2.02,
+        "end": 7.45
+      }
+    ]
+  },
+  {
+    "id": "fleurs-ru_ru-test-10011799110630615565",
+    "split": "test",
+    "kind": "speech",
+    "language": "ru",
+    "currentEnergyGate": true,
+    "neuralGate": true,
+    "vadSeconds": 0.0326316,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "d327393251ecdea82bf7b09be85715b068b4ab1fabd2709be698ede923646a72",
+    "segments": [
+      {
+        "start": 0.96,
+        "end": 7.29
+      }
+    ]
+  },
+  {
+    "id": "generated-train-silence",
+    "split": "train",
+    "kind": "non_speech",
+    "language": "en",
+    "currentEnergyGate": false,
+    "neuralGate": false,
+    "vadSeconds": 0.0177002,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "d303811b8c84619667cd0501342f84ec6cbe69f7aa3856dcf52fabda374c92b8",
+    "segments": []
+  },
+  {
+    "id": "generated-train-tone",
+    "split": "train",
+    "kind": "non_speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": false,
+    "vadSeconds": 0.0225164,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "f08a7560945861f50b232c6280fc5ceeb4c0b2eaa964385b00cc33d7375b4063",
+    "segments": []
+  },
+  {
+    "id": "generated-train-noise",
+    "split": "train",
+    "kind": "non_speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": false,
+    "vadSeconds": 0.0161182,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "5daf5d5a4bb5ddc6fa4e073ccc8bf074b48ea583b7c28849a665fec2794a4953",
+    "segments": []
+  },
+  {
+    "id": "generated-dev-silence",
+    "split": "dev",
+    "kind": "non_speech",
+    "language": "en",
+    "currentEnergyGate": false,
+    "neuralGate": false,
+    "vadSeconds": 0.0225611,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "f751fd7094be088dc785125e4a1a0222a17c2bd20469aa31728ca5e515ed5809",
+    "segments": []
+  },
+  {
+    "id": "generated-dev-tone",
+    "split": "dev",
+    "kind": "non_speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": false,
+    "vadSeconds": 0.0161477,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "b5de32577dbf0fedb99fb77af9360a8cc429138d3f0d746208b8970de02d0a1a",
+    "segments": []
+  },
+  {
+    "id": "generated-dev-noise",
+    "split": "dev",
+    "kind": "non_speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": false,
+    "vadSeconds": 0.0173958,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "ee9866a82bb7c69ff8153bd9ee66202d55acc16974b8a8f7b1b39c11c76aab10",
+    "segments": []
+  },
+  {
+    "id": "generated-test-silence",
+    "split": "test",
+    "kind": "non_speech",
+    "language": "en",
+    "currentEnergyGate": false,
+    "neuralGate": false,
+    "vadSeconds": 0.0549793,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "262d1f34f300560a4c82ba8127ddea9e1d72946f187fdbd3e8f70ee096077aec",
+    "segments": []
+  },
+  {
+    "id": "generated-test-tone",
+    "split": "test",
+    "kind": "non_speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": false,
+    "vadSeconds": 0.0152667,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "1aec7eb5201f50e8d417290fc3541429fec7fe39c661048442591590e520cb2b",
+    "segments": []
+  },
+  {
+    "id": "generated-test-noise",
+    "split": "test",
+    "kind": "non_speech",
+    "language": "en",
+    "currentEnergyGate": true,
+    "neuralGate": false,
+    "vadSeconds": 0.0138822,
+    "threshold": 0.5,
+    "vadSha256": "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987",
+    "audioSha256": "fcaf8fe0be1c4e758e8851ab65d4853cfc3da029d563259e7829df3a3672c2ae",
+    "segments": []
+  }
+]
