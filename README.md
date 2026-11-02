@@ -11,8 +11,8 @@ The [speech hallucination and training review](docs/reviews/2026-11-01-ml-traini
 | Platform | Download | Status |
 | --- | --- | --- |
 | Windows 10/11 — x64 | [Windows release](https://github.com/nnavyy/LiveTranslatorOverlay/releases/latest) — choose `LiveTranslatorOverlay-Windows-x64.zip` | Stable overlay with audio, OCR, and history |
-| Mac — Apple Silicon (M-series) | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.1-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-arm64.zip` | Developer preview: manual text translation and session history |
-| Mac — Intel | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.1-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-x64.zip` | Developer preview: manual text translation and session history |
+| Mac — Apple Silicon (M-series) | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.2-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-arm64.zip` | Developer preview: manual text translation and session history |
+| Mac — Intel | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.2-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-x64.zip` | Developer preview: manual text translation and session history |
 
 Mac requires macOS 14 or newer. The preview bundles are ad-hoc signed and not notarized; read the [Mac preview notes](MacApp/RELEASE_NOTES.md). The **Source code** archives on GitHub are for developers, not the runnable app packages.
 

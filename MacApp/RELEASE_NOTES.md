@@ -1,4 +1,14 @@
-# Mac developer preview — v1.5.1
+# Mac developer preview — v1.5.2
+
+## A simpler translation workspace
+
+- Read the original and translated text side by side, with clearly labeled language selectors.
+- Keep provider settings and session history collapsed until needed.
+- Follow your system's light or dark appearance, with quieter colors, consistent spacing, and rounded controls.
+- Copy a translation in one click or translate with Command-Return.
+- Find version information, preview limitations, and issue reporting under **About & feedback**.
+
+Groq API keys remain masked and session-only. History can still be cleared or exported. This update does not add audio, OCR, or overlay captions.
 
 ## Mac downloads — developer preview
 
@@ -6,8 +16,8 @@ Requires **macOS 14 or newer**. Choose the ZIP matching your Mac's chip, then ex
 
 | Your Mac | Download |
 | --- | --- |
-| Apple Silicon — M-series chip | [LiveTranslatorOverlay-Mac-preview-osx-arm64.zip](https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.5.1-mac-preview/LiveTranslatorOverlay-Mac-preview-osx-arm64.zip) |
-| Intel processor | [LiveTranslatorOverlay-Mac-preview-osx-x64.zip](https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.5.1-mac-preview/LiveTranslatorOverlay-Mac-preview-osx-x64.zip) |
+| Apple Silicon — M-series chip | [LiveTranslatorOverlay-Mac-preview-osx-arm64.zip](https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.5.2-mac-preview/LiveTranslatorOverlay-Mac-preview-osx-arm64.zip) |
+| Intel processor | [LiveTranslatorOverlay-Mac-preview-osx-x64.zip](https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.5.2-mac-preview/LiveTranslatorOverlay-Mac-preview-osx-x64.zip) |
 
 Check **Apple menu > About This Mac**: a **Chip** entry naming an M-series chip means Apple Silicon; an **Intel Processor** entry means Intel.
 

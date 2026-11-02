@@ -1,13 +1,14 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Themes.Fluent;
 using LiveTranslatorOverlay.Core;
-using LiveTranslatorOverlay.Core.Update;
 
 namespace LiveTranslatorMac;
 
 internal static class Program
 {
+    internal static string DisplayVersion => $"v{typeof(Program).Assembly.GetName().Version!.ToString(3)}";
     internal static bool UiSmokeTest { get; private set; }
     internal static bool WindowOpened { get; set; }
     [STAThread]
@@ -25,7 +26,7 @@ internal static class Program
             locale.SetLanguage("es");
             if (locale.Get("BtnSettings") != "Ajustes") return 1;
             locale.SetLanguage("en");
-            Console.WriteLine($"Mac preview smoke check passed: {AppVersion.DisplayString}; {System.Runtime.InteropServices.RuntimeInformation.OSDescription}; {System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture}");
+            Console.WriteLine($"Mac preview smoke check passed: {DisplayVersion}; {System.Runtime.InteropServices.RuntimeInformation.OSDescription}; {System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture}");
             return 0;
         }
         UiSmokeTest = args.Contains("--ui-smoke-test");
@@ -40,7 +41,8 @@ public sealed class MacApplication : Application
     public override void Initialize()
     {
         Styles.Add(new FluentTheme());
-        RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
+        Styles.Add(new StyleInclude(new Uri("avares://LiveTranslatorMac/")) { Source = new Uri("avares://LiveTranslatorMac/Styles.axaml") });
+        RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Default;
     }
     public override void OnFrameworkInitializationCompleted()
     {
