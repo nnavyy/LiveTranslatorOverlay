@@ -1,0 +1,90 @@
+{
+  "publisherPage": "https://www-prod.elsevier.com/products/scopus/content",
+  "download": "https://downloads.ctfassets.net/o78em1y1w4i4/7xtaTxNiNcWRTeZkV86eNy/e6b17b29beaf8d18175591a4e8dee0bf/ext_list_Sep_2026.xlsx",
+  "retrieved": "2026-11-02",
+  "sha256": "1e2eea11dd6b02609efaf78fb23efe888b47d55a3d1e20dffcd0ec87c56d892b",
+  "scope": "Source/proceedings coverage, not individual article EID verification. Row numbers are one-based Excel rows. Conference EIDs below identify the proceedings record, not the cited article.",
+  "rows": {
+    "interspeech": {
+      "sheet": "Serial Conf. Proc. with Profile",
+      "row": 729,
+      "values": [
+        21100212301,
+        "Proceedings of the Annual Conference of the International Speech Communication Association, INTERSPEECH",
+        "2308457X",
+        "29581796",
+        null,
+        "2013-2025; 2006-2011; 2004",
+        "2611; 1712; 1711; 1709; 1203"
+      ]
+    },
+    "icassp": {
+      "sheet": "Serial Conf. Proc. with Profile",
+      "row": 562,
+      "values": [
+        110544,
+        "Proceedings - ICASSP, IEEE International Conference on Acoustics, Speech and Signal Processing",
+        "07367791",
+        "",
+        null,
+        "1981-2025; 1976-1977",
+        "2208; 1711; 1712"
+      ]
+    },
+    "facct": {
+      "sheet": "All Conf. Proceedings Jun. 2026",
+      "row": 12999,
+      "values": [
+        "2024 ACM Conference on Fairness, Accountability, and Transparency, FAccT 2024",
+        "2024 ACM Conference on Fairness, Accountability, and Transparency, FAccT 2024",
+        9798400704505,
+        2024,
+        null,
+        85196666215,
+        "Association for Computing Machinery, Inc",
+        1400
+      ]
+    },
+    "slt": {
+      "sheet": "All Conf. Proceedings Jun. 2026",
+      "row": 11497,
+      "values": [
+        "2022 IEEE Spoken Language Technology Workshop, SLT 2022 - Proceedings",
+        "2022 IEEE Spoken Language Technology Workshop, SLT 2022 - Proceedings",
+        9798350396904,
+        2023,
+        null,
+        85147828022,
+        "Institute of Electrical and Electronics Engineers Inc.",
+        "1707; 1708; 2214; 3105; 3310"
+      ]
+    },
+    "nature": {
+      "sheet": "Scopus Sources Sep. 2026",
+      "row": 34160,
+      "values": [
+        21206,
+        "Nature",
+        "00280836",
+        "14764687",
+        "Active",
+        "1869-2026",
+        ""
+      ]
+    },
+    "wmt": {
+      "sheet": "All Conf. Proceedings Jun. 2026",
+      "row": 49216,
+      "values": [
+        "Conference on Machine Translation - Proceedings",
+        "WMT 2022 - 7th Conference on Machine Translation, Proceedings of the Conference",
+        9781959429296,
+        2022,
+        null,
+        85160526720,
+        "Association for Computational Linguistics",
+        "1203; 1709; 1712"
+      ]
+    }
+  }
+}

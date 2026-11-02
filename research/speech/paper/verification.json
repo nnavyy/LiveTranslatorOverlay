@@ -1,0 +1,15 @@
+{
+  "verifiedAtUtc": "2026-11-02T11:42:01.391119+00:00",
+  "referenceCount": 44,
+  "uniqueDois": 44,
+  "allReferencesCited": true,
+  "sourceCoverageChecks": 44,
+  "individualScopusArticleRecordsVerified": false,
+  "doiNetworkRecheckedThisRun": true,
+  "statisticsRecomputed": true,
+  "pdfPages": 13,
+  "pdfDoiLinks": 44,
+  "pdfSha256": "dcead507b2b8776a9009511ab265aed3f7dd0c279f92e4190ee11d7def03060b",
+  "visualReviewAutomated": false,
+  "note": "Unit tests and visual review are separate checks documented in README.md; this verifier does not perform them."
+}
