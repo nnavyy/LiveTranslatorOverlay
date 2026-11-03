@@ -34,11 +34,15 @@ def main():
                         help="Also evaluate the halfway checkpoint of a parent continuation")
     parser.add_argument("--learn-empty-captions", action="store_true",
                         help="Replay training controls once and permit immediate end-of-transcript at decoding")
+    parser.add_argument("--full-epoch", action="store_true", help="Fit a fresh adapter for one pass through training")
     args = parser.parse_args()
-    if args.learn_empty_captions and (args.phase != "develop" or not args.parent_run):
-        parser.error("--learn-empty-captions requires develop and --parent-run")
-    if args.midpoint_checkpoint and (not args.parent_run or args.phase != "develop"):
-        parser.error("--midpoint-checkpoint requires develop and --parent-run")
+    if args.full_epoch and (args.phase != "develop" or args.parent_run):
+        parser.error("--full-epoch requires develop without a parent")
+    epoch_run = args.parent_run or args.full_epoch
+    if args.learn_empty_captions and (args.phase != "develop" or not epoch_run):
+        parser.error("--learn-empty-captions requires develop with --parent-run or --full-epoch")
+    if args.midpoint_checkpoint and (not epoch_run or args.phase != "develop"):
+        parser.error("--midpoint-checkpoint requires develop with --parent-run or --full-epoch")
     if args.phase_limit_seconds < 1:
         parser.error("--phase-limit-seconds must be positive")
     print(f"{args.phase} | Local CPU, 4 threads\nAudio manifest: {args.manifest.resolve()}\n"
@@ -51,12 +55,17 @@ def main():
     torch.use_deterministic_algorithms(True)
     started = time.monotonic()
     provenance = json.loads((args.model / "provenance.json").read_text(encoding="utf-8"))
-    if provenance["repo"] != "openai/whisper-tiny" or provenance["revision"] != "169d4a4341b33bc18d8881c4b69c2e104e1cc0af":
+    revisions = {"openai/whisper-tiny": "169d4a4341b33bc18d8881c4b69c2e104e1cc0af",
+                 "openai/whisper-small": "973afd24965f72e36ca33b3055d56a652f456b4d"}
+    if revisions.get(provenance["repo"]) != provenance["revision"] or provenance["repo"] not in revisions:
         raise ValueError("Unexpected model revision")
     for filename, digest in provenance["files"].items():
         path = (args.model / filename).resolve()
-        if not path.is_relative_to(args.model.resolve()) or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
-            raise ValueError("Model checksum mismatch")
+        if not path.is_relative_to(args.model.resolve()):
+            raise ValueError("Model path escapes model directory")
+        with path.open("rb") as stream:
+            if hashlib.file_digest(stream, "sha256").hexdigest() != digest:
+                raise ValueError("Model checksum mismatch")
     manifest_hash = hashlib.sha256(args.manifest.read_bytes()).hexdigest()
     parent_adapter = None
     parent_hash = None
@@ -85,6 +94,9 @@ def main():
         args.output.mkdir(parents=True, exist_ok=False)
         run_dir = args.output
     else:
+        trained = json.loads((args.output / "configuration.json").read_text(encoding="utf-8"))
+        if trained["baseRevision"] != provenance["revision"]:
+            raise ValueError("Test base differs from development base")
         selection_path = args.output / "selection.json"
         selection = json.loads(selection_path.read_text(encoding="utf-8"))
         if selection.get("parentAdapterSha256") != parent_hash:
@@ -180,8 +192,10 @@ def main():
         training.extend(controls)
         configuration.update(learnEmptyCaptions=True, extraControlUpdates=len(controls),
             decoder=configuration["decoder"] + ", immediate end-of-transcript allowed")
+    epoch_steps = len(training)
+    if args.full_epoch:
+        configuration.update(steps=epoch_steps, checkpoints=[epoch_steps], learningRate=5e-5)
     if parent_adapter:
-        epoch_steps = len(training)
         configuration.update(parentAdapterSha256=parent_hash, parentCheckpoint=parent["checkpoint"],
             optimizerState="fresh AdamW", learningRate=5e-5, steps=epoch_steps, checkpoints=[epoch_steps],
             eligibility="Must pass original guardrails against both pretrained baseline and parent")
