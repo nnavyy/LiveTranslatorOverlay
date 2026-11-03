@@ -4,6 +4,8 @@ This is a developer research workspace. It does not install a model in the appli
 
 The [training history](../../docs/reviews/2026-11-03-expanded-ml.md) records the English/Russian checkpoint results and separates the C# runtime and translation measurements. The [Round 4 report](results/2026-11-03-round4/README.md) covers the continuation on 1,000 new speech recordings, including the held-out scores and reproduction commands.
 
+The [Russian-focused dataset](results/2026-11-03-russian-data/README.md) is prepared for a future run. It has 4,000 Russian speech clips, 1,000 English speech clips and 600 nonspeech controls, split 70/15/15 by clip count.
+
 Read the [research review and decision](../../docs/reviews/2026-11-01-ml-training.md). The first [recorded experiment](results/2026-11-01-pilot/report.json) is **not approved for release**: its small adapter did not improve held-out speech recognition or non-speech hallucinations. The separate neural VAD comparison is promising on a tiny sample, not a validated fix for wrong words during speech.
 
 The [research manuscript and audit package](paper/README.md), dated 2 November 2026, adds a PDF, 44 DOI-verified references with Scopus source-coverage evidence, recomputed statistical intervals, a technical dataset audit and a prospective speech/translation study protocol. It reports the negative pilot honestly and separates future experiments from measured results.
