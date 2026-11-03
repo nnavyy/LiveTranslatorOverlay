@@ -1,0 +1,601 @@
+{
+  "date": "2026-11-03",
+  "productionApproved": false,
+  "selection": {
+    "checkpoint": "320",
+    "developmentEligible": false,
+    "eligibility": {
+      "160": false,
+      "320": false
+    },
+    "selectionData": "dev-only",
+    "productionApproved": false,
+    "manifestSha256": "b5fe8369b5a18cea6c0df81a9356c1c84705279ea08ec3daa9b9029630abd119",
+    "adapterSha256": "0e0b569083a7d7f980a724ad2d68e2ed58fd64dd4eece1792fc692f1bfc7c3e3"
+  },
+  "sampleCounts": {
+    "train/speech": 160,
+    "dev/speech": 40,
+    "test/speech": 80,
+    "train/non_speech": 24,
+    "dev/non_speech": 12,
+    "test/non_speech": 12
+  },
+  "audioSeconds": 3081.0196875,
+  "scores": {
+    "baseline": {
+      "speech": {
+        "en": {
+          "clips": 40,
+          "wordErrors": 103,
+          "referenceWords": 861,
+          "falseRejections": 0,
+          "wer": 0.11962833914053426,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 40,
+          "wordErrors": 295,
+          "referenceWords": 803,
+          "falseRejections": 0,
+          "wer": 0.36737235367372356,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 12,
+        "emittedClips": 12,
+        "emissionRate": 1.0
+      }
+    },
+    "candidate": {
+      "speech": {
+        "en": {
+          "clips": 40,
+          "wordErrors": 108,
+          "referenceWords": 861,
+          "falseRejections": 0,
+          "wer": 0.1254355400696864,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 40,
+          "wordErrors": 310,
+          "referenceWords": 803,
+          "falseRejections": 0,
+          "wer": 0.386052303860523,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 12,
+        "emittedClips": 4,
+        "emissionRate": 0.3333333333333333
+      }
+    },
+    "smallExplicit": {
+      "speech": {
+        "en": {
+          "clips": 40,
+          "wordErrors": 52,
+          "referenceWords": 861,
+          "falseRejections": 0,
+          "wer": 0.06039488966318235,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 40,
+          "wordErrors": 109,
+          "referenceWords": 803,
+          "falseRejections": 0,
+          "wer": 0.1357409713574097,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 12,
+        "emittedClips": 12,
+        "emissionRate": 1.0
+      }
+    },
+    "small+currentEnergyGate": {
+      "speech": {
+        "en": {
+          "clips": 40,
+          "wordErrors": 580,
+          "referenceWords": 861,
+          "falseRejections": 25,
+          "wer": 0.6736353077816493,
+          "falseRejectionRate": 0.625
+        },
+        "ru": {
+          "clips": 40,
+          "wordErrors": 210,
+          "referenceWords": 803,
+          "falseRejections": 6,
+          "wer": 0.261519302615193,
+          "falseRejectionRate": 0.15
+        }
+      },
+      "nonSpeech": {
+        "clips": 12,
+        "emittedClips": 8,
+        "emissionRate": 0.6666666666666666
+      }
+    },
+    "small+neuralGate": {
+      "speech": {
+        "en": {
+          "clips": 40,
+          "wordErrors": 52,
+          "referenceWords": 861,
+          "falseRejections": 0,
+          "wer": 0.06039488966318235,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 40,
+          "wordErrors": 109,
+          "referenceWords": 803,
+          "falseRejections": 0,
+          "wer": 0.1357409713574097,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 12,
+        "emittedClips": 0,
+        "emissionRate": 0.0
+      }
+    }
+  },
+  "adapterVersusTiny": {
+    "en": {
+      "difference": 0.005807200929152149,
+      "lower": -0.024520255863539446,
+      "upper": 0.033128834355828224,
+      "independentGroups": 37,
+      "repeats": 10000,
+      "seed": 20261103,
+      "method": "paired parent-sentence cluster percentile bootstrap, 95%"
+    },
+    "ru": {
+      "difference": 0.0186799501867995,
+      "lower": -0.014527845036319613,
+      "upper": 0.05150753768844221,
+      "independentGroups": 38,
+      "repeats": 10000,
+      "seed": 20261103,
+      "method": "paired parent-sentence cluster percentile bootstrap, 95%"
+    }
+  },
+  "smallVersusTiny": {
+    "en": {
+      "difference": -0.059233449477351915,
+      "lower": -0.08830845771144279,
+      "upper": -0.034103410341034104,
+      "independentGroups": 37,
+      "repeats": 10000,
+      "seed": 20261103,
+      "method": "paired parent-sentence cluster percentile bootstrap, 95%"
+    },
+    "ru": {
+      "difference": -0.23163138231631383,
+      "lower": -0.2686375321336761,
+      "upper": -0.1958041958041958,
+      "independentGroups": 38,
+      "repeats": 10000,
+      "seed": 20261103,
+      "method": "paired parent-sentence cluster percentile bootstrap, 95%"
+    }
+  },
+  "languageMode": {
+    "explicit": {
+      "speech": {
+        "en": {
+          "clips": 10,
+          "wordErrors": 16,
+          "referenceWords": 228,
+          "falseRejections": 0,
+          "wer": 0.07017543859649122,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 10,
+          "wordErrors": 30,
+          "referenceWords": 196,
+          "falseRejections": 0,
+          "wer": 0.15306122448979592,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 0,
+        "emittedClips": 0,
+        "emissionRate": null
+      }
+    },
+    "automatic": {
+      "speech": {
+        "en": {
+          "clips": 10,
+          "wordErrors": 16,
+          "referenceWords": 228,
+          "falseRejections": 0,
+          "wer": 0.07017543859649122,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 10,
+          "wordErrors": 30,
+          "referenceWords": 196,
+          "falseRejections": 0,
+          "wer": 0.15306122448979592,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 0,
+        "emittedClips": 0,
+        "emissionRate": null
+      }
+    },
+    "pairedDifference": {
+      "en": {
+        "difference": 0.0,
+        "lower": 0.0,
+        "upper": 0.0,
+        "independentGroups": 10,
+        "repeats": 10000,
+        "seed": 20261103,
+        "method": "paired parent-sentence cluster percentile bootstrap, 95%"
+      },
+      "ru": {
+        "difference": 0.0,
+        "lower": 0.0,
+        "upper": 0.0,
+        "independentGroups": 9,
+        "repeats": 10000,
+        "seed": 20261103,
+        "method": "paired parent-sentence cluster percentile bootstrap, 95%"
+      }
+    },
+    "detectedCorrect": 20,
+    "clips": 20
+  },
+  "gateRates": {
+    "train/all-non-speech": {
+      "currentEnergyGate": {
+        "n": 24,
+        "successes": 16,
+        "rate": 0.6666666666666666,
+        "lower": 0.4670631683813228,
+        "upper": 0.8202780967270192
+      },
+      "neuralGate": {
+        "n": 24,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.13797620467497365
+      }
+    },
+    "train/clean": {
+      "currentEnergyGate": {
+        "n": 160,
+        "successes": 146,
+        "rate": 0.9125,
+        "lower": 0.8584936823781056,
+        "upper": 0.9471632066054035
+      },
+      "neuralGate": {
+        "n": 160,
+        "successes": 160,
+        "rate": 1.0,
+        "lower": 0.9765538048284961,
+        "upper": 1
+      }
+    },
+    "train/noise": {
+      "currentEnergyGate": {
+        "n": 8,
+        "successes": 8,
+        "rate": 1.0,
+        "lower": 0.6755924351161318,
+        "upper": 1
+      },
+      "neuralGate": {
+        "n": 8,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.3244075648838681
+      }
+    },
+    "train/silence": {
+      "currentEnergyGate": {
+        "n": 8,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.3244075648838681
+      },
+      "neuralGate": {
+        "n": 8,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.3244075648838681
+      }
+    },
+    "train/tone": {
+      "currentEnergyGate": {
+        "n": 8,
+        "successes": 8,
+        "rate": 1.0,
+        "lower": 0.6755924351161318,
+        "upper": 1
+      },
+      "neuralGate": {
+        "n": 8,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.3244075648838681
+      }
+    },
+    "dev/all-non-speech": {
+      "currentEnergyGate": {
+        "n": 12,
+        "successes": 8,
+        "rate": 0.6666666666666666,
+        "lower": 0.39062208887280625,
+        "upper": 0.8618799089087836
+      },
+      "neuralGate": {
+        "n": 12,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.24249400665523077
+      }
+    },
+    "dev/clean": {
+      "currentEnergyGate": {
+        "n": 40,
+        "successes": 23,
+        "rate": 0.575,
+        "lower": 0.42195068541991465,
+        "upper": 0.7149060744004929
+      },
+      "neuralGate": {
+        "n": 40,
+        "successes": 40,
+        "rate": 1.0,
+        "lower": 0.912378398802718,
+        "upper": 1
+      }
+    },
+    "dev/noise": {
+      "currentEnergyGate": {
+        "n": 4,
+        "successes": 4,
+        "rate": 1.0,
+        "lower": 0.5101091635454165,
+        "upper": 1
+      },
+      "neuralGate": {
+        "n": 4,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.48989083645458353
+      }
+    },
+    "dev/noise20dB": {
+      "currentEnergyGate": {
+        "n": 40,
+        "successes": 23,
+        "rate": 0.575,
+        "lower": 0.42195068541991465,
+        "upper": 0.7149060744004929
+      },
+      "neuralGate": {
+        "n": 40,
+        "successes": 40,
+        "rate": 1.0,
+        "lower": 0.912378398802718,
+        "upper": 1
+      }
+    },
+    "dev/quiet": {
+      "currentEnergyGate": {
+        "n": 40,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 6.938893903907228e-18,
+        "upper": 0.08762160119728224
+      },
+      "neuralGate": {
+        "n": 40,
+        "successes": 23,
+        "rate": 0.575,
+        "lower": 0.42195068541991465,
+        "upper": 0.7149060744004929
+      }
+    },
+    "dev/silence": {
+      "currentEnergyGate": {
+        "n": 4,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.48989083645458353
+      },
+      "neuralGate": {
+        "n": 4,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.48989083645458353
+      }
+    },
+    "dev/tone": {
+      "currentEnergyGate": {
+        "n": 4,
+        "successes": 4,
+        "rate": 1.0,
+        "lower": 0.5101091635454165,
+        "upper": 1
+      },
+      "neuralGate": {
+        "n": 4,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.48989083645458353
+      }
+    },
+    "test/all-non-speech": {
+      "currentEnergyGate": {
+        "n": 12,
+        "successes": 8,
+        "rate": 0.6666666666666666,
+        "lower": 0.39062208887280625,
+        "upper": 0.8618799089087836
+      },
+      "neuralGate": {
+        "n": 12,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.24249400665523077
+      }
+    },
+    "test/clean": {
+      "currentEnergyGate": {
+        "n": 80,
+        "successes": 49,
+        "rate": 0.6125,
+        "lower": 0.5029365721075602,
+        "upper": 0.7117543487469468
+      },
+      "neuralGate": {
+        "n": 80,
+        "successes": 80,
+        "rate": 1.0,
+        "lower": 0.9541818704644752,
+        "upper": 0.9999999999999999
+      }
+    },
+    "test/noise": {
+      "currentEnergyGate": {
+        "n": 4,
+        "successes": 4,
+        "rate": 1.0,
+        "lower": 0.5101091635454165,
+        "upper": 1
+      },
+      "neuralGate": {
+        "n": 4,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.48989083645458353
+      }
+    },
+    "test/noise20dB": {
+      "currentEnergyGate": {
+        "n": 80,
+        "successes": 49,
+        "rate": 0.6125,
+        "lower": 0.5029365721075602,
+        "upper": 0.7117543487469468
+      },
+      "neuralGate": {
+        "n": 80,
+        "successes": 80,
+        "rate": 1.0,
+        "lower": 0.9541818704644752,
+        "upper": 0.9999999999999999
+      }
+    },
+    "test/quiet": {
+      "currentEnergyGate": {
+        "n": 80,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 3.469446951953614e-18,
+        "upper": 0.04581812953552469
+      },
+      "neuralGate": {
+        "n": 80,
+        "successes": 48,
+        "rate": 0.6,
+        "lower": 0.490454650051607,
+        "upper": 0.7003817240412882
+      }
+    },
+    "test/silence": {
+      "currentEnergyGate": {
+        "n": 4,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.48989083645458353
+      },
+      "neuralGate": {
+        "n": 4,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.48989083645458353
+      }
+    },
+    "test/tone": {
+      "currentEnergyGate": {
+        "n": 4,
+        "successes": 4,
+        "rate": 1.0,
+        "lower": 0.5101091635454165,
+        "upper": 1
+      },
+      "neuralGate": {
+        "n": 4,
+        "successes": 0,
+        "rate": 0.0,
+        "lower": 0,
+        "upper": 0.48989083645458353
+      }
+    }
+  },
+  "nativeTiming": {
+    "en": {
+      "clips": 40,
+      "audioSeconds": 371.44,
+      "inferenceSeconds": 200.0699814,
+      "aggregateRTF": 0.5386333765884126,
+      "medianClipSeconds": 4.92416665,
+      "p95ClipSeconds": 5.573428,
+      "slowerThanAudio": 3
+    },
+    "ru": {
+      "clips": 40,
+      "audioSeconds": 458.82,
+      "inferenceSeconds": 223.7238175,
+      "aggregateRTF": 0.4876069428098165,
+      "medianClipSeconds": 5.59713145,
+      "p95ClipSeconds": 6.0868005,
+      "slowerThanAudio": 0
+    }
+  },
+  "nativePeakWorkingSetMiB": 543.5,
+  "nativeModelSha256": "ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb",
+  "caveats": [
+    "Read speech, one seed, small nonrandom subset; no conversational accuracy claim",
+    "Pretraining overlap is unknown; 'held-out' is relative to our fine-tuning and previous pilot",
+    "Synthetic controls and derived challenges are not real acoustic environments",
+    "Whole-clip gate replay is not a live caption pipeline",
+    "No translation, diarization, macOS, live capture or final adapter quantization evaluation"
+  ]
+}
