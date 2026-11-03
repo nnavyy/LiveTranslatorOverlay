@@ -1,7 +1,10 @@
 # Windows PowerShell 5.1+. Uses the existing local research environment.
 [CmdletBinding()]
-param([string]$ResearchRoot = (Join-Path $PSScriptRoot '..\..\..\offline-research'))
+param([string]$ResearchRoot)
 $ErrorActionPreference = 'Stop'
+if ([string]::IsNullOrWhiteSpace($ResearchRoot)) {
+    $ResearchRoot = Join-Path (Split-Path $PSScriptRoot -Parent) '..\..\offline-research'
+}
 $r = (Resolve-Path -LiteralPath $ResearchRoot).Path
 $py = Join-Path $r 'training-venv\Scripts\python.exe'
 $data = Join-Path $r 'russian-focus-20261103\manifest.jsonl'
