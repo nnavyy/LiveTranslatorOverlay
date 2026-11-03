@@ -1,0 +1,117 @@
+{
+  "pairedClips": 79,
+  "excluded": [
+    {
+      "id": "fleurs-en_us-test-10731896540541531669",
+      "group": "fleurs-sentence-1790",
+      "availableTargetTexts": 0
+    }
+  ],
+  "scores": {
+    "en-to-ru/transcript": {
+      "clips": 39,
+      "uniquePrompts": 36,
+      "chrF2": 49.17100409605003,
+      "bleu": 20.22268873247093,
+      "chrFsignature": "nrefs:1|case:mixed|eff:yes|nc:6|nw:0|space:no|version:2.6.0",
+      "bleuSignature": "nrefs:1|case:mixed|eff:no|tok:13a|smooth:exp|version:2.6.0",
+      "emptyOutputs": 0,
+      "medianTranslationSeconds": 0.8430000000007567,
+      "p95TranslationSeconds": 1.889999999999418
+    },
+    "en-to-ru/recognized": {
+      "clips": 39,
+      "uniquePrompts": 36,
+      "chrF2": 46.94862547884152,
+      "bleu": 18.241041675289924,
+      "chrFsignature": "nrefs:1|case:mixed|eff:yes|nc:6|nw:0|space:no|version:2.6.0",
+      "bleuSignature": "nrefs:1|case:mixed|eff:no|tok:13a|smooth:exp|version:2.6.0",
+      "emptyOutputs": 0,
+      "medianTranslationSeconds": 0.8289999999979045,
+      "p95TranslationSeconds": 1.610000000000582
+    },
+    "ru-to-en/transcript": {
+      "clips": 40,
+      "uniquePrompts": 38,
+      "chrF2": 55.921167208884256,
+      "bleu": 26.32024709258359,
+      "chrFsignature": "nrefs:1|case:mixed|eff:yes|nc:6|nw:0|space:no|version:2.6.0",
+      "bleuSignature": "nrefs:1|case:mixed|eff:no|tok:13a|smooth:exp|version:2.6.0",
+      "emptyOutputs": 0,
+      "medianTranslationSeconds": 0.6955000000016298,
+      "p95TranslationSeconds": 1.0940000000045984
+    },
+    "ru-to-en/recognized": {
+      "clips": 40,
+      "uniquePrompts": 38,
+      "chrF2": 51.856244011627886,
+      "bleu": 22.949937843254897,
+      "chrFsignature": "nrefs:1|case:mixed|eff:yes|nc:6|nw:0|space:no|version:2.6.0",
+      "bleuSignature": "nrefs:1|case:mixed|eff:no|tok:13a|smooth:exp|version:2.6.0",
+      "emptyOutputs": 0,
+      "medianTranslationSeconds": 0.6869999999980791,
+      "p95TranslationSeconds": 1.125
+    }
+  },
+  "sourceMetadataSha256": {
+    "en_us": "74c046239374deeb60fa63f258f907388093a32bcaa3140965f70ef05c79f7ca",
+    "ru_ru": "cd54f261220f49afbb4c128633a737eca4a22f6c0a8233d3cc891478d06676e6"
+  },
+  "modelRepo": "auralmira/m2m100-418m-ct2-int8",
+  "modelRevision": "e205afefce2fd6933a1dca3b92b5063894f2f2bb",
+  "computeType": "int8_float32",
+  "backend": "CPU",
+  "interThreads": 1,
+  "intraThreads": 4,
+  "beamSize": 2,
+  "maxDecodingLength": 128,
+  "versions": {
+    "ctranslate2": "4.8.5",
+    "sentencepiece": "0.2.2",
+    "sacrebleu": "2.6.0",
+    "opencc-python-reimplemented": "0.1.7"
+  },
+  "targets": [
+    "ar",
+    "az",
+    "bg",
+    "bs",
+    "de",
+    "el",
+    "en",
+    "es",
+    "fr",
+    "hi",
+    "hr",
+    "id",
+    "it",
+    "ja",
+    "ka",
+    "ko",
+    "mk",
+    "mn",
+    "ms",
+    "nl",
+    "pl",
+    "pt",
+    "ro",
+    "ru",
+    "sl",
+    "sq",
+    "sr",
+    "th",
+    "tr",
+    "uk",
+    "uz",
+    "vi",
+    "zh",
+    "zh-TW"
+  ],
+  "smokeRoutes": 68,
+  "nonemptyRoutes": 68,
+  "copiedNonIdentityRoutes": [],
+  "modelAndTokenizerLoadSeconds": 1.1869999999980791,
+  "elapsedSeconds": 159.95300000000134,
+  "scope": "Human-reference quality scores for en/ru, one original smoke sentence per source for all catalog routes. No bilingual human review.",
+  "productionApproved": false
+}
