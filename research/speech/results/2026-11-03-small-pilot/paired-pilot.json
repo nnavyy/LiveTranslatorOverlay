@@ -1,0 +1,137 @@
+{
+  "ids": [
+    "librispeech-002d91c7fbaacd76f171c649",
+    "librispeech-00358961b2afb3bdbf68b2db",
+    "librispeech-006787526b5983bd2b6c0062",
+    "librispeech-008ad48fb2cc2da9da07de8d",
+    "librispeech-009a3315147c99b42569e6f1",
+    "librispeech-00ba299fc293b0f19ed5117e",
+    "ru-prep-control-0420",
+    "ru-prep-control-0421",
+    "ru-prep-control-0422",
+    "ru-prep-control-0423",
+    "ru-prep-control-0424",
+    "ru-prep-control-0425",
+    "ru-prep-control-0426",
+    "ru-prep-control-0427",
+    "ru-prep-control-0428",
+    "ruls-001ab3cff9b36a36012a8479",
+    "ruls-002b7ac94bfcbf473da2866c",
+    "ruls-00448cb16099ae111f26929d",
+    "ruls-00738105d72625bfd437c36f",
+    "ruls-008500b284f36c76dd41116a",
+    "ruls-00d87c0c83d5aa47fa68552c",
+    "ruls-00db6211a8cd96fc353aa7a9",
+    "ruls-0135d4c26ac32b68fff17c61",
+    "ruls-013fcd813fe4edb1d469f0fe",
+    "ruls-014174c868d20c6748935f4e",
+    "ruls-0152c177ee1697b65ec980d6",
+    "ruls-01551cffedfbb812d6b2795f",
+    "sova-000b9d74164fa5b71b901baf",
+    "sova-0018fb42bbfe687f7215e061",
+    "sova-006fdcafabe126e2116c3026",
+    "sova-008a7e458561196a0b813702",
+    "sova-009941779086bc7e00c64b43",
+    "sova-00b873140d03fb3f82175081",
+    "sova-00d1cac0edd3063d52b75629",
+    "sova-00edc790b2e27e688c1ba790",
+    "sova-00fe57159e830e0e3de777b9",
+    "sova-010c4b2012a6d37c79e22f4f",
+    "sova-012f8dbed56d3a7f2d5adc3d",
+    "sova-013756957e9b757d48a602da"
+  ],
+  "scores": {
+    "trainedTiny": {
+      "all": {
+        "speech": {
+          "en": {
+            "clips": 6,
+            "wordErrors": 15,
+            "referenceWords": 102,
+            "falseRejections": 0,
+            "wer": 0.14705882352941177,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 24,
+            "wordErrors": 126,
+            "referenceWords": 270,
+            "falseRejections": 0,
+            "wer": 0.4666666666666667,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 9,
+          "emittedClips": 0,
+          "emissionRate": 0.0
+        }
+      },
+      "seconds": 43.21800000000803,
+      "russianBySource": {
+        "ruls": {
+          "clips": 12,
+          "wordErrors": 83,
+          "referenceWords": 188,
+          "falseRejections": 0,
+          "wer": 0.44148936170212766,
+          "falseRejectionRate": 0.0
+        },
+        "sova": {
+          "clips": 12,
+          "wordErrors": 43,
+          "referenceWords": 82,
+          "falseRejections": 0,
+          "wer": 0.524390243902439,
+          "falseRejectionRate": 0.0
+        }
+      }
+    },
+    "pretrainedSmall": {
+      "all": {
+        "speech": {
+          "en": {
+            "clips": 6,
+            "wordErrors": 9,
+            "referenceWords": 102,
+            "falseRejections": 0,
+            "wer": 0.08823529411764706,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 24,
+            "wordErrors": 75,
+            "referenceWords": 270,
+            "falseRejections": 0,
+            "wer": 0.2777777777777778,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 9,
+          "emittedClips": 9,
+          "emissionRate": 1.0
+        }
+      },
+      "seconds": 334.5,
+      "russianBySource": {
+        "ruls": {
+          "clips": 12,
+          "wordErrors": 53,
+          "referenceWords": 188,
+          "falseRejections": 0,
+          "wer": 0.28191489361702127,
+          "falseRejectionRate": 0.0
+        },
+        "sova": {
+          "clips": 12,
+          "wordErrors": 22,
+          "referenceWords": 82,
+          "falseRejections": 0,
+          "wer": 0.2682926829268293,
+          "falseRejectionRate": 0.0
+        }
+      }
+    }
+  }
+}
