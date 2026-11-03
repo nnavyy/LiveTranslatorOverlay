@@ -1,0 +1,372 @@
+{
+  "dev": {
+    "baseline": {
+      "sova": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 1384,
+            "referenceWords": 2294,
+            "falseRejections": 0,
+            "wer": 0.6033129904097646,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "ruls": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 2109,
+            "referenceWords": 4187,
+            "falseRejections": 0,
+            "wer": 0.5037019345593504,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "librispeech": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 252,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.08118556701030928,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "controls": {
+        "speech": {},
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 90,
+          "emissionRate": 1.0
+        }
+      }
+    },
+    "parent": {
+      "sova": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 1323,
+            "referenceWords": 2294,
+            "falseRejections": 2,
+            "wer": 0.576721883173496,
+            "falseRejectionRate": 0.006666666666666667
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "ruls": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 2271,
+            "referenceWords": 4187,
+            "falseRejections": 0,
+            "wer": 0.5423931215667542,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "librispeech": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 284,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.09149484536082474,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "controls": {
+        "speech": {},
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 19,
+          "emissionRate": 0.2111111111111111
+        }
+      }
+    },
+    "3920": {
+      "sova": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 1160,
+            "referenceWords": 2294,
+            "falseRejections": 0,
+            "wer": 0.5056669572798606,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "ruls": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 2096,
+            "referenceWords": 4187,
+            "falseRejections": 0,
+            "wer": 0.50059708621925,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "librispeech": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 275,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.08859536082474227,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "controls": {
+        "speech": {},
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 90,
+          "emissionRate": 1.0
+        }
+      }
+    }
+  },
+  "test": {
+    "baseline": {
+      "sova": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 1176,
+            "referenceWords": 2347,
+            "falseRejections": 0,
+            "wer": 0.5010651896037495,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "ruls": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 2065,
+            "referenceWords": 4071,
+            "falseRejections": 0,
+            "wer": 0.5072463768115942,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "librispeech": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 239,
+            "referenceWords": 2780,
+            "falseRejections": 0,
+            "wer": 0.08597122302158273,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "controls": {
+        "speech": {},
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 89,
+          "emissionRate": 0.9888888888888889
+        }
+      }
+    },
+    "parent": {
+      "sova": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 1362,
+            "referenceWords": 2347,
+            "falseRejections": 3,
+            "wer": 0.5803152961227098,
+            "falseRejectionRate": 0.01
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "ruls": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 2214,
+            "referenceWords": 4071,
+            "falseRejections": 0,
+            "wer": 0.5438467207074429,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "librispeech": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 235,
+            "referenceWords": 2780,
+            "falseRejections": 0,
+            "wer": 0.08453237410071943,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "controls": {
+        "speech": {},
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 21,
+          "emissionRate": 0.23333333333333334
+        }
+      }
+    },
+    "candidate": {
+      "sova": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 1126,
+            "referenceWords": 2347,
+            "falseRejections": 0,
+            "wer": 0.4797613975287601,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "ruls": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 2065,
+            "referenceWords": 4071,
+            "falseRejections": 0,
+            "wer": 0.5072463768115942,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "librispeech": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 249,
+            "referenceWords": 2780,
+            "falseRejections": 0,
+            "wer": 0.08956834532374101,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "controls": {
+        "speech": {},
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 90,
+          "emissionRate": 1.0
+        }
+      }
+    }
+  }
+}

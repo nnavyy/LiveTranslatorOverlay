@@ -64,3 +64,5 @@ Before running further variants, freeze a larger licensed dataset and a new test
 Compare baseline, VAD-only, decoding/context changes, balanced positive/negative LoRA, and any architecture-specific method one at a time. Select settings on validation data, then evaluate a locked candidate once on test data. Preserve failed and diverged runs. Training loss alone cannot approve a model.
 
 Evaluate translation and speaker attribution separately. Translation keeps all 34 target choices as a requirement; this speech pilot trained neither the translation engine nor a diarization/separation model. The review specifies their datasets, metrics and product behavior.
+
+The [Russian-focused training report](results/2026-11-03-russian-training/README.md) records the completed 3,920-update continuation and held-out test, including its failed nonspeech criterion.

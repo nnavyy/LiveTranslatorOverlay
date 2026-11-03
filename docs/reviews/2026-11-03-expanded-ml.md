@@ -66,3 +66,7 @@ The estimated English change was −0.59 percentage points (95% paired interval 
 ## Round 4 · 3 November · 1,024 additional updates
 
 Starting from Round 3, one pass over 1,000 fresh speech recordings and 24 controls reduced held-out English word errors from 142 to 135 and Russian errors from 307 to 306. Both paired WER intervals included zero. False captions increased from 2/12 to 10/12 on the same test controls. The checkpoint failed development selection and stayed experimental. The run also uncovered a source TSV parsing bug. After correcting it, we checked transcript and duration alignment for every speech clip accepted across all four rounds. [Round 4 scores and reproduction](../../research/speech/results/2026-11-03-round4/README.md)
+
+## Round 5 · Russian-focused continuation · 3 November
+
+One pass over the prepared 70/15/15 dataset completed 3,920 training updates from Round 3. On the new held-out test, Russian WER fell from 55.72% to 49.72% against the parent; English rose from 8.45% to 8.96%. Control emissions rose from 21/90 to 90/90. The checkpoint failed the frozen development rule and remains experimental. [Complete report, source-specific results, uncertainty and reproduction](../../research/speech/results/2026-11-03-russian-training/README.md)
