@@ -21,16 +21,24 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
     parser.add_argument("previous_index", type=Path)
-    parser.add_argument("--control-series", type=int, choices=(0, 1), default=0)
+    parser.add_argument("--exclude-index", type=Path, action="append", default=[],
+                        help="Additional earlier dataset index to exclude (repeatable)")
+    parser.add_argument("--control-series", type=int, choices=(0, 1, 2), default=0)
+    parser.add_argument("--train-per-language", type=int, default=80,
+                        help="Number of speech recordings for each of English and Russian (default 80)")
     args = parser.parse_args()
+    if args.train_per_language < 1:
+        parser.error("--train-per-language must be positive")
     old = json.loads(args.previous_index.read_text(encoding="utf-8"))
+    for index in args.exclude_index:
+        old.extend(json.loads(index.read_text(encoding="utf-8")))
     excluded_groups = {r["group"] for r in old}
     excluded_hashes = {r["sha256"] for r in old}
     args.output.mkdir(parents=True, exist_ok=False)
     records, rejected = [], []
     group_splits, hashes = {}, set()
     for language, locale in (("en", "en_us"), ("ru", "ru_ru")):
-        for split, count in (("train", 80), ("dev", 20), ("test", 40)):
+        for split, count in (("train", args.train_per_language), ("dev", 20), ("test", 40)):
             with urllib.request.urlopen(f"{BASE}/{locale}/{split}.tsv", timeout=60) as response:
                 label_bytes = response.read()
             (args.output / f"{locale}-{split}.tsv").write_bytes(label_bytes)
@@ -70,6 +78,8 @@ def main():
                     hashes.add(digest)
                     group_splits[group] = split
                     accepted += 1
+                    if accepted % 100 == 0:
+                        print(f"Preparing {locale}/{split}: {accepted}/{count}", flush=True)
                     if accepted == count:
                         break
             if accepted != count:
@@ -121,6 +131,8 @@ def main():
     (args.output / "audit.json").write_text(json.dumps(dict(
         status="technical-audit-only-not-human-reannotation", records=len(records),
         priorPilotDisjoint=True, priorIndexSha256=hashlib.sha256(args.previous_index.read_bytes()).hexdigest(),
+        additionalIndexSha256=[hashlib.sha256(index.read_bytes()).hexdigest() for index in args.exclude_index],
+        trainingSpeechPerLanguage=args.train_per_language,
         manifestSha256=hashlib.sha256(manifest.read_bytes()).hexdigest(), rejected=rejected,
         selection="First eligible archive entries, original splits, not a random sample",
         limitations=["No independent transcript verification", "No local speaker IDs",

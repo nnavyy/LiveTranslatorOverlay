@@ -18,6 +18,7 @@ from peft import LoraConfig, PeftModel, get_peft_model
 from transformers import WhisperForConditionalGeneration, WhisperProcessor
 from expanded_utils import choose_candidate
 from metrics import summarize, validate_splits
+from show_scores import print_scores
 
 
 def main():
@@ -28,6 +29,8 @@ def main():
     parser.add_argument("output", type=Path)
     parser.add_argument("--parent-run", type=Path, help="Warm-start the selected adapter with a fresh optimizer on a new manifest")
     args = parser.parse_args()
+    print(f"{args.phase} | Local CPU, 4 threads\nAudio manifest: {args.manifest.resolve()}\n"
+          f"Base model: {args.model.resolve()}\nRun folder: {args.output.resolve()}", flush=True)
     seed = 20261103
     random.seed(seed)
     np.random.seed(seed)
@@ -56,6 +59,10 @@ def main():
             raise ValueError("Parent adapter checksum mismatch")
     rows = [json.loads(line) for line in args.manifest.read_text(encoding="utf-8").splitlines()]
     validate_splits(rows)
+    for split in ("train", "dev", "test"):
+        subset = [r for r in rows if r["split"] == split]
+        speech = [r for r in subset if r["kind"] == "speech"]
+        print(f"  {split}: {len(speech)} speech clips, {len(subset)-len(speech)} controls", flush=True)
     for row in rows:
         path = (args.manifest.parent / row["path"]).resolve()
         if not path.is_relative_to(args.manifest.parent.resolve()) or hashlib.sha256(path.read_bytes()).hexdigest() != row["sha256"]:
@@ -104,7 +111,8 @@ def main():
     def evaluate(model, split, name):
         model.eval()
         predictions = []
-        for i, row in enumerate(r for r in rows if r["split"] == split):
+        evaluation_rows = [r for r in rows if r["split"] == split]
+        for i, row in enumerate(evaluation_rows, start=1):
             if time.monotonic() - started > 3600:
                 raise TimeoutError("One-hour experiment phase limit")
             inputs = features(row)
@@ -114,12 +122,13 @@ def main():
                     max_new_tokens=128, do_sample=False, num_beams=1, use_cache=True)
             predictions.append(dict(row, prediction=processor.batch_decode(tokens, skip_special_tokens=True)[0].strip(),
                 inferenceSeconds=time.monotonic()-before))
-            if (i + 1) % 10 == 0:
-                print(f"{name}/{split}: {i+1} clips", flush=True)
+            if i % 10 == 0 or i == len(evaluation_rows):
+                print(f"{name}/{split}: {i}/{len(evaluation_rows)} clips ({i/len(evaluation_rows):.0%})", flush=True)
         save(f"{name}-{split}.json", predictions)
         score = summarize(predictions)
         save(f"{name}-{split}-summary.json", score)
         print(json.dumps(dict(name=name, split=split, score=score)), flush=True)
+        print_scores(f"{name}/{split}", score)
         return score
 
     if args.phase == "test":
@@ -190,7 +199,8 @@ def main():
                            loss=result.loss.item(), gradientNorm=norm.item()))
         if step % 10 == 0 or step == configuration["steps"]:
             save("losses.json", losses)
-            print(f"Training {step}/{configuration['steps']}: loss={result.loss.item():.4f}", flush=True)
+            print(f"Training {step}/{configuration['steps']} ({step/configuration['steps']:.0%}): "
+                  f"loss={result.loss.item():.4f}", flush=True)
         if step in configuration["checkpoints"]:
             model.save_pretrained(args.output / f"adapter-{step}", safe_serialization=True)
             candidates[str(step)] = evaluate(model, "dev", str(step))
@@ -204,6 +214,8 @@ def main():
     selection.update(manifestSha256=manifest_hash, adapterSha256=hashlib.sha256(
         (args.output / f"adapter-{selection['checkpoint']}" / "adapter_model.safetensors").read_bytes()).hexdigest())
     save("selection.json", selection)
+    print(f"Selected adapter: {(args.output / ('adapter-' + selection['checkpoint'])).resolve()}\n"
+          f"Passed development criteria: {selection['developmentEligible']}", flush=True)
     save("report.json", dict(configuration=configuration, baseline=baseline, candidates=candidates,
         selection=selection, trainableParameters=sum(p.numel() for p in parameters), loraModules=targets,
         elapsedSeconds=time.monotonic()-started, productionApproved=False))

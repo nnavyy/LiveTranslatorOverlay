@@ -38,6 +38,59 @@ Get-Content "$run\locked-test\candidate-test-summary.json"
 
 Read `speech.en.wer` and `speech.ru.wer` as fractions. A value of 0.15 means 15%. The summary also lists word errors, reference words, blank speech transcripts, and nonspeech clips that produced words. The [setup and reproduction notes](results/2026-11-03-continuation/README.md) cover preparing the inputs again.
 
+The training command prints the input and output paths, split sizes and progress. Training steps show loss. After decoding a development or test split, the terminal shows WER percentages, errors and reference words by language, blank speech, and false captions on controls. To print percentages from an already completed run, use the same PowerShell session:
+
+```powershell
+& $py research/speech/show_scores.py $run
+```
+
+Python reads each WAV into memory on the CPU. No audio player, microphone or overlay window needs to open. To inspect an actual clip or compare the first five saved test predictions with their reference transcripts:
+
+```powershell
+$clip = Get-Content -Encoding UTF8 $data -TotalCount 1 | ConvertFrom-Json
+Join-Path (Split-Path $data) $clip.path
+$predictions = Get-Content -Raw -Encoding UTF8 "$run\locked-test\candidate-test.json" | ConvertFrom-Json
+$predictions | Select-Object -First 5 language, path, reference, prediction | Format-List
+```
+
+## Try 1,000 or 2,000 training recordings
+
+These counts refer to speech in the training split. With 500 English and 500 Russian clips, the trainer gets 1,000 speech recordings plus 24 controls. Development still has 40 speech clips plus 12 controls, and test has 80 plus 12. At the previous run's average speech duration, 1,000 clips give about 2.8 hours of training speech and 2,000 give about 5.6 hours. Setup streams public FLEURS recordings over the internet. Training then reads the downloaded files locally. Each training or test phase currently has a one-hour time limit.
+
+On this Windows machine, use a new PowerShell session or paste the entire block. Set `$perLanguage` to 500 or 1000 before starting. The example starts from the completed Round 3 adapter and excludes the earlier experiments' sentence groups and audio hashes.
+
+```powershell
+Set-Location 'B:\Projects\live translator\LiveTranslatorOverlay'
+$r = (Resolve-Path '..\offline-research').Path
+$py = "$r\training-venv\Scripts\python.exe"
+$trainer = '.\research\speech\train_expanded.py'
+$model = "$r\whisper-tiny-169d4a4"
+$parent = "$r\continuation-run-01"
+$perLanguage = 500
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$folder = "$r\fleurs-$perLanguage-per-language-$stamp"
+$run = "$r\training-$perLanguage-per-language-$stamp"
+$indices = '.\research\speech\results'
+& $py research/speech/prepare_expanded.py $folder "$indices/2026-11-01-pilot/dataset-index.json" --exclude-index "$indices/2026-11-03-expanded/dataset-index.json" --exclude-index "$indices/2026-11-03-continuation/dataset-index.json" --control-series 2 --train-per-language $perLanguage
+if ($LASTEXITCODE -ne 0) { throw 'Dataset preparation failed. Inspect the error above.' }
+$data = "$folder\manifest.jsonl"
+& $py $trainer develop $data $model $run --parent-run $parent
+if ($LASTEXITCODE -ne 0) { throw 'Development failed. Inspect the error above.' }
+& $py research/speech/show_scores.py $run
+```
+
+To compare sizes, start both candidates from the same parent, check their validation clip IDs and hashes match, compare validation WER by language, and examine false captions as well. These runs use one update per training example, so doubling the data also increases training compute. Choose the method on validation before running the test command above once for the final candidate. More FLEURS read speech leaves conversational accuracy an open question.
+
+### How research datasets compare
+
+One dataset can contain thousands of recordings. Research papers often describe the hours per language and the task. FLEURS contains about 12 hours per language across 102 languages. LibriSpeech contains about 1,000 hours of read English. The original Whisper model was pretrained on 680,000 hours of multilingual, multitask supervision. Here we adapt an already pretrained model, so the relevant test is how much additional labeled audio improves held-out performance. [FLEURS paper](https://arxiv.org/abs/2205.12446) · [LibriSpeech corpus](https://www.openslr.org/12/) · [Whisper paper](https://arxiv.org/abs/2212.04356)
+
+### Could users contribute training examples?
+
+A proposed workflow is an optional **Contribute this correction** action. A contributor would preview a short shareable clip and correct the source transcript. For translation, a bilingual reviewer would also supply or verify the target text. The first pair teaches the recognizer what was said. The second teaches or evaluates how to convey its meaning. A generated caption by itself can repeat the model's own mistakes.
+
+Ordinary use would leave training collection off. Playback can contain other people's voices or third-party media, so accept only clips the contributor has permission to share for training. Group recordings by speaker and session before splitting. Keep a separate sample of ordinary usage for evaluation because voluntarily reported mistakes overrepresent failure cases. This describes a product design proposal. The current research commands read public and synthetic clips. Wispr Flow separately documents its user setting for sharing dictation audio, transcripts and edits. [Wispr Flow data controls](https://wisprflow.ai/data-controls)
+
 ## Interpreting an approximately 97% target
 
 Word error rate (WER) is 100 times the sum of substituted, deleted and inserted words divided by reference words. If 100 reference words yield two substitutions and one deletion, WER is 3%. A caption can have a low WER and still reverse the meaning by dropping “not.” Translation needs its own meaning assessment.
