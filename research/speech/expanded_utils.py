@@ -8,7 +8,7 @@ def assert_disjoint(rows, previous):
             raise ValueError(f"New experiment overlaps previous pilot by {key}")
 
 
-def choose_candidate(baseline, candidates):
+def choose_candidate(baseline, candidates, parent=None):
     def macro(score):
         return sum(score["speech"][lang]["wer"] for lang in ("en", "ru")) / 2
 
@@ -19,6 +19,9 @@ def choose_candidate(baseline, candidates):
                     and score["speech"][l]["falseRejections"] <= baseline["speech"][l]["falseRejections"]
                     for l in ("en", "ru"))
             and score["nonSpeech"]["emittedClips"] <= baseline["nonSpeech"]["emittedClips"])
+    if parent is not None:
+        against_parent = choose_candidate(parent, candidates)["eligibility"]
+        eligible = {name: ok and against_parent[name] for name, ok in eligible.items()}
     pool = [name for name in candidates if eligible[name]] or list(candidates)
     selected = min(pool, key=lambda name: (macro(candidates[name]), int(name)))
     return dict(checkpoint=selected, developmentEligible=eligible[selected],

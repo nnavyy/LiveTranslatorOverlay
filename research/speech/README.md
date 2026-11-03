@@ -1,5 +1,7 @@
 # Local speech research and training
 
+[Train the Russian and English model yourself](train-yourself.md) using the prepared local dataset, midpoint selection and optional speech detection.
+
 This is a developer research workspace. It does not install a model in the application or change the app's settings, capture sources, version, or update channel. End users will not need Python, notebooks, datasets or training commands in the intended product.
 
 The [training history](../../docs/reviews/2026-11-03-expanded-ml.md) records the English/Russian checkpoint results and separates the C# runtime and translation measurements. The [Round 4 report](results/2026-11-03-round4/README.md) covers the continuation on 1,000 new speech recordings, including the held-out scores and reproduction commands.
