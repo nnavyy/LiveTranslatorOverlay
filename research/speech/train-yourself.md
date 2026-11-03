@@ -12,13 +12,15 @@ $data = "$r\russian-focus-20261103"
 $model = "$r\whisper-tiny-169d4a4"
 $parent = "$r\continuation-run-01"
 $run = Join-Path $r ('my-russian-training-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
-& $py research/speech/train_expanded.py develop "$data/manifest.jsonl" $model $run --parent-run $parent --midpoint-checkpoint --phase-limit-seconds 14400
+& $py research/speech/train_expanded.py develop "$data/manifest.jsonl" $model $run --parent-run $parent --midpoint-checkpoint --learn-empty-captions --phase-limit-seconds 14400
 if ($LASTEXITCODE) { throw 'Training failed. Inspect the last error.' }
 $choice = Get-Content -Raw "$run/selection.json" | ConvertFrom-Json
 $choice
 ```
 
-The trainer evaluates pretrained Tiny and the parent, makes one update for each of the 3,920 training examples, and now evaluates both steps 1,960 and 3,920. Of the candidates passing the existing criteria against **both** comparators, it selects the lowest mean validation WER. If neither qualifies, it records a diagnostic choice with `developmentEligible = false`. Adding a halfway checkpoint lets you retain an earlier improvement if further training loses it. Its effect on the full dataset still needs measurement. The previous final-only development run took 89 minutes on this CPU. Allow additional time for the extra validation pass.
+This run keeps all 3,500 speech examples and presents each of the 420 training controls twice, for 4,340 updates. It evaluates steps 2,170 and 4,340. The decoder can now end a transcript immediately when it hears no words. The same decoding setting applies to the base model, parent and candidate, and is saved for Step 4 and single-clip use. Keep each run in its own folder so the historical scores remain available.
+
+Selection requires lower mean validation WER than both comparison models, at most one percentage point of regression per language, and no additional blank speech clips or control emissions. If neither checkpoint qualifies, the trainer saves the lower-WER diagnostic candidate and records `developmentEligible = false`. The earlier final-only development run took 89 minutes. Allow additional time for the extra training updates and validation pass. Full-run accuracy for this new option remains to be measured.
 
 **2. Measure false captions on validation.** Run this in the same PowerShell window. It builds the local Silero probe and measures how the selected checkpoint behaves when transcription is suppressed on clips with no detected speech. Include missed speech in WER.
 
@@ -38,7 +40,7 @@ foreach ($name in @('baseline', 'parent', $choice.checkpoint)) {
 
 On the saved Round 5 checkpoint, this fixed detector reduced validation control emissions from 90/90 to 0/90. Three of 600 Russian speech clips became blank. Russian WER moved from 3,256/6,481 to 3,257/6,481 (50.24% to 50.25%). English stayed at 275/3,104 (8.86%). This is a runtime change measured on known validation clips with synthetic silence, tones and noise. The adapter's original acceptance decision and weights are independent of this diagnostic.
 
-**3. Try a recording.** Supply a mono 16 kHz WAV of up to 20 seconds and the source language. The command loads the selected adapter for detected speech. The detector uses only the audio.
+**3. Optional. Try a recording.** You can skip directly to Step 4. Supply a mono 16 kHz WAV of up to 20 seconds and the source language. The command loads the selected adapter for detected speech. The detector uses only the audio.
 
 ```powershell
 & $py research/speech/transcribe_clip.py $run "$r/jfk.wav" --language en --speech-gate $probe $vad
@@ -52,4 +54,16 @@ if ($LASTEXITCODE) { throw 'Locked test failed' }
 & $py research/speech/show_scores.py $run
 ```
 
-The trainer reports raw recognizer scores. To reproduce a gated comparison on that same historical test, repeat step 2 with `test.jsonl`, `test-gate.jsonl` and the three saved prediction files `locked-test/baseline-test.json`, `locked-test/parent-test.json` and `locked-test/candidate-test.json`. A gated result applies to the speech detector and recognizer together. Live overlay performance requires an end-to-end evaluation.
+To see the detector results on the same test clips, run this after Step 4 in the same session. It uses the saved predictions and completes the comparison without repeating training or decoding.
+
+```powershell
+& $probe $vad "$data/test.jsonl" | Set-Content -Encoding utf8 "$run/test-gate.jsonl"
+if ($LASTEXITCODE) { throw 'Test gate evaluation failed' }
+foreach ($name in @('baseline', 'parent', 'candidate')) {
+    Write-Output $name
+    & $py research/speech/score_gate.py "$run/locked-test/$name-test.json" "$run/test-gate.jsonl"
+    if ($LASTEXITCODE) { throw 'Test score verification failed' }
+}
+```
+
+Compare your chosen checkpoint with the most recent run on identical audio and with the same gate setting. Check both Russian and English WER, false captions on controls and blank speech clips. The historical test is now a regression benchmark. Reserve new recordings for independent confirmation before adopting a change.

@@ -19,6 +19,7 @@ from transformers import WhisperForConditionalGeneration, WhisperProcessor
 from expanded_utils import choose_candidate
 from metrics import summarize, validate_splits
 from show_scores import print_scores
+from empty_caption import allow_empty_caption
 
 
 def main():
@@ -31,7 +32,11 @@ def main():
     parser.add_argument("--phase-limit-seconds", type=int, default=3600)
     parser.add_argument("--midpoint-checkpoint", action="store_true",
                         help="Also evaluate the halfway checkpoint of a parent continuation")
+    parser.add_argument("--learn-empty-captions", action="store_true",
+                        help="Replay training controls once and permit immediate end-of-transcript at decoding")
     args = parser.parse_args()
+    if args.learn_empty_captions and (args.phase != "develop" or not args.parent_run):
+        parser.error("--learn-empty-captions requires develop and --parent-run")
     if args.midpoint_checkpoint and (not args.parent_run or args.phase != "develop"):
         parser.error("--midpoint-checkpoint requires develop and --parent-run")
     if args.phase_limit_seconds < 1:
@@ -97,10 +102,16 @@ def main():
         (run_dir / name).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
     processor = WhisperProcessor.from_pretrained(str(args.model), local_files_only=True)
+    learn_empty = args.learn_empty_captions
+    if args.phase == "test":
+        learn_empty = selection.get("learnEmptyCaptions", False)
+
     def load_base():
         base = WhisperForConditionalGeneration.from_pretrained(str(args.model), local_files_only=True,
             use_safetensors=True, attn_implementation="eager")
         base.generation_config.forced_decoder_ids = None
+        if learn_empty:
+            allow_empty_caption(base)
         return base
 
     base = load_base()
@@ -161,8 +172,16 @@ def main():
         testUse="None during training/selection; independent test command after selection.json freeze",
         versions={p: importlib.metadata.version(p) for p in ("torch", "transformers", "peft", "numpy", "soundfile")},
         phaseLimitSeconds=args.phase_limit_seconds, productionApproved=False)
+    training = [r for r in rows if r["split"] == "train"]
+    if learn_empty:
+        controls = [r for r in training if r["kind"] == "non_speech"]
+        if not controls:
+            raise ValueError("Control replay requires labeled training controls")
+        training.extend(controls)
+        configuration.update(learnEmptyCaptions=True, extraControlUpdates=len(controls),
+            decoder=configuration["decoder"] + ", immediate end-of-transcript allowed")
     if parent_adapter:
-        epoch_steps = sum(row["split"] == "train" for row in rows)
+        epoch_steps = len(training)
         configuration.update(parentAdapterSha256=parent_hash, parentCheckpoint=parent["checkpoint"],
             optimizerState="fresh AdamW", learningRate=5e-5, steps=epoch_steps, checkpoints=[epoch_steps],
             eligibility="Must pass original guardrails against both pretrained baseline and parent")
@@ -179,7 +198,6 @@ def main():
         model = get_peft_model(base, LoraConfig(r=8, lora_alpha=16, lora_dropout=0, target_modules=targets, bias="none"))
     parameters = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(parameters, lr=configuration["learningRate"], weight_decay=0)
-    training = [r for r in rows if r["split"] == "train"]
     random.shuffle(training)
     augment_rng = np.random.default_rng(seed)
     losses, candidates = [], {}
@@ -221,6 +239,8 @@ def main():
             eligibleAgainstBase=choose_candidate(baseline, candidates)["eligibility"][selected])
     selection.update(manifestSha256=manifest_hash, adapterSha256=hashlib.sha256(
         (args.output / f"adapter-{selection['checkpoint']}" / "adapter_model.safetensors").read_bytes()).hexdigest())
+    if learn_empty:
+        selection["learnEmptyCaptions"] = True
     save("selection.json", selection)
     print(f"Selected adapter: {(args.output / ('adapter-' + selection['checkpoint'])).resolve()}\n"
           f"Passed development criteria: {selection['developmentEligible']}", flush=True)
