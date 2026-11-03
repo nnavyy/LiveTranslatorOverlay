@@ -1,0 +1,125 @@
+{
+  "configuration": {
+    "seed": 20261103,
+    "manifestSha256": "ab859fe7348051378d10416fe5ac704eb9b5d0729b3aed709c0e56d567cdeb13",
+    "baseModel": "openai/whisper-tiny",
+    "baseRevision": "169d4a4341b33bc18d8881c4b69c2e104e1cc0af",
+    "device": "cpu",
+    "threads": 4,
+    "steps": 3920,
+    "checkpoints": [
+      3920
+    ],
+    "loraRank": 8,
+    "loraAlpha": 16,
+    "loraDropout": 0,
+    "learningRate": 5e-05,
+    "batchSize": 1,
+    "weightDecay": 0,
+    "gradientClip": 1,
+    "trainingAugmentation": "speech: 50% unchanged, 25% gain 0.02, 25% Gaussian 20 dB SNR",
+    "decoder": "greedy, explicit language, transcribe, 128 max new tokens, no prior transcript context",
+    "selection": "Lowest macro en/ru development WER among eligible checkpoints, earliest tie; otherwise diagnostic minimum",
+    "eligibility": "Must pass original guardrails against both pretrained baseline and parent",
+    "testUse": "None during training/selection; independent test command after selection.json freeze",
+    "versions": {
+      "torch": "2.15.0",
+      "transformers": "4.57.3",
+      "peft": "0.17.1",
+      "numpy": "2.2.6",
+      "soundfile": "0.13.1"
+    },
+    "phaseLimitSeconds": 14400,
+    "productionApproved": false,
+    "parentAdapterSha256": "e20258d57282fa1e329525786df2ab3b04c2ea8b195351f7c34126050d3988b1",
+    "parentCheckpoint": "184",
+    "optimizerState": "fresh AdamW"
+  },
+  "baseline": {
+    "speech": {
+      "en": {
+        "clips": 150,
+        "wordErrors": 252,
+        "referenceWords": 3104,
+        "falseRejections": 0,
+        "wer": 0.08118556701030928,
+        "falseRejectionRate": 0.0
+      },
+      "ru": {
+        "clips": 600,
+        "wordErrors": 3493,
+        "referenceWords": 6481,
+        "falseRejections": 0,
+        "wer": 0.5389600370313223,
+        "falseRejectionRate": 0.0
+      }
+    },
+    "nonSpeech": {
+      "clips": 90,
+      "emittedClips": 90,
+      "emissionRate": 1.0
+    }
+  },
+  "candidates": {
+    "3920": {
+      "speech": {
+        "en": {
+          "clips": 150,
+          "wordErrors": 275,
+          "referenceWords": 3104,
+          "falseRejections": 0,
+          "wer": 0.08859536082474227,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 600,
+          "wordErrors": 3256,
+          "referenceWords": 6481,
+          "falseRejections": 0,
+          "wer": 0.5023916062336059,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 90,
+        "emittedClips": 90,
+        "emissionRate": 1.0
+      }
+    }
+  },
+  "selection": {
+    "checkpoint": "3920",
+    "developmentEligible": false,
+    "eligibility": {
+      "3920": false
+    },
+    "selectionData": "dev-only",
+    "productionApproved": false,
+    "parentAdapterSha256": "e20258d57282fa1e329525786df2ab3b04c2ea8b195351f7c34126050d3988b1",
+    "eligibleAgainstParent": false,
+    "eligibleAgainstBase": true,
+    "manifestSha256": "ab859fe7348051378d10416fe5ac704eb9b5d0729b3aed709c0e56d567cdeb13",
+    "adapterSha256": "878a413fd9ad6937285fac97ec54ed6809af915827bcb6b61a140bad1d0c9f10"
+  },
+  "trainableParameters": 98304,
+  "loraModules": [
+    "model.decoder.layers.0.self_attn.v_proj",
+    "model.decoder.layers.0.self_attn.q_proj",
+    "model.decoder.layers.0.encoder_attn.v_proj",
+    "model.decoder.layers.0.encoder_attn.q_proj",
+    "model.decoder.layers.1.self_attn.v_proj",
+    "model.decoder.layers.1.self_attn.q_proj",
+    "model.decoder.layers.1.encoder_attn.v_proj",
+    "model.decoder.layers.1.encoder_attn.q_proj",
+    "model.decoder.layers.2.self_attn.v_proj",
+    "model.decoder.layers.2.self_attn.q_proj",
+    "model.decoder.layers.2.encoder_attn.v_proj",
+    "model.decoder.layers.2.encoder_attn.q_proj",
+    "model.decoder.layers.3.self_attn.v_proj",
+    "model.decoder.layers.3.self_attn.q_proj",
+    "model.decoder.layers.3.encoder_attn.v_proj",
+    "model.decoder.layers.3.encoder_attn.q_proj"
+  ],
+  "elapsedSeconds": 5330.155999999988,
+  "productionApproved": false
+}

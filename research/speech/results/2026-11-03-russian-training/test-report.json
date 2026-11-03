@@ -1,0 +1,68 @@
+{
+  "baseline": {
+    "speech": {
+      "en": {
+        "clips": 150,
+        "wordErrors": 239,
+        "referenceWords": 2780,
+        "falseRejections": 0,
+        "wer": 0.08597122302158273,
+        "falseRejectionRate": 0.0
+      },
+      "ru": {
+        "clips": 600,
+        "wordErrors": 3241,
+        "referenceWords": 6418,
+        "falseRejections": 0,
+        "wer": 0.5049859769398567,
+        "falseRejectionRate": 0.0
+      }
+    },
+    "nonSpeech": {
+      "clips": 90,
+      "emittedClips": 89,
+      "emissionRate": 0.9888888888888889
+    }
+  },
+  "candidate": {
+    "speech": {
+      "en": {
+        "clips": 150,
+        "wordErrors": 249,
+        "referenceWords": 2780,
+        "falseRejections": 0,
+        "wer": 0.08956834532374101,
+        "falseRejectionRate": 0.0
+      },
+      "ru": {
+        "clips": 600,
+        "wordErrors": 3191,
+        "referenceWords": 6418,
+        "falseRejections": 0,
+        "wer": 0.4971953879713306,
+        "falseRejectionRate": 0.0
+      }
+    },
+    "nonSpeech": {
+      "clips": 90,
+      "emittedClips": 90,
+      "emissionRate": 1.0
+    }
+  },
+  "selection": {
+    "checkpoint": "3920",
+    "developmentEligible": false,
+    "eligibility": {
+      "3920": false
+    },
+    "selectionData": "dev-only",
+    "productionApproved": false,
+    "parentAdapterSha256": "e20258d57282fa1e329525786df2ab3b04c2ea8b195351f7c34126050d3988b1",
+    "eligibleAgainstParent": false,
+    "eligibleAgainstBase": true,
+    "manifestSha256": "ab859fe7348051378d10416fe5ac704eb9b5d0729b3aed709c0e56d567cdeb13",
+    "adapterSha256": "878a413fd9ad6937285fac97ec54ed6809af915827bcb6b61a140bad1d0c9f10"
+  },
+  "elapsedSeconds": 2032.2030000000086,
+  "productionApproved": false
+}

@@ -1,0 +1,14 @@
+{
+  "checkpoint": "3920",
+  "developmentEligible": false,
+  "eligibility": {
+    "3920": false
+  },
+  "selectionData": "dev-only",
+  "productionApproved": false,
+  "parentAdapterSha256": "e20258d57282fa1e329525786df2ab3b04c2ea8b195351f7c34126050d3988b1",
+  "eligibleAgainstParent": false,
+  "eligibleAgainstBase": true,
+  "manifestSha256": "ab859fe7348051378d10416fe5ac704eb9b5d0729b3aed709c0e56d567cdeb13",
+  "adapterSha256": "878a413fd9ad6937285fac97ec54ed6809af915827bcb6b61a140bad1d0c9f10"
+}

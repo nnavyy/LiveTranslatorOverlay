@@ -28,7 +28,10 @@ def main():
     parser.add_argument("model", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--parent-run", type=Path, help="Warm-start the selected adapter with a fresh optimizer on a new manifest")
+    parser.add_argument("--phase-limit-seconds", type=int, default=3600)
     args = parser.parse_args()
+    if args.phase_limit_seconds < 1:
+        parser.error("--phase-limit-seconds must be positive")
     print(f"{args.phase} | Local CPU, 4 threads\nAudio manifest: {args.manifest.resolve()}\n"
           f"Base model: {args.model.resolve()}\nRun folder: {args.output.resolve()}", flush=True)
     seed = 20261103
@@ -113,8 +116,8 @@ def main():
         predictions = []
         evaluation_rows = [r for r in rows if r["split"] == split]
         for i, row in enumerate(evaluation_rows, start=1):
-            if time.monotonic() - started > 3600:
-                raise TimeoutError("One-hour experiment phase limit")
+            if time.monotonic() - started > args.phase_limit_seconds:
+                raise TimeoutError("Experiment phase time limit")
             inputs = features(row)
             before = time.monotonic()
             with torch.inference_mode():
@@ -153,7 +156,7 @@ def main():
         eligibility="Strict macro WER improvement, no language >1 percentage point worse, no extra blank speech or negative emissions",
         testUse="None during training/selection; independent test command after selection.json freeze",
         versions={p: importlib.metadata.version(p) for p in ("torch", "transformers", "peft", "numpy", "soundfile")},
-        productionApproved=False)
+        phaseLimitSeconds=args.phase_limit_seconds, productionApproved=False)
     if parent_adapter:
         epoch_steps = sum(row["split"] == "train" for row in rows)
         configuration.update(parentAdapterSha256=parent_hash, parentCheckpoint=parent["checkpoint"],
@@ -175,8 +178,8 @@ def main():
     augment_rng = np.random.default_rng(seed)
     losses, candidates = [], {}
     for step in range(1, configuration["steps"] + 1):
-        if time.monotonic()-started > 3600:
-            raise TimeoutError("One-hour experiment phase limit")
+        if time.monotonic()-started > args.phase_limit_seconds:
+            raise TimeoutError("Experiment phase time limit")
         if step > 1 and (step - 1) % len(training) == 0:
             random.shuffle(training)
         row = training[(step - 1) % len(training)]

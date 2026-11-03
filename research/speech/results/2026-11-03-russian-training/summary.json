@@ -1,0 +1,254 @@
+{
+  "configuration": {
+    "seed": 20261103,
+    "manifestSha256": "ab859fe7348051378d10416fe5ac704eb9b5d0729b3aed709c0e56d567cdeb13",
+    "baseModel": "openai/whisper-tiny",
+    "baseRevision": "169d4a4341b33bc18d8881c4b69c2e104e1cc0af",
+    "device": "cpu",
+    "threads": 4,
+    "steps": 3920,
+    "checkpoints": [
+      3920
+    ],
+    "loraRank": 8,
+    "loraAlpha": 16,
+    "loraDropout": 0,
+    "learningRate": 5e-05,
+    "batchSize": 1,
+    "weightDecay": 0,
+    "gradientClip": 1,
+    "trainingAugmentation": "speech: 50% unchanged, 25% gain 0.02, 25% Gaussian 20 dB SNR",
+    "decoder": "greedy, explicit language, transcribe, 128 max new tokens, no prior transcript context",
+    "selection": "Lowest macro en/ru development WER among eligible checkpoints, earliest tie; otherwise diagnostic minimum",
+    "eligibility": "Must pass original guardrails against both pretrained baseline and parent",
+    "testUse": "None during training/selection; independent test command after selection.json freeze",
+    "versions": {
+      "torch": "2.15.0",
+      "transformers": "4.57.3",
+      "peft": "0.17.1",
+      "numpy": "2.2.6",
+      "soundfile": "0.13.1"
+    },
+    "phaseLimitSeconds": 14400,
+    "productionApproved": false,
+    "parentAdapterSha256": "e20258d57282fa1e329525786df2ab3b04c2ea8b195351f7c34126050d3988b1",
+    "parentCheckpoint": "184",
+    "optimizerState": "fresh AdamW"
+  },
+  "selection": {
+    "checkpoint": "3920",
+    "developmentEligible": false,
+    "eligibility": {
+      "3920": false
+    },
+    "selectionData": "dev-only",
+    "productionApproved": false,
+    "parentAdapterSha256": "e20258d57282fa1e329525786df2ab3b04c2ea8b195351f7c34126050d3988b1",
+    "eligibleAgainstParent": false,
+    "eligibleAgainstBase": true,
+    "manifestSha256": "ab859fe7348051378d10416fe5ac704eb9b5d0729b3aed709c0e56d567cdeb13",
+    "adapterSha256": "878a413fd9ad6937285fac97ec54ed6809af915827bcb6b61a140bad1d0c9f10"
+  },
+  "scores": {
+    "dev": {
+      "baseline": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 252,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.08118556701030928,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 600,
+            "wordErrors": 3493,
+            "referenceWords": 6481,
+            "falseRejections": 0,
+            "wer": 0.5389600370313223,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 90,
+          "emissionRate": 1.0
+        }
+      },
+      "parent": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 284,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.09149484536082474,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 600,
+            "wordErrors": 3594,
+            "referenceWords": 6481,
+            "falseRejections": 2,
+            "wer": 0.5545440518438512,
+            "falseRejectionRate": 0.0033333333333333335
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 19,
+          "emissionRate": 0.2111111111111111
+        }
+      },
+      "candidate": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 275,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.08859536082474227,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 600,
+            "wordErrors": 3256,
+            "referenceWords": 6481,
+            "falseRejections": 0,
+            "wer": 0.5023916062336059,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 90,
+          "emissionRate": 1.0
+        }
+      }
+    },
+    "test": {
+      "baseline": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 239,
+            "referenceWords": 2780,
+            "falseRejections": 0,
+            "wer": 0.08597122302158273,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 600,
+            "wordErrors": 3241,
+            "referenceWords": 6418,
+            "falseRejections": 0,
+            "wer": 0.5049859769398567,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 89,
+          "emissionRate": 0.9888888888888889
+        }
+      },
+      "parent": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 235,
+            "referenceWords": 2780,
+            "falseRejections": 0,
+            "wer": 0.08453237410071943,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 600,
+            "wordErrors": 3576,
+            "referenceWords": 6418,
+            "falseRejections": 3,
+            "wer": 0.557182923028981,
+            "falseRejectionRate": 0.005
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 21,
+          "emissionRate": 0.23333333333333334
+        }
+      },
+      "candidate": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 249,
+            "referenceWords": 2780,
+            "falseRejections": 0,
+            "wer": 0.08956834532374101,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 600,
+            "wordErrors": 3191,
+            "referenceWords": 6418,
+            "falseRejections": 0,
+            "wer": 0.4971953879713306,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 90,
+          "emissionRate": 1.0
+        }
+      }
+    }
+  },
+  "testCandidateMinusComparator": {
+    "parent": {
+      "en": {
+        "difference": 0.005035971223021582,
+        "lower": -0.00035778175313059033,
+        "upper": 0.010594021944759743,
+        "independentGroups": 40,
+        "repeats": 10000,
+        "seed": 20261103,
+        "method": "paired known-reader clusters, otherwise recording groups; 95% percentile bootstrap"
+      },
+      "ru": {
+        "difference": -0.05998753505765036,
+        "lower": -0.09968298696724198,
+        "upper": -0.03727907322144661,
+        "independentGroups": 307,
+        "repeats": 10000,
+        "seed": 20261103,
+        "method": "paired known-reader clusters, otherwise recording groups; 95% percentile bootstrap"
+      }
+    },
+    "baseline": {
+      "en": {
+        "difference": 0.0035971223021582736,
+        "lower": -0.012318840579710146,
+        "upper": 0.017433234421364987,
+        "independentGroups": 40,
+        "repeats": 10000,
+        "seed": 20261103,
+        "method": "paired known-reader clusters, otherwise recording groups; 95% percentile bootstrap"
+      },
+      "ru": {
+        "difference": -0.007790588968526021,
+        "lower": -0.024628536535721553,
+        "upper": 0.007493443237167478,
+        "independentGroups": 307,
+        "repeats": 10000,
+        "seed": 20261103,
+        "method": "paired known-reader clusters, otherwise recording groups; 95% percentile bootstrap"
+      }
+    }
+  },
+  "trainingSpeechMinutes": {
+    "en": 151.49708333333334,
+    "ru": 228.66551458333333
+  }
+}
