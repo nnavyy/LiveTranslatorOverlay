@@ -1,0 +1,110 @@
+[
+  {
+    "file": "data_test-00000-of-00001.parquet",
+    "url": "https://huggingface.co/datasets/istupakov/russian_librispeech/resolve/a519c986bb3342cc8136d3d14e5ad8a4f1e1a2bd/data/test-00000-of-00001.parquet",
+    "sha256": "1b35ad3cf42481a81ac5f9b69ea8533923ae79b12dc5f005173401b5c08445d1",
+    "bytes": 298186051,
+    "language": "ru",
+    "split": "test",
+    "corpus": "ruls"
+  },
+  {
+    "file": "data_validation-00000-of-00001.parquet",
+    "url": "https://huggingface.co/datasets/istupakov/russian_librispeech/resolve/a519c986bb3342cc8136d3d14e5ad8a4f1e1a2bd/data/validation-00000-of-00001.parquet",
+    "sha256": "6b5ec45bbd0957e20944446bfccea67222f4d352366fda9d68c0c796f2573a2c",
+    "bytes": 316409787,
+    "language": "ru",
+    "split": "dev",
+    "corpus": "ruls"
+  },
+  {
+    "file": "data_train-00000-of-00024.parquet",
+    "url": "https://huggingface.co/datasets/istupakov/russian_librispeech/resolve/a519c986bb3342cc8136d3d14e5ad8a4f1e1a2bd/data/train-00000-of-00024.parquet",
+    "sha256": "92e9df5d6cbccd1d877984ff47f68de781d5d328777e9c94657c86d3731cb159",
+    "bytes": 448228617,
+    "language": "ru",
+    "split": "train",
+    "corpus": "ruls"
+  },
+  {
+    "file": "data_train-00007-of-00024.parquet",
+    "url": "https://huggingface.co/datasets/istupakov/russian_librispeech/resolve/a519c986bb3342cc8136d3d14e5ad8a4f1e1a2bd/data/train-00007-of-00024.parquet",
+    "sha256": "53ff020c33032e341e6123a8a0ec3b8d69f77a1a5697bbd997f80d46810e1280",
+    "bytes": 473174686,
+    "language": "ru",
+    "split": "train",
+    "corpus": "ruls"
+  },
+  {
+    "file": "data_train-00015-of-00024.parquet",
+    "url": "https://huggingface.co/datasets/istupakov/russian_librispeech/resolve/a519c986bb3342cc8136d3d14e5ad8a4f1e1a2bd/data/train-00015-of-00024.parquet",
+    "sha256": "d6e5e98c0d3c41cffd1273493fc5db3e359503a6bf68a785d58425be5ddd7649",
+    "bytes": 389374087,
+    "language": "ru",
+    "split": "train",
+    "corpus": "ruls"
+  },
+  {
+    "file": "data_train-00023-of-00024.parquet",
+    "url": "https://huggingface.co/datasets/istupakov/russian_librispeech/resolve/a519c986bb3342cc8136d3d14e5ad8a4f1e1a2bd/data/train-00023-of-00024.parquet",
+    "sha256": "88800a597178be47d31db2f802762f339ef67ae24734337a4e165b4e18761a71",
+    "bytes": 494883425,
+    "language": "ru",
+    "split": "train",
+    "corpus": "ruls"
+  },
+  {
+    "file": "all_validation.clean_0000.parquet",
+    "url": "https://huggingface.co/datasets/openslr/librispeech_asr/resolve/71cacbfb7e2354c4226d01e70d77d5fca3d04ba1/all/validation.clean/0000.parquet",
+    "sha256": "c816e936fed8b83d5e3de28795bff1bcd3b46b3f1a5815bad4395d20186a9770",
+    "bytes": 341833540,
+    "language": "en",
+    "split": "dev",
+    "corpus": "librispeech"
+  },
+  {
+    "file": "all_test.clean_0000.parquet",
+    "url": "https://huggingface.co/datasets/openslr/librispeech_asr/resolve/71cacbfb7e2354c4226d01e70d77d5fca3d04ba1/all/test.clean/0000.parquet",
+    "sha256": "7113aa4c3cf963fb54697145719a7725f984c8836d1c494a554cbb9f1a017df0",
+    "bytes": 350452636,
+    "language": "en",
+    "split": "test",
+    "corpus": "librispeech"
+  },
+  {
+    "file": "all_train.clean.100_0000.parquet",
+    "url": "https://huggingface.co/datasets/openslr/librispeech_asr/resolve/71cacbfb7e2354c4226d01e70d77d5fca3d04ba1/all/train.clean.100/0000.parquet",
+    "sha256": "3098c6e44d1d49f8c62bd123775f1c492bda2cabd80f3ee70fe7800572371401",
+    "bytes": 469629285,
+    "language": "en",
+    "split": "train",
+    "corpus": "librispeech"
+  },
+  {
+    "file": "data_train-00000-of-00019-919da34ee7bcc95c.parquet",
+    "url": "https://huggingface.co/datasets/bond005/sova_rudevices/resolve/d9197eacfb0afff29d90a2d4e7d0d98a5dfb54bc/data/train-00000-of-00019-919da34ee7bcc95c.parquet",
+    "sha256": "8fc6668f719b3a76e03fb8554b8d7b1be85bd6261d2c4a0a20d7ca720349e94a",
+    "bytes": 496101890,
+    "language": "ru",
+    "split": "train",
+    "corpus": "sova"
+  },
+  {
+    "file": "data_validation-00000-of-00002-9eda014291c37b1d.parquet",
+    "url": "https://huggingface.co/datasets/bond005/sova_rudevices/resolve/d9197eacfb0afff29d90a2d4e7d0d98a5dfb54bc/data/validation-00000-of-00002-9eda014291c37b1d.parquet",
+    "sha256": "2136fcf9002c382c53afa444aac0024aa2175d4b100d68deb70de2bc8c50fa8f",
+    "bytes": 333232675,
+    "language": "ru",
+    "split": "dev",
+    "corpus": "sova"
+  },
+  {
+    "file": "data_test-00000-of-00002-e3baf0fee2116c5f.parquet",
+    "url": "https://huggingface.co/datasets/bond005/sova_rudevices/resolve/d9197eacfb0afff29d90a2d4e7d0d98a5dfb54bc/data/test-00000-of-00002-e3baf0fee2116c5f.parquet",
+    "sha256": "800b6096353f6c584910c518ab0f6e7ae8149cc3c2dcb184aefd20061a8e5f2f",
+    "bytes": 327354111,
+    "language": "ru",
+    "split": "test",
+    "corpus": "sova"
+  }
+]
