@@ -2,6 +2,8 @@
 import argparse
 import hashlib
 import json
+import subprocess
+from tempfile import TemporaryDirectory
 from pathlib import Path
 
 import numpy as np
@@ -20,6 +22,8 @@ def main():
     parser.add_argument("--language", required=True, choices=("en", "ru"))
     parser.add_argument("--model", type=Path, help="Override the local base-model path saved by training")
     parser.add_argument("--reference", help="Expected spoken words, for single-clip WER")
+    parser.add_argument("--speech-gate", nargs=2, type=Path, metavar=("PROBE_EXE", "SILERO_MODEL"),
+                        help="Skip transcription when the local Silero probe detects no speech")
     args = parser.parse_args()
     ref = words(args.reference) if args.reference is not None else None
     if ref == []:
@@ -34,6 +38,23 @@ def main():
     adapter = args.run / f"adapter-{int(selection['checkpoint'])}"
     if hashlib.sha256((adapter / "adapter_model.safetensors").read_bytes()).hexdigest() != selection["adapterSha256"]:
         parser.error("Selected adapter checksum mismatch")
+    if args.speech_gate:
+        probe, detector = args.speech_gate
+        with TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            sample = folder / "clip.wav"
+            sample.write_bytes(args.audio.read_bytes())
+            manifest = folder / "clip.jsonl"
+            manifest.write_text(json.dumps(dict(id="clip", split="probe", kind="unknown",
+                language=args.language, path=sample.name, sha256=hashlib.sha256(sample.read_bytes()).hexdigest())),
+                encoding="utf-8")
+            result = subprocess.run([str(probe.resolve()), str(detector.resolve()), str(manifest)],
+                                    check=True, capture_output=True, timeout=60)
+        if not json.loads(result.stdout)["neuralGate"]:
+            print("Transcript: [no speech detected]")
+            if ref:
+                print(f"Clip WER: 100.00% ({len(ref)} edits / {len(ref)} reference words)")
+            return
     config = json.loads((adapter / "adapter_config.json").read_text(encoding="utf-8"))
     base_path = args.model or Path(config["base_model_name_or_path"])
     if not base_path.is_dir():

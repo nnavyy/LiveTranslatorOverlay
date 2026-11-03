@@ -29,7 +29,11 @@ def main():
     parser.add_argument("output", type=Path)
     parser.add_argument("--parent-run", type=Path, help="Warm-start the selected adapter with a fresh optimizer on a new manifest")
     parser.add_argument("--phase-limit-seconds", type=int, default=3600)
+    parser.add_argument("--midpoint-checkpoint", action="store_true",
+                        help="Also evaluate the halfway checkpoint of a parent continuation")
     args = parser.parse_args()
+    if args.midpoint_checkpoint and (not args.parent_run or args.phase != "develop"):
+        parser.error("--midpoint-checkpoint requires develop and --parent-run")
     if args.phase_limit_seconds < 1:
         parser.error("--phase-limit-seconds must be positive")
     print(f"{args.phase} | Local CPU, 4 threads\nAudio manifest: {args.manifest.resolve()}\n"
@@ -162,6 +166,8 @@ def main():
         configuration.update(parentAdapterSha256=parent_hash, parentCheckpoint=parent["checkpoint"],
             optimizerState="fresh AdamW", learningRate=5e-5, steps=epoch_steps, checkpoints=[epoch_steps],
             eligibility="Must pass original guardrails against both pretrained baseline and parent")
+    if args.midpoint_checkpoint:
+        configuration["checkpoints"] = sorted({max(1, epoch_steps // 2), epoch_steps})
     save("configuration.json", configuration)
     baseline = evaluate(base, "dev", "baseline")
     targets = [name for name, _ in base.named_modules()
@@ -207,13 +213,12 @@ def main():
         if step in configuration["checkpoints"]:
             model.save_pretrained(args.output / f"adapter-{step}", safe_serialization=True)
             candidates[str(step)] = evaluate(model, "dev", str(step))
-    selection = choose_candidate(baseline, candidates)
+    selection = choose_candidate(baseline, candidates, parent_dev if parent_adapter else None)
     if parent_adapter:
-        parent_eligible = choose_candidate(parent_dev, candidates)["developmentEligible"]
-        selection.update(parentAdapterSha256=parent_hash, eligibleAgainstParent=parent_eligible,
-            eligibleAgainstBase=selection["developmentEligible"])
-        selection["developmentEligible"] &= parent_eligible
-        selection["eligibility"][selection["checkpoint"]] = selection["developmentEligible"]
+        selected = selection["checkpoint"]
+        selection.update(parentAdapterSha256=parent_hash,
+            eligibleAgainstParent=choose_candidate(parent_dev, candidates)["eligibility"][selected],
+            eligibleAgainstBase=choose_candidate(baseline, candidates)["eligibility"][selected])
     selection.update(manifestSha256=manifest_hash, adapterSha256=hashlib.sha256(
         (args.output / f"adapter-{selection['checkpoint']}" / "adapter_model.safetensors").read_bytes()).hexdigest())
     save("selection.json", selection)
