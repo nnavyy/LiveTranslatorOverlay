@@ -13,6 +13,7 @@ import torch
 from transformers import WhisperForConditionalGeneration, WhisperProcessor
 
 from metrics import distance, words
+from empty_caption import allow_empty_caption
 
 
 def main():
@@ -64,6 +65,8 @@ def main():
     base = WhisperForConditionalGeneration.from_pretrained(str(base_path), local_files_only=True,
         use_safetensors=True, attn_implementation="eager")
     base.generation_config.forced_decoder_ids = None
+    if selection.get("learnEmptyCaptions", False):
+        allow_empty_caption(base)
     model = PeftModel.from_pretrained(base, str(adapter), local_files_only=True).eval()
     inputs = processor.feature_extractor(audio, sampling_rate=16000, return_tensors="pt", return_attention_mask=True)
     with torch.inference_mode():

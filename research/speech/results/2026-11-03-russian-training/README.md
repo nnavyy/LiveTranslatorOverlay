@@ -35,7 +35,7 @@ The run completed all 3,920 updates over each training example exactly once. The
 | test | parent | 8.45% (235/2780) | 55.72% (3576/6418) | 21/90 |
 | test | candidate | 8.96% (249/2780) | 49.72% (3191/6418) | 90/90 |
 
-Every model returned words on every speech recording in both splits. The candidate improved mean validation WER against both comparators, and each language stayed within the permitted regression tolerance. It failed eligibility against the parent because control emissions rose from 19 to 90. That frozen rejection stands after diagnostic test evaluation.
+The candidate returned words on every speech recording in both splits. The parent returned blank transcripts for two Russian validation recordings and three Russian test recordings. The candidate improved mean validation WER against both comparators, and each language stayed within the permitted regression tolerance. It failed eligibility against the parent because control emissions rose from 19 to 90. That frozen rejection stands after diagnostic test evaluation.
 
 ## Russian results by source
 
@@ -76,3 +76,9 @@ Mean loss across the first 100 shuffled updates was 1.0206; across the last 100 
 Retain checkpoint 3,920 for research. Its Russian speech improvement against Round 3 came with false captions on all test controls. It does not pass the experiment's acceptance rule. These results evaluate source-language speech recognition. Translation accuracy, speaker attribution, real music rejection and application integration remain unmeasured.
 
 The [summary](summary.json) includes exact scores, intervals, environment versions and parent, candidate and dataset hashes. The [domain scores](domain-scores.json), [per-clip counts](clip-scores.csv), [training report](training-report.json) and [locked test report](test-report.json) preserve the evidence. Audio, transcripts and adapter weights remain in the local run directory. Independent recomputation verified the audio checksums, all six score summaries, the frozen selection, the candidate weight hash and coverage of all training examples. Fifteen speech tests passed before execution.
+
+## User rerun and decoder pilot
+
+The midpoint run selected step 3,920 as its diagnostic checkpoint. Both step 1,960 and step 3,920 emitted words on 90/90 validation controls before speech detection. Step 3,920 had lower validation WER in each language. In Step 2 the fixed detector removed all 90 false captions but suppressed three Russian speech clips. In Step 4 the ungated candidate reproduced the earlier test scores. Applying the same detector to all 840 of those saved test outputs reduced emissions from 90/90 to 0/90, with zero blank speech clips and identical English and Russian word-error counts.
+
+For the next run we checked the pinned generation settings. Token 50257 is both the end-of-transcript token and an entry in the initial token suppression list. The new opt-in mode removes that one initial suppression for all comparison models. On a diagnostic development subset with the user's existing step-3,920 weights, raw emissions fell from 18/18 to 0/18 without the external detector. The subset used the first six recording IDs in each of the three speech sources and three control conditions. English edits stayed at 15/102 reference words, Russian edits at 71/128, and no speech clip became blank. This small comparison isolates the decoding change. A short training and test run also verified the control replay and saved decoder setting. The effect of control replay on full-set WER awaits the user's next run. [Updated training commands](../../train-yourself.md)
