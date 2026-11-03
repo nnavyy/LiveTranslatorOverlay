@@ -53,6 +53,21 @@ $predictions = Get-Content -Raw -Encoding UTF8 "$run\locked-test\candidate-test.
 $predictions | Select-Object -First 5 language, path, reference, prediction | Format-List
 ```
 
+## Test your saved adapter on one recording
+
+Run this in PowerShell on the existing Windows machine to transcribe the local 11-second JFK sample with your trained adapter. The command loads the selected checkpoint, prints its transcript and exits. Supplying the words you expect to hear also prints the clip's WER. The reference is used only after decoding.
+
+```powershell
+Set-Location 'B:\Projects\live translator\LiveTranslatorOverlay'
+$r = (Resolve-Path '..\offline-research').Path
+$py = "$r\training-venv\Scripts\python.exe"
+$run = "$r\my-training-20261103-132129"
+$probe = '.\research\speech\transcribe_clip.py'
+& $py $probe $run "$r\jfk.wav" --language en --reference 'And so my fellow Americans ask not what your country can do for you ask what you can do for your country'
+```
+
+Replace the WAV path with your own 16 kHz mono clip of up to 20 seconds. Choose `--language ru` for Russian. Omit `--reference` to see the transcript alone. To convert the first 20 seconds of a phone recording, run `ffmpeg -n -i "C:\path\recording.m4a" -t 20 -ac 1 -ar 16000 -c:a pcm_s16le "$r\my-clip.wav"` and pass the output WAV to the probe. Score against what was spoken in those 20 seconds, including any hesitations you want counted. You can try this on new clips even after a run's locked test has finished.
+
 ## Try 1,000 or 2,000 training recordings
 
 These counts refer to speech in the training split. With 500 English and 500 Russian clips, the trainer gets 1,000 speech recordings plus 24 controls. Development still has 40 speech clips plus 12 controls, and test has 80 plus 12. At the previous run's average speech duration, 1,000 clips give about 2.8 hours of training speech and 2,000 give about 5.6 hours. Setup streams public FLEURS recordings over the internet. Training then reads the downloaded files locally. Each training or test phase currently has a one-hour time limit.
@@ -82,6 +97,10 @@ if ($LASTEXITCODE -ne 0) { throw 'Development failed. Inspect the error above.' 
 To compare sizes, start both candidates from the same parent, check their validation clip IDs and hashes match, compare validation WER by language, and examine false captions as well. These runs use one update per training example, so doubling the data also increases training compute. Choose the method on validation before running the test command above once for the final candidate. More FLEURS read speech leaves conversational accuracy an open question.
 
 ### How research datasets compare
+
+For a **20-hour training experiment**, one possible design is 10 hours of labeled English and 10 of Russian, plus separate validation and test sessions. Summing the sample counts in our pinned FLEURS training metadata yields 7.49 hours of English and 8.05 hours of Russian before exclusions. The 1–20 second duration filter alone reduces this to about 7.15 and 7.56 hours. Additional licensed or permissioned conversational audio would be needed. The trainer enforces a one-hour limit per phase and saves adapter weights at configured checkpoints, so measure throughput on a smaller subset before committing to this size.
+
+On the FLEURS benchmark, Table 13 gives English/Russian WER of 12.4%/31.1% for Whisper Tiny, 6.1%/11.4% for Small and 4.2%/5.6% for Large V2. These are separate from our convenience subsets, normalization rules and C# runtime. A fair comparison would run the models on identical recordings with identical scoring and report caption latency on the intended machine. [Whisper paper, Table 13](https://cdn.openai.com/papers/whisper.pdf#page=24)
 
 One dataset can contain thousands of recordings. Research papers often describe the hours per language and the task. FLEURS contains about 12 hours per language across 102 languages. LibriSpeech contains about 1,000 hours of read English. The original Whisper model was pretrained on 680,000 hours of multilingual, multitask supervision. Here we adapt an already pretrained model, so the relevant test is how much additional labeled audio improves held-out performance. [FLEURS paper](https://arxiv.org/abs/2205.12446) · [LibriSpeech corpus](https://www.openslr.org/12/) · [Whisper paper](https://arxiv.org/abs/2212.04356)
 
