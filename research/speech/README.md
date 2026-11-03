@@ -2,7 +2,7 @@
 
 This is a developer research workspace. It does not install a model in the application or change the app's settings, capture sources, version, or update channel. End users will not need Python, notebooks, datasets or training commands in the intended product.
 
-The [training history](../../docs/reviews/2026-11-03-expanded-ml.md) records the starting scores, training changes, checkpoint results, and decisions for all three English/Russian runs. It also separates the C# runtime and translation measurements. The [continuation record](results/2026-11-03-continuation/README.md) includes reproduction commands and per-clip scores.
+The [training history](../../docs/reviews/2026-11-03-expanded-ml.md) records the English/Russian checkpoint results and separates the C# runtime and translation measurements. The [Round 4 report](results/2026-11-03-round4/README.md) covers the continuation on 1,000 new speech recordings, including the held-out scores and reproduction commands.
 
 Read the [research review and decision](../../docs/reviews/2026-11-01-ml-training.md). The first [recorded experiment](results/2026-11-01-pilot/report.json) is **not approved for release**: its small adapter did not improve held-out speech recognition or non-speech hallucinations. The separate neural VAD comparison is promising on a tiny sample, not a validated fix for wrong words during speech.
 

@@ -17,6 +17,12 @@ REVISION = "70bb2e84b976b7e960aa89f1c648e09c59f894dd"
 BASE = f"https://huggingface.co/datasets/google/fleurs/resolve/{REVISION}/data"
 
 
+def labels_by_filename(label_bytes):
+    # FLEURS uses literal quotation marks in transcripts, including at line starts.
+    rows = csv.reader(io.StringIO(label_bytes.decode("utf-8")), delimiter="\t", quoting=csv.QUOTE_NONE)
+    return {row[1]: row for row in rows}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
@@ -42,7 +48,7 @@ def main():
             with urllib.request.urlopen(f"{BASE}/{locale}/{split}.tsv", timeout=60) as response:
                 label_bytes = response.read()
             (args.output / f"{locale}-{split}.tsv").write_bytes(label_bytes)
-            labels = {r[1]: r for r in csv.reader(io.StringIO(label_bytes.decode("utf-8")), delimiter="\t")}
+            labels = labels_by_filename(label_bytes)
             url = f"{BASE}/{locale}/audio/{split}.tar.gz"
             accepted = 0
             with urllib.request.urlopen(url, timeout=60) as response, tarfile.open(fileobj=response, mode="r|gz") as archive:
