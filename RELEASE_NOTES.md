@@ -9,3 +9,6 @@ Download LiveTranslatorOverlay-Windows-x64.zip, extract it and run LiveTranslato
 Future application source is private. Public downloads and historical MIT-licensed source remain available under their existing permissions. Purchasing is unconfigured; this release adds no expiry or mandatory payment. This update does not collect audio to train models.
 
 The new local features are Windows-only. Live conversation and translation quality still need representative testing; historical research accuracy is not a live-product guarantee.
+
+License / Support shows the planned US$13 one-time lifetime offer and a Not now button. Buying and paid activation remain disabled until checkout is configured; usage is not blocked.
+
