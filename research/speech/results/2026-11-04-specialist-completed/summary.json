@@ -1,0 +1,642 @@
+{
+  "run": "specialist-benchmark-20261104-125809",
+  "scores": {
+    "dev": {
+      "accepted-small": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 117,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.03769329896907216,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 600,
+            "wordErrors": 1511,
+            "referenceWords": 6481,
+            "falseRejections": 3,
+            "wer": 0.23314303348248727,
+            "falseRejectionRate": 0.005
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 0,
+          "emissionRate": 0.0
+        }
+      },
+      "hybrid-beam1": {
+        "speech": {
+          "ru": {
+            "clips": 600,
+            "wordErrors": 428,
+            "referenceWords": 6481,
+            "falseRejections": 3,
+            "wer": 0.06603919148279587,
+            "falseRejectionRate": 0.005
+          },
+          "en": {
+            "clips": 150,
+            "wordErrors": 117,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.03769329896907216,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 0,
+          "emissionRate": 0.0
+        }
+      },
+      "hybrid-beam5": {
+        "speech": {
+          "ru": {
+            "clips": 600,
+            "wordErrors": 428,
+            "referenceWords": 6481,
+            "falseRejections": 3,
+            "wer": 0.06603919148279587,
+            "falseRejectionRate": 0.005
+          },
+          "en": {
+            "clips": 150,
+            "wordErrors": 111,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.03576030927835051,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 0,
+          "emissionRate": 0.0
+        }
+      }
+    },
+    "test": {
+      "accepted-small": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 102,
+            "referenceWords": 2780,
+            "falseRejections": 0,
+            "wer": 0.03669064748201439,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 600,
+            "wordErrors": 1536,
+            "referenceWords": 6418,
+            "falseRejections": 0,
+            "wer": 0.23932689311311936,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 0,
+          "emissionRate": 0.0
+        }
+      },
+      "hybrid-beam1": {
+        "speech": {
+          "ru": {
+            "clips": 600,
+            "wordErrors": 366,
+            "referenceWords": 6418,
+            "falseRejections": 0,
+            "wer": 0.05702711124961047,
+            "falseRejectionRate": 0.0
+          },
+          "en": {
+            "clips": 150,
+            "wordErrors": 102,
+            "referenceWords": 2780,
+            "falseRejections": 0,
+            "wer": 0.03669064748201439,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 0,
+          "emissionRate": 0.0
+        }
+      }
+    }
+  },
+  "rawScores": {
+    "dev": {
+      "accepted-small": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 117,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.03769329896907216,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 600,
+            "wordErrors": 1509,
+            "referenceWords": 6481,
+            "falseRejections": 0,
+            "wer": 0.23283443912976393,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 0,
+          "emissionRate": 0.0
+        }
+      },
+      "hybrid-beam1": {
+        "speech": {
+          "ru": {
+            "clips": 600,
+            "wordErrors": 422,
+            "referenceWords": 6481,
+            "falseRejections": 0,
+            "wer": 0.06511340842462583,
+            "falseRejectionRate": 0.0
+          },
+          "en": {
+            "clips": 150,
+            "wordErrors": 117,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.03769329896907216,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 0,
+          "emissionRate": 0.0
+        }
+      },
+      "hybrid-beam5": {
+        "speech": {
+          "ru": {
+            "clips": 600,
+            "wordErrors": 422,
+            "referenceWords": 6481,
+            "falseRejections": 0,
+            "wer": 0.06511340842462583,
+            "falseRejectionRate": 0.0
+          },
+          "en": {
+            "clips": 150,
+            "wordErrors": 111,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.03576030927835051,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 0,
+          "emissionRate": 0.0
+        }
+      }
+    },
+    "test": {
+      "accepted-small": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 102,
+            "referenceWords": 2780,
+            "falseRejections": 0,
+            "wer": 0.03669064748201439,
+            "falseRejectionRate": 0.0
+          },
+          "ru": {
+            "clips": 600,
+            "wordErrors": 1536,
+            "referenceWords": 6418,
+            "falseRejections": 0,
+            "wer": 0.23932689311311936,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 0,
+          "emissionRate": 0.0
+        }
+      },
+      "hybrid-beam1": {
+        "speech": {
+          "ru": {
+            "clips": 600,
+            "wordErrors": 366,
+            "referenceWords": 6418,
+            "falseRejections": 0,
+            "wer": 0.05702711124961047,
+            "falseRejectionRate": 0.0
+          },
+          "en": {
+            "clips": 150,
+            "wordErrors": 102,
+            "referenceWords": 2780,
+            "falseRejections": 0,
+            "wer": 0.03669064748201439,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 90,
+          "emittedClips": 0,
+          "emissionRate": 0.0
+        }
+      }
+    }
+  },
+  "corpusScores": {
+    "dev": {
+      "accepted-small": {
+        "librispeech": {
+          "speech": {
+            "en": {
+              "clips": 150,
+              "wordErrors": 117,
+              "referenceWords": 3104,
+              "falseRejections": 0,
+              "wer": 0.03769329896907216,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        },
+        "ruls": {
+          "speech": {
+            "ru": {
+              "clips": 300,
+              "wordErrors": 972,
+              "referenceWords": 4187,
+              "falseRejections": 0,
+              "wer": 0.23214712204442323,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        },
+        "sova": {
+          "speech": {
+            "ru": {
+              "clips": 300,
+              "wordErrors": 539,
+              "referenceWords": 2294,
+              "falseRejections": 3,
+              "wer": 0.23496076721883175,
+              "falseRejectionRate": 0.01
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        }
+      },
+      "hybrid-beam1": {
+        "librispeech": {
+          "speech": {
+            "en": {
+              "clips": 150,
+              "wordErrors": 117,
+              "referenceWords": 3104,
+              "falseRejections": 0,
+              "wer": 0.03769329896907216,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        },
+        "ruls": {
+          "speech": {
+            "ru": {
+              "clips": 300,
+              "wordErrors": 255,
+              "referenceWords": 4187,
+              "falseRejections": 0,
+              "wer": 0.06090279436350609,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        },
+        "sova": {
+          "speech": {
+            "ru": {
+              "clips": 300,
+              "wordErrors": 173,
+              "referenceWords": 2294,
+              "falseRejections": 3,
+              "wer": 0.07541412380122058,
+              "falseRejectionRate": 0.01
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        }
+      },
+      "hybrid-beam5": {
+        "librispeech": {
+          "speech": {
+            "en": {
+              "clips": 150,
+              "wordErrors": 111,
+              "referenceWords": 3104,
+              "falseRejections": 0,
+              "wer": 0.03576030927835051,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        },
+        "ruls": {
+          "speech": {
+            "ru": {
+              "clips": 300,
+              "wordErrors": 255,
+              "referenceWords": 4187,
+              "falseRejections": 0,
+              "wer": 0.06090279436350609,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        },
+        "sova": {
+          "speech": {
+            "ru": {
+              "clips": 300,
+              "wordErrors": 173,
+              "referenceWords": 2294,
+              "falseRejections": 3,
+              "wer": 0.07541412380122058,
+              "falseRejectionRate": 0.01
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        }
+      }
+    },
+    "test": {
+      "accepted-small": {
+        "librispeech": {
+          "speech": {
+            "en": {
+              "clips": 150,
+              "wordErrors": 102,
+              "referenceWords": 2780,
+              "falseRejections": 0,
+              "wer": 0.03669064748201439,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        },
+        "ruls": {
+          "speech": {
+            "ru": {
+              "clips": 300,
+              "wordErrors": 946,
+              "referenceWords": 4071,
+              "falseRejections": 0,
+              "wer": 0.2323753377548514,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        },
+        "sova": {
+          "speech": {
+            "ru": {
+              "clips": 300,
+              "wordErrors": 590,
+              "referenceWords": 2347,
+              "falseRejections": 0,
+              "wer": 0.2513847464848743,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        }
+      },
+      "hybrid-beam1": {
+        "librispeech": {
+          "speech": {
+            "en": {
+              "clips": 150,
+              "wordErrors": 102,
+              "referenceWords": 2780,
+              "falseRejections": 0,
+              "wer": 0.03669064748201439,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        },
+        "ruls": {
+          "speech": {
+            "ru": {
+              "clips": 300,
+              "wordErrors": 213,
+              "referenceWords": 4071,
+              "falseRejections": 0,
+              "wer": 0.05232129697862933,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        },
+        "sova": {
+          "speech": {
+            "ru": {
+              "clips": 300,
+              "wordErrors": 153,
+              "referenceWords": 2347,
+              "falseRejections": 0,
+              "wer": 0.0651896037494674,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 0,
+            "emittedClips": 0,
+            "emissionRate": null
+          }
+        }
+      }
+    }
+  },
+  "targetChecks": {
+    "dev": {
+      "russianAtMost7": true,
+      "englishAtMost3": false,
+      "macroMeanWer": 0.05186624522593401,
+      "macroMeanAtMost3": false
+    },
+    "test": {
+      "russianAtMost7": true,
+      "englishAtMost3": false,
+      "macroMeanWer": 0.04685887936581243,
+      "macroMeanAtMost3": false
+    }
+  },
+  "resources": {
+    "peakGpuAllocatedMiB": 1582.06005859375,
+    "peakGpuReservedMiB": 1794.0,
+    "maxSampledProcessRssMiB": 1538.5,
+    "maxSampledProcessPrivateMiB": 6688.2578125,
+    "minSampledAvailableRamMiB": 42.4609375
+  },
+  "elapsedSeconds": 3299.328999999998,
+  "completedStages": [
+    {
+      "stage": "dev/small-greedy",
+      "items": 840,
+      "seconds": 1385.265000000014,
+      "secondsPerItem": 1.6491250000000166
+    },
+    {
+      "stage": "dev/english-beam5",
+      "items": 195,
+      "seconds": 323.6570000000065,
+      "secondsPerItem": 1.6597794871795206
+    },
+    {
+      "stage": "dev/gigaam",
+      "items": 645,
+      "seconds": 434.93700000000536,
+      "secondsPerItem": 0.6743209302325665
+    },
+    {
+      "stage": "test/small-greedy",
+      "items": 840,
+      "seconds": 743.6870000000054,
+      "secondsPerItem": 0.885341666666673
+    },
+    {
+      "stage": "test/gigaam",
+      "items": 645,
+      "seconds": 322.90600000001723,
+      "secondsPerItem": 0.5006294573643678
+    }
+  ],
+  "uncertainty": {
+    "ru": {
+      "difference": -0.18229978186350887,
+      "lower": -0.1984732824427481,
+      "upper": -0.1687116564417178,
+      "independentGroups": 317,
+      "repeats": 10000,
+      "seed": 20261103,
+      "method": "paired parent-sentence cluster percentile bootstrap, 95%"
+    },
+    "en": {
+      "difference": 0.0,
+      "lower": 0.0,
+      "upper": 0.0,
+      "independentGroups": 68,
+      "repeats": 10000,
+      "seed": 20261103,
+      "method": "paired parent-sentence cluster percentile bootstrap, 95%"
+    }
+  },
+  "originalEnglishBeams": 1,
+  "correctedValidationChoice": {
+    "developmentEligible": true,
+    "eligibility": {
+      "1": true,
+      "5": true
+    },
+    "selectionData": "dev-only",
+    "productionApproved": false,
+    "englishBeams": 5,
+    "selectionPolicy": "eligible-lowest-macro-mean-v2"
+  },
+  "originalTestStillValidFor": "GigaAM Russian + Small English greedy with fixed Silero",
+  "correctedEnglishTestMeasured": false,
+  "trainingPerformed": false,
+  "productionApproved": false,
+  "sourceHashes": {
+    "report.json": "65718631da404475f45780c12a2c0aa338467da00bbfd2d970e66be61af8bb4f",
+    "selection.json": "96dd73107a810c760eb1efdd7cc2adba101aefb069d45ae86d6a6e65064a28ab",
+    "configuration.json": "f98ec69fa08e3070448cd9d6bf106cc7833c4136a2da1ec4536326c84eb9c561",
+    "progress.jsonl": "db6c2938ffc8d18792263da469c82416deffd95665784802affcf616a27d585b",
+    "dev/accepted-small-raw.json": "58babf0b73dbfe9e656cc6be444a36a77c918a6ea558e2640a99673e4243be3f",
+    "dev/accepted-small-gated.json": "bec8362627f6e33f5d1f1bcdfbb9773bd90a117d35a7520ffbf703dfd828220a",
+    "dev/hybrid-beam1-raw.json": "ed78c61001c36df50d73d86bee5ef59cee964aa1d27dc7a1ff9753c746a53cb8",
+    "dev/hybrid-beam1-gated.json": "d5e8ce68ecb2718da11160614d3d9bb56837408e925e1319ea56a3a9b719c3ea",
+    "dev/hybrid-beam5-raw.json": "d185445f9b8e48c5e9b4f113905c5378e0a94c796c3393da6f7d0b4c88e4d755",
+    "dev/hybrid-beam5-gated.json": "d98181e315e7cea7496b041bfaa1459078694c2f52aec187d1a91a254900369f",
+    "test/accepted-small-raw.json": "a0097376a98bacb86c6f98cdb3f96f417d0638c6791d9f6132d5a5c3742c14c5",
+    "test/accepted-small-gated.json": "a0097376a98bacb86c6f98cdb3f96f417d0638c6791d9f6132d5a5c3742c14c5",
+    "test/hybrid-beam1-raw.json": "c0011645718c3fc0d92c3ddfc8f32f574766706ec49dc91cdaee547ed61a7286",
+    "test/hybrid-beam1-gated.json": "c0011645718c3fc0d92c3ddfc8f32f574766706ec49dc91cdaee547ed61a7286"
+  }
+}

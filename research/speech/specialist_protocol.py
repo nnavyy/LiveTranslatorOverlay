@@ -16,7 +16,13 @@ def goals(score):
 
 def choose(baseline, candidates):
     result = choose_refinement(baseline, candidates)
-    result["englishBeams"] = int(result.pop("checkpoint"))
+    pool = [name for name, eligible in result['eligibility'].items() if eligible] or list(candidates)
+    selected = min(pool, key=lambda name: (
+        sum(candidates[name]['speech'][lang]['wer'] for lang in ('ru','en'))/2, int(name)))
+    result.pop('checkpoint')
+    result['developmentEligible'] = result['eligibility'][selected]
+    result['englishBeams'] = int(selected)
+    result['selectionPolicy'] = 'eligible-lowest-macro-mean-v2'
     return result
 
 

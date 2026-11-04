@@ -1,10 +1,12 @@
 # Local speech research and training
 
+Latest specialist result: [Russian WER 5.70%, English 3.67%, mean 4.69%](results/2026-11-04-specialist-completed/README.md). The report explains the previous model's 23.93% comparison row, a corrected decoder-selection defect, and which caches/checkpoints must be preserved.
+
 [Train the Russian and English model yourself](train-yourself.md) using the prepared local dataset, midpoint selection and optional speech detection.
 
-Latest completed experiment: [GPU Small continuation report](results/2026-11-04-refinement-completed/README.md). It finished in 51 minutes 20 seconds but failed its Russian validation accuracy gate; retain the previous Small checkpoint.
+Earlier training experiment: [GPU Small continuation report](results/2026-11-04-refinement-completed/README.md). It finished in 51 minutes 20 seconds but failed its Russian validation accuracy gate; retain the previous Small checkpoint.
 
-Next manual experiment: [Russian specialist benchmark](specialist-benchmark.md), with a published-method rationale, explicit Russian/English/mean WER goals, expected outcomes and an automatic comparison report.
+Benchmark instructions: [Russian specialist benchmark](specialist-benchmark.md), with a published-method rationale, explicit Russian/English/mean WER goals, expected outcomes and an automatic comparison report.
 
 This is a developer research workspace. It does not install a model in the application or change the app's settings, capture sources, version, or update channel. End users will not need Python, notebooks, datasets or training commands in the intended product.
 
