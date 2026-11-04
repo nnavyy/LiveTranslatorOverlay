@@ -20,6 +20,7 @@ from expanded_utils import choose_candidate
 from metrics import summarize, validate_splits
 from show_scores import print_scores
 from empty_caption import allow_empty_caption
+from run_progress import RunProgress
 
 
 def main():
@@ -113,6 +114,7 @@ def main():
     def save(name, data):
         (run_dir / name).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
+    progress = RunProgress(run_dir, started)
     processor = WhisperProcessor.from_pretrained(str(args.model), local_files_only=True)
     learn_empty = args.learn_empty_captions
     if args.phase == "test":
@@ -141,6 +143,7 @@ def main():
     def evaluate(model, split, name):
         model.eval()
         predictions = []
+        evaluation_started = time.monotonic()
         evaluation_rows = [r for r in rows if r["split"] == split]
         for i, row in enumerate(evaluation_rows, start=1):
             if time.monotonic() - started > args.phase_limit_seconds:
@@ -153,7 +156,7 @@ def main():
             predictions.append(dict(row, prediction=processor.batch_decode(tokens, skip_special_tokens=True)[0].strip(),
                 inferenceSeconds=time.monotonic()-before))
             if i % 10 == 0 or i == len(evaluation_rows):
-                print(f"{name}/{split}: {i}/{len(evaluation_rows)} clips ({i/len(evaluation_rows):.0%})", flush=True)
+                progress.report(f"{name}/{split}", i, len(evaluation_rows), time.monotonic()-evaluation_started)
         save(f"{name}-{split}.json", predictions)
         score = summarize(predictions)
         save(f"{name}-{split}-summary.json", score)
@@ -215,11 +218,13 @@ def main():
     random.shuffle(training)
     augment_rng = np.random.default_rng(seed)
     losses, candidates = [], {}
+    training_seconds = 0.0
     for step in range(1, configuration["steps"] + 1):
         if time.monotonic()-started > args.phase_limit_seconds:
             raise TimeoutError("Experiment phase time limit")
         if step > 1 and (step - 1) % len(training) == 0:
             random.shuffle(training)
+        step_started = time.monotonic()
         row = training[(step - 1) % len(training)]
         draw = augment_rng.random()
         augmentation = "clean" if row["kind"] != "speech" or draw < .5 else ("quiet" if draw < .75 else "noise20dB")
@@ -238,8 +243,10 @@ def main():
         optimizer.step()
         losses.append(dict(step=step, id=row["id"], augmentation=augmentation,
                            loss=result.loss.item(), gradientNorm=norm.item()))
+        training_seconds += time.monotonic()-step_started
         if step % 10 == 0 or step == configuration["steps"]:
             save("losses.json", losses)
+            progress.report("training", step, configuration["steps"], training_seconds)
             print(f"Training {step}/{configuration['steps']} ({step/configuration['steps']:.0%}): "
                   f"loss={result.loss.item():.4f}", flush=True)
         if step in configuration["checkpoints"]:

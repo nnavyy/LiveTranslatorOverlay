@@ -1,0 +1,193 @@
+{
+  "selection": {
+    "checkpoint": "4340",
+    "developmentEligible": true,
+    "eligibility": {
+      "2170": false,
+      "4340": true
+    },
+    "selectionData": "dev-only",
+    "productionApproved": false,
+    "manifestSha256": "ab859fe7348051378d10416fe5ac704eb9b5d0729b3aed709c0e56d567cdeb13",
+    "adapterSha256": "39bcb56e12a931083422ce09af31b7bc353201fa91502e3ba1bd4c7eff735770",
+    "learnEmptyCaptions": true
+  },
+  "configuration": {
+    "seed": 20261103,
+    "manifestSha256": "ab859fe7348051378d10416fe5ac704eb9b5d0729b3aed709c0e56d567cdeb13",
+    "baseModel": "openai/whisper-small",
+    "baseRevision": "973afd24965f72e36ca33b3055d56a652f456b4d",
+    "device": "cpu",
+    "threads": 4,
+    "steps": 4340,
+    "checkpoints": [
+      2170,
+      4340
+    ],
+    "loraRank": 8,
+    "loraAlpha": 16,
+    "loraDropout": 0,
+    "learningRate": 5e-05,
+    "batchSize": 1,
+    "weightDecay": 0,
+    "gradientClip": 1,
+    "trainingAugmentation": "speech: 50% unchanged, 25% gain 0.02, 25% Gaussian 20 dB SNR",
+    "decoder": "greedy, explicit language, transcribe, 128 max new tokens, no prior transcript context, immediate end-of-transcript allowed",
+    "selection": "Lowest macro en/ru development WER among eligible checkpoints, earliest tie; otherwise diagnostic minimum",
+    "eligibility": "Strict macro WER improvement, no language >1 percentage point worse, no extra blank speech or negative emissions",
+    "testUse": "None during training/selection; independent test command after selection.json freeze",
+    "versions": {
+      "torch": "2.15.0",
+      "transformers": "4.57.3",
+      "peft": "0.17.1",
+      "numpy": "2.2.6",
+      "soundfile": "0.13.1"
+    },
+    "phaseLimitSeconds": 86400,
+    "productionApproved": false,
+    "learnEmptyCaptions": true,
+    "extraControlUpdates": 420
+  },
+  "scores": {
+    "baseline-dev": {
+      "speech": {
+        "en": {
+          "clips": 150,
+          "wordErrors": 135,
+          "referenceWords": 3104,
+          "falseRejections": 0,
+          "wer": 0.04349226804123711,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 600,
+          "wordErrors": 1658,
+          "referenceWords": 6481,
+          "falseRejections": 0,
+          "wer": 0.25582471840765314,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 90,
+        "emittedClips": 90,
+        "emissionRate": 1.0
+      }
+    },
+    "2170-dev": {
+      "speech": {
+        "en": {
+          "clips": 150,
+          "wordErrors": 128,
+          "referenceWords": 3104,
+          "falseRejections": 0,
+          "wer": 0.041237113402061855,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 600,
+          "wordErrors": 1499,
+          "referenceWords": 6481,
+          "falseRejections": 1,
+          "wer": 0.2312914673661472,
+          "falseRejectionRate": 0.0016666666666666668
+        }
+      },
+      "nonSpeech": {
+        "clips": 90,
+        "emittedClips": 0,
+        "emissionRate": 0.0
+      }
+    },
+    "4340-dev": {
+      "speech": {
+        "en": {
+          "clips": 150,
+          "wordErrors": 117,
+          "referenceWords": 3104,
+          "falseRejections": 0,
+          "wer": 0.03769329896907216,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 600,
+          "wordErrors": 1509,
+          "referenceWords": 6481,
+          "falseRejections": 0,
+          "wer": 0.23283443912976393,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 90,
+        "emittedClips": 0,
+        "emissionRate": 0.0
+      }
+    },
+    "baseline-test": {
+      "speech": {
+        "en": {
+          "clips": 150,
+          "wordErrors": 104,
+          "referenceWords": 2780,
+          "falseRejections": 0,
+          "wer": 0.03741007194244604,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 600,
+          "wordErrors": 1643,
+          "referenceWords": 6418,
+          "falseRejections": 0,
+          "wer": 0.255998753505765,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 90,
+        "emittedClips": 90,
+        "emissionRate": 1.0
+      }
+    },
+    "candidate-test": {
+      "speech": {
+        "en": {
+          "clips": 150,
+          "wordErrors": 102,
+          "referenceWords": 2780,
+          "falseRejections": 0,
+          "wer": 0.03669064748201439,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 600,
+          "wordErrors": 1536,
+          "referenceWords": 6418,
+          "falseRejections": 0,
+          "wer": 0.23932689311311936,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 90,
+        "emittedClips": 0,
+        "emissionRate": 0.0
+      }
+    }
+  },
+  "timing": {
+    "developmentSeconds": 25904.030999999988,
+    "testSeconds": 7591.265999999989,
+    "totalPhaseSeconds": 33495.29699999998,
+    "decodeSeconds": {
+      "baseline-dev": 3430.423000000039,
+      "2170-dev": 3852.4659999999567,
+      "4340-dev": 4459.4910000001255,
+      "baseline-test": 4482.285999999978,
+      "candidate-test": 2975.9259999998612
+    },
+    "otherSeconds": 14294.705000000016
+  },
+  "historicalMemory": "Not recorded; cannot recover peak RAM or disk paging from saved results",
+  "currentMachine": "Intel Core i5-13420H, 8 cores / 12 logical processors, 7.71 GiB OS-visible RAM"
+}

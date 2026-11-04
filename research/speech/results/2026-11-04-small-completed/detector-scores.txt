@@ -1,0 +1,66 @@
+﻿Previous Tiny (dev)
+Without speech detector
+  EN WER 8.86% (275/3104 words), 150 speech clips, 0 blank
+  RU WER 50.24% (3256/6481 words), 600 speech clips, 0 blank
+  Mean English/Russian WER 29.55%
+  False captions on controls 100.00% (90/90)
+With speech detector
+  EN WER 8.86% (275/3104 words), 150 speech clips, 0 blank
+  RU WER 50.25% (3257/6481 words), 600 speech clips, 3 blank
+  Mean English/Russian WER 29.56%
+  False captions on controls 0.00% (0/90)
+Pretrained Small (dev)
+Without speech detector
+  EN WER 4.35% (135/3104 words), 150 speech clips, 0 blank
+  RU WER 25.58% (1658/6481 words), 600 speech clips, 0 blank
+  Mean English/Russian WER 14.97%
+  False captions on controls 100.00% (90/90)
+With speech detector
+  EN WER 4.35% (135/3104 words), 150 speech clips, 0 blank
+  RU WER 25.68% (1664/6481 words), 600 speech clips, 3 blank
+  Mean English/Russian WER 15.01%
+  False captions on controls 0.00% (0/90)
+Adapted Small (dev)
+Without speech detector
+  EN WER 3.77% (117/3104 words), 150 speech clips, 0 blank
+  RU WER 23.28% (1509/6481 words), 600 speech clips, 0 blank
+  Mean English/Russian WER 13.53%
+  False captions on controls 0.00% (0/90)
+With speech detector
+  EN WER 3.77% (117/3104 words), 150 speech clips, 0 blank
+  RU WER 23.31% (1511/6481 words), 600 speech clips, 3 blank
+  Mean English/Russian WER 13.54%
+  False captions on controls 0.00% (0/90)
+Previous Tiny (test)
+Without speech detector
+  EN WER 8.96% (249/2780 words), 150 speech clips, 0 blank
+  RU WER 49.72% (3191/6418 words), 600 speech clips, 0 blank
+  Mean English/Russian WER 29.34%
+  False captions on controls 100.00% (90/90)
+With speech detector
+  EN WER 8.96% (249/2780 words), 150 speech clips, 0 blank
+  RU WER 49.72% (3191/6418 words), 600 speech clips, 0 blank
+  Mean English/Russian WER 29.34%
+  False captions on controls 0.00% (0/90)
+Pretrained Small (test)
+Without speech detector
+  EN WER 3.74% (104/2780 words), 150 speech clips, 0 blank
+  RU WER 25.60% (1643/6418 words), 600 speech clips, 0 blank
+  Mean English/Russian WER 14.67%
+  False captions on controls 100.00% (90/90)
+With speech detector
+  EN WER 3.74% (104/2780 words), 150 speech clips, 0 blank
+  RU WER 25.60% (1643/6418 words), 600 speech clips, 0 blank
+  Mean English/Russian WER 14.67%
+  False captions on controls 0.00% (0/90)
+Adapted Small (test)
+Without speech detector
+  EN WER 3.67% (102/2780 words), 150 speech clips, 0 blank
+  RU WER 23.93% (1536/6418 words), 600 speech clips, 0 blank
+  Mean English/Russian WER 13.80%
+  False captions on controls 0.00% (0/90)
+With speech detector
+  EN WER 3.67% (102/2780 words), 150 speech clips, 0 blank
+  RU WER 23.93% (1536/6418 words), 600 speech clips, 0 blank
+  Mean English/Russian WER 13.80%
+  False captions on controls 0.00% (0/90)
