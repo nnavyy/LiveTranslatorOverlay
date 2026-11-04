@@ -1,0 +1,70 @@
+{
+  "smokeOnly": true,
+  "fullBenchmarkCompleted": false,
+  "trainingPerformed": false,
+  "productionApproved": false,
+  "smokeRun": "C:\\Users\\akung\\AppData\\Local\\LiveTranslatorOverlay\\accuracy-round-results\\accuracy-smoke-20261104-153435",
+  "resources": {
+    "gpuPeakAllocatedMiB": 2051.9892578125,
+    "processRssMiB": 1363.54296875,
+    "processPrivateMiB": 6039.7890625,
+    "availableRamMiB": 474.64453125
+  },
+  "elapsedSeconds": 61.46799999999348,
+  "wallClock": {
+    "totalSecondsIncludingSetup": 90.54376169999999,
+    "output": "C:\\Users\\akung\\AppData\\Local\\LiveTranslatorOverlay\\accuracy-round-results\\accuracy-smoke-20261104-153435"
+  },
+  "completedStages": [
+    {
+      "stage": "dev/distil-beam1",
+      "clips": 2,
+      "seconds": 3.3589999999967404
+    },
+    {
+      "stage": "dev/distil-beam5",
+      "clips": 2,
+      "seconds": 1.3909999999741558
+    },
+    {
+      "stage": "dev/gigaam-v3",
+      "clips": 3,
+      "seconds": 4.437999999994645
+    },
+    {
+      "stage": "test/small-beam5",
+      "clips": 2,
+      "seconds": 2.0780000000086147
+    },
+    {
+      "stage": "test/distil-beam1",
+      "clips": 2,
+      "seconds": 1.3439999999827705
+    },
+    {
+      "stage": "test/distil-beam5",
+      "clips": 2,
+      "seconds": 1.0309999999881256
+    },
+    {
+      "stage": "test/gigaam-v3",
+      "clips": 3,
+      "seconds": 3.85999999998603
+    }
+  ],
+  "testsPassed": 15,
+  "completedSpecialistAuditPassed": true,
+  "pipCacheCleanup": {
+    "filesRemoved": 464,
+    "reportedMB": 3076.2,
+    "protectedMLInputsDeleted": false
+  },
+  "sourceHashes": {
+    "report.json": "78a4e5dd37123a183752f8378e53be30325765caf0cec66df18909a54c09355a",
+    "report.md": "9d7a784f7fa3a527fa3f4265a59182f28aafd2ea7a9d5045b1be2c6ad412880f",
+    "selection.json": "48435cd6e62286ebca8d68e1d8f949504067988c76e6f7ae192198963641e98a",
+    "configuration.json": "c993eae2d57ed945457c939e32aac36683a5edc3d71fcb0af3027a6fd52090c6",
+    "progress.jsonl": "cdf7b2e218b4a4047ccc4349cc82a79e887b7ff109d44a973e593e210455af3d",
+    "wall-clock.json": "fba6fc82ab3d7aaf316417f87577c68d1c0aa65cd71772c8ca6ab2a7f94145f5"
+  }
+}
