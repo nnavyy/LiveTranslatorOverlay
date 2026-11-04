@@ -2,6 +2,8 @@
 
 For the next Russian accuracy experiment, use the [Whisper Small PowerShell workflow](results/2026-11-03-small-pilot/README.md). The instructions below reproduce the Tiny experiments.
 
+The [completed Small run report](results/2026-11-04-small-completed/README.md) records accuracy, runtime, RAM limitations and proposed next targets. Future runs print stage timing and memory readings. Update the existing research environment with `& '..\offline-research\training-venv\Scripts\python.exe' -m pip install -r research/speech/requirements.txt` from the repository directory before using the updated scripts.
+
 **Compare checkpoints on the same audio.** Round 4 and Round 5 both started from Round 3. The Round 3 Russian WER was 40.82% on 40 FLEURS test recordings and 55.72% on the later 600-recording Russian test. Round 5 reached 49.72% on that second test, six percentage points better than its parent. English worsened by 0.50 points, and nonspeech emissions increased from 21/90 to 90/90. Comparing 40.69% and 49.72% directly mixes changes in recordings and model. A head-to-head comparison of Rounds 4 and 5 needs both checkpoints decoded on identical clips.
 
 **1. Start training.** Open PowerShell on the machine with the prepared data. Paste this block as one command sequence. It uses the verified 70/15/15 dataset and starts from the Round 3 adapter. Keep the PowerShell window open. Each new run gets its own directory.

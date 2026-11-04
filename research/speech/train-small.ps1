@@ -2,6 +2,8 @@
 [CmdletBinding()]
 param([string]$ResearchRoot)
 $ErrorActionPreference = 'Stop'
+$workflowStarted = [DateTime]::UtcNow
+$workflowTimer = [Diagnostics.Stopwatch]::StartNew()
 if ([string]::IsNullOrWhiteSpace($ResearchRoot)) {
     $ResearchRoot = Join-Path (Split-Path $PSScriptRoot -Parent) '..\..\offline-research'
 }
@@ -22,6 +24,8 @@ if (!(Test-Path -LiteralPath "$model/provenance.json")) {
     Rename-Item -LiteralPath $stage -NewName (Split-Path -Leaf $model)
 }
 Write-Host "Training a fresh Small adapter. Run directory: $run"
+Write-Host 'CPU reference: about 9-12 hours for the complete workflow on this machine. This is an estimate.'
+Write-Host 'Progress shows a separate ETA for each stage and RAM snapshots. Validation adds time to the training ETA.'
 & $py -u $trainer develop $data $model $run --full-epoch --midpoint-checkpoint --learn-empty-captions --phase-limit-seconds 86400
 if ($LASTEXITCODE) { throw "Development failed. Inspect $run and the error above." }
 Get-Content -Raw "$run/selection.json"
@@ -56,3 +60,11 @@ foreach ($split in @('dev','test')) {
 }
 Write-Host "Read $run\detector-scores.txt for the paired detector comparison."
 Write-Host "Read $run\comparison.md"
+$workflowTimer.Stop()
+[ordered]@{
+    startedUtc = $workflowStarted.ToString('o')
+    finishedUtc = [DateTime]::UtcNow.ToString('o')
+    elapsedSeconds = $workflowTimer.Elapsed.TotalSeconds
+    scope = 'Complete successful workflow including model setup, development, test, reporting and detector scoring'
+} | ConvertTo-Json | Set-Content -LiteralPath "$run/workflow-timing.json" -Encoding utf8
+Write-Host "Complete workflow elapsed: $($workflowTimer.Elapsed). Saved to $run\workflow-timing.json"
