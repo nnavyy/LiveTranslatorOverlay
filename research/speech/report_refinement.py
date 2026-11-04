@@ -21,6 +21,7 @@ def report(run):
         "", "| Split | Model | Russian WER | English WER | Blank speech | False captions |",
         "|---|---|---:|---:|---:|---:|"]
     summary = dict(configuration=config, selection=selection, scores={}, productionApproved=False)
+    changes = []
     for split, folder, name in (("dev", run, selection["checkpoint"]), ("test", run/"locked-test", "candidate")):
         if not folder.exists():
             continue
@@ -32,6 +33,11 @@ def report(run):
             raise ValueError("Parent and candidate predictions are not paired")
         scores = [summarize(rows) for rows in (parent_rows, candidate_rows)]
         summary["scores"][split] = dict(parent=scores[0], candidate=scores[1])
+        for lang in ("ru", "en"):
+            before, after = (score["speech"][lang] for score in scores)
+            changes.append(f"{split} {lang.upper()}: {before['wordErrors']} -> {after['wordErrors']} word errors "
+                           f"({after['wordErrors']-before['wordErrors']:+d}); "
+                           f"WER change {100*(after['wer']-before['wer']):+.3f} percentage points. Lower is better.")
         for label, score in zip(("Parent", "Continued"), scores):
             ru, en, controls = score["speech"]["ru"], score["speech"]["en"], score["nonSpeech"]
             lines.append(f"| {split} | {label} | {ru['wer']:.2%} | {en['wer']:.2%} | "
@@ -40,6 +46,10 @@ def report(run):
             summary["historicalTestGuardrailsPassed"] = choose_refinement(scores[0], {"1": scores[1]})["developmentEligible"]
             lines += ["", f"Historical test guardrails passed: **{summary['historicalTestGuardrailsPassed']}**.",
                       "This diagnostic does not change the development-selected checkpoint."]
+    lines += ["", *[f"- {change}" for change in changes]]
+    if "test" not in summary["scores"]:
+        lines += ["", "**Validation results only: no completed test evaluation is included.** "
+                  "Compare dev with dev; the earlier 23.93% Russian test WER is a different set of recordings."]
     timing_path = run / "workflow-timing.json"
     if timing_path.exists():
         summary["timing"] = read(timing_path)
