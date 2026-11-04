@@ -1,5 +1,7 @@
 # Local speech research and training
 
+Next experiment: [independent English/Russian improvements, PowerShell command, expected targets and storage cleanup](next-accuracy-round.md). Compare English Distil-Whisper/beam search and Russian GigaAM v3; new models/results use C:. Full accuracy results await the user's manual run.
+
 Latest specialist result: [Russian WER 5.70%, English 3.67%, mean 4.69%](results/2026-11-04-specialist-completed/README.md). The report explains the previous model's 23.93% comparison row, a corrected decoder-selection defect, and which caches/checkpoints must be preserved.
 
 [Train the Russian and English model yourself](train-yourself.md) using the prepared local dataset, midpoint selection and optional speech detection.
