@@ -33,6 +33,19 @@ class SpecialistTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             apply_gate([row],{'x':gate})
 
+    def test_lower_english_wer_wins_when_russian_is_identical(self):
+        greedy,beam=copy.deepcopy(self.base),copy.deepcopy(self.base)
+        greedy['speech']['ru']['wer']=beam['speech']['ru']['wer']=.066
+        beam['speech']['en']['wer']=.0358
+        result=choose(self.base,{'1':greedy,'5':beam})
+        self.assertEqual(result['englishBeams'],5)
+        self.assertTrue(result['developmentEligible'])
+
+    def test_greedy_wins_only_when_mean_is_tied(self):
+        candidate=copy.deepcopy(self.base)
+        candidate['speech']['ru']['wer']=.066
+        self.assertEqual(choose(self.base,{'5':candidate,'1':candidate})['englishBeams'],1)
+
 
 if __name__=='__main__':
     unittest.main()

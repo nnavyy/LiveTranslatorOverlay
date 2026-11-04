@@ -1,5 +1,7 @@
 # Next experiment: Russian specialist, measured before more training
 
+**Completed-run update:** the specialist reached **5.70% Russian test WER**, compared with the old Small model's 23.93%. English was 3.67%, mean 4.69%. The audit also found and fixed an English-decoder selection error; beam 5 won validation under the stated mean-WER rule but its test result is still unmeasured. Read the [complete result and cache/checkpoint explanation](results/2026-11-04-specialist-completed/README.md) before repeating a benchmark.
+
 The completed Small continuation did not improve Russian validation WER. This command tests a different hypothesis: use the Russian-specialized **GigaAM v2 RNNT** for Russian and retain the accepted Small adapter for English. It compares English greedy decoding against beam size 5, chooses on validation, and evaluates a qualifying choice on the historical test. **It does not train weights.** Running a stronger pretrained recognizer first tells us whether more Small training is worthwhile.
 
 ## Evidence and what it does not prove

@@ -46,7 +46,16 @@ def report(output,result):
         minSampledAvailableRamMiB=min(r['availableRamMiB'] for r in progress))
     result['completedStages']=[dict(stage=r['stage'],items=r['completed'],seconds=r['stageActiveSeconds'],
         secondsPerItem=r['secondsPerItem']) for r in progress if r['completed']==r['total']]
+    latest_split='test' if 'test' in result['scores'] else 'dev'
+    selected_name=f"hybrid-beam{result['selection']['englishBeams']}"
+    latest=result['scores'][latest_split][selected_name]
+    display_names={'accepted-small':'Previous Small (comparison baseline)',
+                   'hybrid-beam1':'Russian specialist + English greedy',
+                   'hybrid-beam5':'Russian specialist + English beam 5'}
     lines=['# Russian specialist / English decoding benchmark','',
+        f"**Main result ({latest_split}): Russian {latest['speech']['ru']['wer']:.2%}, "
+        f"English {latest['speech']['en']['wer']:.2%}, mean {goals(latest)['macroMeanWer']:.2%}.**",
+        'The Previous Small row below is the old comparison model, not the specialist result.', '',
         '**No training was performed.** This compares pretrained recognition and decoding choices.',
         'Mean WER is the equal-weight mean of Russian and English WER, not pooled word errors.',
         '', '## Expectations registered before decoding','',
@@ -59,7 +68,7 @@ def report(output,result):
         for name,score in systems.items():
             ru,en=score['speech']['ru'],score['speech']['en']
             controls=score['nonSpeech']
-            lines.append(f"| {split} | {name} | {ru['wer']:.2%} ({ru['wordErrors']}/{ru['referenceWords']}) | "
+            lines.append(f"| {split} | {display_names[name]} | {ru['wer']:.2%} ({ru['wordErrors']}/{ru['referenceWords']}) | "
                          f"{en['wer']:.2%} ({en['wordErrors']}/{en['referenceWords']}) | {(ru['wer']+en['wer'])/2:.2%} | "
                          f"{ru['falseRejections']+en['falseRejections']} | {controls['emittedClips']}/{controls['clips']} |")
     lines += ['', '## Before the fixed speech detector', '',
@@ -68,7 +77,7 @@ def report(output,result):
     for split,systems in result['rawScores'].items():
         for name,score in systems.items():
             controls=score['nonSpeech']
-            lines.append(f"| {split} | {name} | {score['speech']['ru']['wer']:.2%} | "
+            lines.append(f"| {split} | {display_names[name]} | {score['speech']['ru']['wer']:.2%} | "
                          f"{score['speech']['en']['wer']:.2%} | {controls['emittedClips']}/{controls['clips']} |")
     choice=result['selection']
     lines += ['',f"Development criteria passed: **{choice['developmentEligible']}**. English decoder: **{choice['englishBeams']} beam(s)**.",
