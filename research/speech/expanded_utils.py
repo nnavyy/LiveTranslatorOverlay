@@ -48,3 +48,16 @@ def paired_interval(pairs, repeats=10000, seed=20261103):
                 lower=values[int(.025 * (repeats - 1))], upper=values[int(.975 * (repeats - 1))],
                 independentGroups=len(groups), repeats=repeats, seed=seed,
                 method="paired parent-sentence cluster percentile bootstrap, 95%")
+
+
+def choose_refinement(parent, candidates):
+    """Keep a continuation only if Russian improves without other regressions."""
+    result = choose_candidate(parent, candidates)
+    for name, score in candidates.items():
+        result["eligibility"][name] = (result["eligibility"][name]
+            and score["speech"]["ru"]["wer"] < parent["speech"]["ru"]["wer"]
+            and score["speech"]["en"]["wer"] <= parent["speech"]["en"]["wer"])
+    pool = [name for name, ok in result["eligibility"].items() if ok] or list(candidates)
+    result["checkpoint"] = min(pool, key=lambda name: (candidates[name]["speech"]["ru"]["wer"], int(name)))
+    result["developmentEligible"] = result["eligibility"][result["checkpoint"]]
+    return result
