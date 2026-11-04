@@ -1,0 +1,131 @@
+{
+  "scope": "Execution smoke only; too few clips for an accuracy estimate or goal claim",
+  "sourceCommit": "7447938d791c4f3e643386ee22c33777004293a5",
+  "model": "v2_rnnt",
+  "modelSha256": "91da61658d2607bc37924251eeede4ee1acc99c129386a51509f505981bb0e8b",
+  "versions": {
+    "torch": "2.10.0+cu126",
+    "torchaudio": "2.10.0+cu126",
+    "transformers": "4.57.3",
+    "peft": "0.17.1",
+    "gigaam": "0.2.0",
+    "soundfile": "0.13.1"
+  },
+  "elapsedSeconds": 50.53200000000652,
+  "completedStages": [
+    {
+      "stage": "dev/small-greedy",
+      "items": 5,
+      "seconds": 5.562999999994645,
+      "secondsPerItem": 1.112599999998929
+    },
+    {
+      "stage": "dev/english-beam5",
+      "items": 2,
+      "seconds": 2.4839999999967404,
+      "secondsPerItem": 1.2419999999983702
+    },
+    {
+      "stage": "dev/gigaam",
+      "items": 3,
+      "seconds": 6.671999999991385,
+      "secondsPerItem": 2.2239999999971283
+    },
+    {
+      "stage": "test/small-greedy",
+      "items": 5,
+      "seconds": 3.6719999999913853,
+      "secondsPerItem": 0.7343999999982771
+    },
+    {
+      "stage": "test/gigaam",
+      "items": 3,
+      "seconds": 3.10999999998603,
+      "secondsPerItem": 1.0366666666620101
+    }
+  ],
+  "resources": {
+    "peakGpuAllocatedMiB": 1555.81787109375,
+    "peakGpuReservedMiB": 1782.0,
+    "maxSampledProcessRssMiB": 1277.89453125,
+    "maxSampledProcessPrivateMiB": 5392.5,
+    "minSampledAvailableRamMiB": 445.421875
+  },
+  "samples": {
+    "dev": [
+      {
+        "id": "librispeech-002d91c7fbaacd76f171c649",
+        "kind": "speech",
+        "language": "en",
+        "corpus": "librispeech"
+      },
+      {
+        "id": "ru-prep-control-0420",
+        "kind": "non_speech",
+        "language": "ru",
+        "corpus": "controls"
+      },
+      {
+        "id": "ru-prep-control-0423",
+        "kind": "non_speech",
+        "language": "en",
+        "corpus": "controls"
+      },
+      {
+        "id": "ruls-001ab3cff9b36a36012a8479",
+        "kind": "speech",
+        "language": "ru",
+        "corpus": "ruls"
+      },
+      {
+        "id": "sova-000b9d74164fa5b71b901baf",
+        "kind": "speech",
+        "language": "ru",
+        "corpus": "sova"
+      }
+    ],
+    "test": [
+      {
+        "id": "librispeech-0028bf8a863b377860dcbe70",
+        "kind": "speech",
+        "language": "en",
+        "corpus": "librispeech"
+      },
+      {
+        "id": "ru-prep-control-0510",
+        "kind": "non_speech",
+        "language": "ru",
+        "corpus": "controls"
+      },
+      {
+        "id": "ru-prep-control-0513",
+        "kind": "non_speech",
+        "language": "en",
+        "corpus": "controls"
+      },
+      {
+        "id": "ruls-0001f1022cff8f86f0b2b115",
+        "kind": "speech",
+        "language": "ru",
+        "corpus": "ruls"
+      },
+      {
+        "id": "sova-00047903da6c20db4f1a996e",
+        "kind": "speech",
+        "language": "ru",
+        "corpus": "sova"
+      }
+    ]
+  },
+  "executionChecks": [
+    "PowerShell setup/verification",
+    "Whisper greedy",
+    "Whisper English beam5",
+    "GigaAM RNNT CUDA",
+    "fixed gate with paired IDs/checksums",
+    "dev-only selection with greedy tie-break",
+    "frozen historical test path",
+    "raw and gated reports",
+    "target arithmetic and recommended-next-action reporting"
+  ]
+}

@@ -4,6 +4,8 @@
 
 Latest completed experiment: [GPU Small continuation report](results/2026-11-04-refinement-completed/README.md). It finished in 51 minutes 20 seconds but failed its Russian validation accuracy gate; retain the previous Small checkpoint.
 
+Next manual experiment: [Russian specialist benchmark](specialist-benchmark.md), with a published-method rationale, explicit Russian/English/mean WER goals, expected outcomes and an automatic comparison report.
+
 This is a developer research workspace. It does not install a model in the application or change the app's settings, capture sources, version, or update channel. End users will not need Python, notebooks, datasets or training commands in the intended product.
 
 The [training history](../../docs/reviews/2026-11-03-expanded-ml.md) records the English/Russian checkpoint results and separates the C# runtime and translation measurements. The [Round 4 report](results/2026-11-03-round4/README.md) covers the continuation on 1,000 new speech recordings, including the held-out scores and reproduction commands.
