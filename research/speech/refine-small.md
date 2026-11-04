@@ -1,5 +1,7 @@
 # Continue Small once, then measure
 
+**Completed-run update:** this continuation failed its Russian accuracy gate: validation WER changed from 23.28% to 23.39%, while English changed from 3.77% to 3.67%. Keep the accepted parent and do not repeat the unchanged command expecting accumulated training. Read the [complete result, runtime and next-experiment recommendation](results/2026-11-04-refinement-completed/README.md). The commands below reproduce the experiment, not a recommendation to rerun it after this result.
+
 The completed model reached 23.93% Russian WER, 3.67% English WER and 0/90 synthetic controls emitting captions on the historical test. Re-running `train-small.ps1` starts a new adapter from pretrained Small. It does not continue that successful adapter.
 
 Use the new continuation workflow below for one controlled additional epoch. It starts from the selected adapter in `my-small-training-20261103-213758`, uses a fresh AdamW optimizer at learning rate 0.00001 (one fifth of the previous rate), and advances the seed so the shuffle and augmentations differ. The data and 70/15/15 assignments remain unchanged. It still presents 3,500 speech recordings and 420 training controls twice, for 4,340 updates. Only training recordings contribute gradients. This is a conservative experiment, not a proven accuracy improvement.

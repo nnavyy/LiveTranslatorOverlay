@@ -1,0 +1,335 @@
+{
+  "run": "my-small-refinement-20261104-081814",
+  "configuration": {
+    "seed": 20261104,
+    "manifestSha256": "ab859fe7348051378d10416fe5ac704eb9b5d0729b3aed709c0e56d567cdeb13",
+    "baseModel": "openai/whisper-small",
+    "baseRevision": "973afd24965f72e36ca33b3055d56a652f456b4d",
+    "device": "cuda",
+    "threads": 4,
+    "steps": 4340,
+    "checkpoints": [
+      4340
+    ],
+    "loraRank": 8,
+    "loraAlpha": 16,
+    "loraDropout": 0,
+    "learningRate": 1e-05,
+    "batchSize": 1,
+    "weightDecay": 0,
+    "gradientClip": 1,
+    "trainingAugmentation": "speech: 50% unchanged, 25% gain 0.02, 25% Gaussian 20 dB SNR",
+    "decoder": "greedy, explicit language, transcribe, 128 max new tokens, no prior transcript context, immediate end-of-transcript allowed",
+    "selection": "Lowest macro en/ru development WER among eligible checkpoints, earliest tie; otherwise diagnostic minimum",
+    "eligibility": "Russian WER strictly lower than parent; no English WER, blank speech or control regression",
+    "testUse": "None during training/selection; independent test command after selection.json freeze",
+    "versions": {
+      "torch": "2.10.0+cu126",
+      "transformers": "4.57.3",
+      "peft": "0.17.1",
+      "numpy": "2.2.6",
+      "soundfile": "0.13.1"
+    },
+    "phaseLimitSeconds": 86400,
+    "productionApproved": false,
+    "learnEmptyCaptions": true,
+    "extraControlUpdates": 420,
+    "parentAdapterSha256": "39bcb56e12a931083422ce09af31b7bc353201fa91502e3ba1bd4c7eff735770",
+    "parentCheckpoint": "4340",
+    "optimizerState": "fresh AdamW",
+    "refineSelected": true,
+    "baselineMeaning": "Selected parent adapter, re-evaluated on the current device",
+    "attentionImplementation": "sdpa",
+    "precision": "float32"
+  },
+  "selection": {
+    "checkpoint": "4340",
+    "developmentEligible": false,
+    "eligibility": {
+      "4340": false
+    },
+    "selectionData": "dev-only",
+    "productionApproved": false,
+    "parentAdapterSha256": "39bcb56e12a931083422ce09af31b7bc353201fa91502e3ba1bd4c7eff735770",
+    "eligibleAgainstParent": false,
+    "eligibleAgainstBase": null,
+    "manifestSha256": "ab859fe7348051378d10416fe5ac704eb9b5d0729b3aed709c0e56d567cdeb13",
+    "adapterSha256": "5df9b9e43710f4f1e8b2845c670642f80d18487591bb185769098d2f7c661960",
+    "learnEmptyCaptions": true
+  },
+  "manifestSplitCounts": {
+    "train": 3920,
+    "test": 840,
+    "dev": 840
+  },
+  "scores": {
+    "parent": {
+      "speech": {
+        "en": {
+          "clips": 150,
+          "wordErrors": 117,
+          "referenceWords": 3104,
+          "falseRejections": 0,
+          "wer": 0.03769329896907216,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 600,
+          "wordErrors": 1509,
+          "referenceWords": 6481,
+          "falseRejections": 0,
+          "wer": 0.23283443912976393,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 90,
+        "emittedClips": 0,
+        "emissionRate": 0.0
+      }
+    },
+    "candidate": {
+      "speech": {
+        "en": {
+          "clips": 150,
+          "wordErrors": 114,
+          "referenceWords": 3104,
+          "falseRejections": 0,
+          "wer": 0.03672680412371134,
+          "falseRejectionRate": 0.0
+        },
+        "ru": {
+          "clips": 600,
+          "wordErrors": 1516,
+          "referenceWords": 6481,
+          "falseRejections": 0,
+          "wer": 0.23391451936429564,
+          "falseRejectionRate": 0.0
+        }
+      },
+      "nonSpeech": {
+        "clips": 90,
+        "emittedClips": 0,
+        "emissionRate": 0.0
+      }
+    }
+  },
+  "languageChanges": {
+    "ru": {
+      "improvedClips": 41,
+      "worsenedClips": 35,
+      "tiedClips": 524,
+      "changedTranscripts": 125,
+      "uncertainty": {
+        "difference": 0.001080080234531708,
+        "lower": -0.004053834927841738,
+        "upper": 0.006969067123120186,
+        "independentGroups": 319,
+        "repeats": 10000,
+        "seed": 20261103,
+        "method": "paired parent-sentence cluster percentile bootstrap, 95%"
+      }
+    },
+    "en": {
+      "improvedClips": 6,
+      "worsenedClips": 4,
+      "tiedClips": 140,
+      "changedTranscripts": 10,
+      "uncertainty": {
+        "difference": -0.0009664948453608248,
+        "lower": -0.00344180225281602,
+        "upper": 0.001228878648233487,
+        "independentGroups": 74,
+        "repeats": 10000,
+        "seed": 20261103,
+        "method": "paired parent-sentence cluster percentile bootstrap, 95%"
+      }
+    }
+  },
+  "corpora": {
+    "librispeech": {
+      "parent": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 117,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.03769329896907216,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "candidate": {
+        "speech": {
+          "en": {
+            "clips": 150,
+            "wordErrors": 114,
+            "referenceWords": 3104,
+            "falseRejections": 0,
+            "wer": 0.03672680412371134,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      }
+    },
+    "ruls": {
+      "parent": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 972,
+            "referenceWords": 4187,
+            "falseRejections": 0,
+            "wer": 0.23214712204442323,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "candidate": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 973,
+            "referenceWords": 4187,
+            "falseRejections": 0,
+            "wer": 0.23238595653212324,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      }
+    },
+    "sova": {
+      "parent": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 537,
+            "referenceWords": 2294,
+            "falseRejections": 0,
+            "wer": 0.23408892763731473,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      },
+      "candidate": {
+        "speech": {
+          "ru": {
+            "clips": 300,
+            "wordErrors": 543,
+            "referenceWords": 2294,
+            "falseRejections": 0,
+            "wer": 0.23670444638186575,
+            "falseRejectionRate": 0.0
+          }
+        },
+        "nonSpeech": {
+          "clips": 0,
+          "emittedClips": 0,
+          "emissionRate": null
+        }
+      }
+    }
+  },
+  "workflowTiming": {
+    "elapsedSeconds": 3079.8769975,
+    "includesSetup": false
+  },
+  "stageTimings": [
+    {
+      "utc": "2026-11-04T01:32:04.945624+00:00",
+      "stage": "parent/dev",
+      "completed": 840,
+      "total": 840,
+      "stageActiveSeconds": 742.75,
+      "phaseElapsedSeconds": 815.7189999999828,
+      "secondsPerItem": 0.8842261904761904,
+      "stageRemainingEstimateSeconds": 0.0,
+      "processRssMiB": 534.91015625,
+      "processPrivateMiB": 3495.0625,
+      "availableRamMiB": 196.2265625,
+      "totalRamMiB": 7895.8671875,
+      "processPageFaults": 2419057,
+      "gpuAllocatedMiB": 959.0625,
+      "gpuReservedMiB": 1204.0,
+      "gpuPeakAllocatedMiB": 1081.44091796875
+    },
+    {
+      "utc": "2026-11-04T01:55:59.100271+00:00",
+      "stage": "training",
+      "completed": 4340,
+      "total": 4340,
+      "stageActiveSeconds": 1424.4969999999448,
+      "phaseElapsedSeconds": 2249.875,
+      "secondsPerItem": 0.3282251152073606,
+      "stageRemainingEstimateSeconds": 0.0,
+      "processRssMiB": 245.54296875,
+      "processPrivateMiB": 3998.66015625,
+      "availableRamMiB": 1341.0703125,
+      "totalRamMiB": 7895.8671875,
+      "processPageFaults": 11783429,
+      "gpuAllocatedMiB": 1007.35302734375,
+      "gpuReservedMiB": 1406.0,
+      "gpuPeakAllocatedMiB": 1263.4990234375
+    },
+    {
+      "utc": "2026-11-04T02:09:29.844068+00:00",
+      "stage": "4340/dev",
+      "completed": 840,
+      "total": 840,
+      "stageActiveSeconds": 810.6570000000065,
+      "phaseElapsedSeconds": 3060.609999999986,
+      "secondsPerItem": 0.9650678571428649,
+      "stageRemainingEstimateSeconds": 0.0,
+      "processRssMiB": 257.19140625,
+      "processPrivateMiB": 4000.78125,
+      "availableRamMiB": 693.4375,
+      "totalRamMiB": 7895.8671875,
+      "processPageFaults": 13380420,
+      "gpuAllocatedMiB": 1008.28076171875,
+      "gpuReservedMiB": 1406.0,
+      "gpuPeakAllocatedMiB": 1263.4990234375
+    }
+  ],
+  "sampledMemory": {
+    "maxProcessRssMiB": 839.55078125,
+    "maxProcessPrivateMiB": 4000.78125,
+    "minAvailableRamMiB": 64.23046875,
+    "maxGpuAllocatedMiB": 1263.4990234375,
+    "maxGpuReservedMiB": 1406.0
+  },
+  "testRunPresent": false,
+  "sourceHashes": {
+    "configuration.json": "6c596bd3dcffe3197f65b192b4226b1249c8151d0a6f527f16da0825fcd492ff",
+    "selection.json": "625ea4991f8313c351fadcff6f881c8109c3d3a3c271949ccb4a38d41f5ee6f5",
+    "parent-dev.json": "93b05c64b32cfe1d07dcce6c70e2ccc1d74fa5d7f8b194fe8b24a5306fdbc77c",
+    "4340-dev.json": "b5e1fb3362b20eeeecf8ab23ed9cb08b3ac54060439f026ceb0854a8961708b2",
+    "progress.jsonl": "e85aa97974e726e7fea11756165cd7ca6978539efe7513480da92973e9da2597",
+    "workflow-timing.json": "937a0f63d4ce63b6ac7e4aaaf08903e01380da9b1a2605176d52245a429ca0fa"
+  }
+}
