@@ -1,0 +1,373 @@
+{
+  "purpose": "Execution, timing and memory smoke only; no full-run accuracy claim",
+  "hardware": "NVIDIA RTX 2050 4096 MiB; i5-13420H; about 8 GB RAM",
+  "configuration": {
+    "seed": 20261104,
+    "manifestSha256": "c50fec3b181f424e097e5688ddae0a8f535297a2d5ceb96b22f699df664459b5",
+    "baseModel": "openai/whisper-small",
+    "baseRevision": "973afd24965f72e36ca33b3055d56a652f456b4d",
+    "device": "cuda",
+    "threads": 4,
+    "steps": 6,
+    "checkpoints": [
+      6
+    ],
+    "loraRank": 8,
+    "loraAlpha": 16,
+    "loraDropout": 0,
+    "learningRate": 1e-05,
+    "batchSize": 1,
+    "weightDecay": 0,
+    "gradientClip": 1,
+    "trainingAugmentation": "speech: 50% unchanged, 25% gain 0.02, 25% Gaussian 20 dB SNR",
+    "decoder": "greedy, explicit language, transcribe, 128 max new tokens, no prior transcript context, immediate end-of-transcript allowed",
+    "selection": "Lowest macro en/ru development WER among eligible checkpoints, earliest tie; otherwise diagnostic minimum",
+    "eligibility": "Russian WER strictly lower than parent; no English WER, blank speech or control regression",
+    "testUse": "None during training/selection; independent test command after selection.json freeze",
+    "versions": {
+      "torch": "2.10.0+cu126",
+      "transformers": "4.57.3",
+      "peft": "0.17.1",
+      "numpy": "2.2.6",
+      "soundfile": "0.13.1"
+    },
+    "phaseLimitSeconds": 1800,
+    "productionApproved": false,
+    "learnEmptyCaptions": true,
+    "extraControlUpdates": 2,
+    "parentAdapterSha256": "5abc2482dcff685534450a0ecde065bfeed68fe0806abd2eb085a7129fc7da75",
+    "parentCheckpoint": "6",
+    "optimizerState": "fresh AdamW",
+    "refineSelected": true,
+    "baselineMeaning": "Selected parent adapter, re-evaluated on the current device",
+    "attentionImplementation": "sdpa",
+    "precision": "float32"
+  },
+  "sample": [
+    {
+      "id": "librispeech-231112f3e9d56fa123f3e5d1",
+      "split": "train",
+      "language": "en",
+      "kind": "speech"
+    },
+    {
+      "id": "ru-prep-control-0003",
+      "split": "train",
+      "language": "en",
+      "kind": "non_speech"
+    },
+    {
+      "id": "ruls-461c274dc66da6acc0c711ee",
+      "split": "train",
+      "language": "ru",
+      "kind": "speech"
+    },
+    {
+      "id": "ru-prep-control-0000",
+      "split": "train",
+      "language": "ru",
+      "kind": "non_speech"
+    },
+    {
+      "id": "librispeech-002d91c7fbaacd76f171c649",
+      "split": "dev",
+      "language": "en",
+      "kind": "speech"
+    },
+    {
+      "id": "librispeech-00358961b2afb3bdbf68b2db",
+      "split": "dev",
+      "language": "en",
+      "kind": "speech"
+    },
+    {
+      "id": "librispeech-006787526b5983bd2b6c0062",
+      "split": "dev",
+      "language": "en",
+      "kind": "speech"
+    },
+    {
+      "id": "librispeech-008ad48fb2cc2da9da07de8d",
+      "split": "dev",
+      "language": "en",
+      "kind": "speech"
+    },
+    {
+      "id": "ru-prep-control-0423",
+      "split": "dev",
+      "language": "en",
+      "kind": "non_speech"
+    },
+    {
+      "id": "ru-prep-control-0424",
+      "split": "dev",
+      "language": "en",
+      "kind": "non_speech"
+    },
+    {
+      "id": "ruls-001ab3cff9b36a36012a8479",
+      "split": "dev",
+      "language": "ru",
+      "kind": "speech"
+    },
+    {
+      "id": "ruls-002b7ac94bfcbf473da2866c",
+      "split": "dev",
+      "language": "ru",
+      "kind": "speech"
+    },
+    {
+      "id": "ruls-00448cb16099ae111f26929d",
+      "split": "dev",
+      "language": "ru",
+      "kind": "speech"
+    },
+    {
+      "id": "ruls-00738105d72625bfd437c36f",
+      "split": "dev",
+      "language": "ru",
+      "kind": "speech"
+    },
+    {
+      "id": "ru-prep-control-0420",
+      "split": "dev",
+      "language": "ru",
+      "kind": "non_speech"
+    },
+    {
+      "id": "ru-prep-control-0421",
+      "split": "dev",
+      "language": "ru",
+      "kind": "non_speech"
+    },
+    {
+      "id": "librispeech-0028bf8a863b377860dcbe70",
+      "split": "test",
+      "language": "en",
+      "kind": "speech"
+    },
+    {
+      "id": "librispeech-00416985069edcd854994a10",
+      "split": "test",
+      "language": "en",
+      "kind": "speech"
+    },
+    {
+      "id": "librispeech-0045c96f99a32ebb72e0e900",
+      "split": "test",
+      "language": "en",
+      "kind": "speech"
+    },
+    {
+      "id": "librispeech-0048a33c95911e0668d12393",
+      "split": "test",
+      "language": "en",
+      "kind": "speech"
+    },
+    {
+      "id": "ru-prep-control-0513",
+      "split": "test",
+      "language": "en",
+      "kind": "non_speech"
+    },
+    {
+      "id": "ru-prep-control-0514",
+      "split": "test",
+      "language": "en",
+      "kind": "non_speech"
+    },
+    {
+      "id": "ruls-0001f1022cff8f86f0b2b115",
+      "split": "test",
+      "language": "ru",
+      "kind": "speech"
+    },
+    {
+      "id": "ruls-00639c84e7254245c922ae06",
+      "split": "test",
+      "language": "ru",
+      "kind": "speech"
+    },
+    {
+      "id": "ruls-007af85a4358907cda0fa092",
+      "split": "test",
+      "language": "ru",
+      "kind": "speech"
+    },
+    {
+      "id": "ruls-00ca34716934a437c30e1992",
+      "split": "test",
+      "language": "ru",
+      "kind": "speech"
+    },
+    {
+      "id": "ru-prep-control-0510",
+      "split": "test",
+      "language": "ru",
+      "kind": "non_speech"
+    },
+    {
+      "id": "ru-prep-control-0511",
+      "split": "test",
+      "language": "ru",
+      "kind": "non_speech"
+    }
+  ],
+  "sampleSelection": "Longest training reference per language/kind; first four speech and first two controls per language for dev/test",
+  "developmentEligible": false,
+  "stages": [
+    {
+      "phase": "fresh",
+      "utc": "2026-11-04T01:08:25.113981+00:00",
+      "stage": "baseline/dev",
+      "completed": 12,
+      "total": 12,
+      "stageActiveSeconds": 12.719000000011874,
+      "phaseElapsedSeconds": 20.437000000019907,
+      "secondsPerItem": 1.0599166666676563,
+      "stageRemainingEstimateSeconds": 0.0,
+      "processRssMiB": 950.44921875,
+      "processPrivateMiB": 3449.5546875,
+      "availableRamMiB": 497.37890625,
+      "totalRamMiB": 7895.8671875,
+      "processPageFaults": 776155,
+      "gpuAllocatedMiB": 956.8125,
+      "gpuReservedMiB": 1198.0,
+      "gpuPeakAllocatedMiB": 1077.60888671875
+    },
+    {
+      "phase": "fresh",
+      "utc": "2026-11-04T01:08:27.632511+00:00",
+      "stage": "training",
+      "completed": 6,
+      "total": 6,
+      "stageActiveSeconds": 2.2969999999913853,
+      "phaseElapsedSeconds": 22.968000000008033,
+      "secondsPerItem": 0.38283333333189756,
+      "stageRemainingEstimateSeconds": 0.0,
+      "processRssMiB": 1163.70703125,
+      "processPrivateMiB": 3900.484375,
+      "availableRamMiB": 455.10546875,
+      "totalRamMiB": 7895.8671875,
+      "processPageFaults": 864915,
+      "gpuAllocatedMiB": 1016.2568359375,
+      "gpuReservedMiB": 1360.0,
+      "gpuPeakAllocatedMiB": 1261.4443359375
+    },
+    {
+      "phase": "fresh",
+      "utc": "2026-11-04T01:08:41.014022+00:00",
+      "stage": "6/dev",
+      "completed": 12,
+      "total": 12,
+      "stageActiveSeconds": 13.21799999999348,
+      "phaseElapsedSeconds": 36.34300000000803,
+      "secondsPerItem": 1.1014999999994568,
+      "stageRemainingEstimateSeconds": 0.0,
+      "processRssMiB": 1169.51953125,
+      "processPrivateMiB": 3902.46484375,
+      "availableRamMiB": 324.19921875,
+      "totalRamMiB": 7895.8671875,
+      "processPageFaults": 893381,
+      "gpuAllocatedMiB": 1017.1845703125,
+      "gpuReservedMiB": 1360.0,
+      "gpuPeakAllocatedMiB": 1261.4443359375
+    },
+    {
+      "phase": "continuation",
+      "utc": "2026-11-04T01:09:25.622527+00:00",
+      "stage": "parent/dev",
+      "completed": 12,
+      "total": 12,
+      "stageActiveSeconds": 14.702999999979511,
+      "phaseElapsedSeconds": 19.84399999998277,
+      "secondsPerItem": 1.2252499999982926,
+      "stageRemainingEstimateSeconds": 0.0,
+      "processRssMiB": 1168.8046875,
+      "processPrivateMiB": 3485.92578125,
+      "availableRamMiB": 557.78515625,
+      "totalRamMiB": 7895.8671875,
+      "processPageFaults": 801930,
+      "gpuAllocatedMiB": 959.0625,
+      "gpuReservedMiB": 1200.0,
+      "gpuPeakAllocatedMiB": 1079.85888671875
+    },
+    {
+      "phase": "continuation",
+      "utc": "2026-11-04T01:09:28.214172+00:00",
+      "stage": "training",
+      "completed": 6,
+      "total": 6,
+      "stageActiveSeconds": 2.5789999999979045,
+      "phaseElapsedSeconds": 22.437999999994645,
+      "secondsPerItem": 0.42983333333298407,
+      "stageRemainingEstimateSeconds": 0.0,
+      "processRssMiB": 1394.4453125,
+      "processPrivateMiB": 3976.00390625,
+      "availableRamMiB": 347.203125,
+      "totalRamMiB": 7895.8671875,
+      "processPageFaults": 889613,
+      "gpuAllocatedMiB": 1003.0,
+      "gpuReservedMiB": 1388.0,
+      "gpuPeakAllocatedMiB": 1261.4443359375
+    },
+    {
+      "phase": "continuation",
+      "utc": "2026-11-04T01:09:41.393436+00:00",
+      "stage": "6/dev",
+      "completed": 12,
+      "total": 12,
+      "stageActiveSeconds": 13.10899999999674,
+      "phaseElapsedSeconds": 35.60899999999674,
+      "secondsPerItem": 1.092416666666395,
+      "stageRemainingEstimateSeconds": 0.0,
+      "processRssMiB": 1386.03515625,
+      "processPrivateMiB": 3978.984375,
+      "availableRamMiB": 234.90234375,
+      "totalRamMiB": 7895.8671875,
+      "processPageFaults": 914352,
+      "gpuAllocatedMiB": 1003.927734375,
+      "gpuReservedMiB": 1388.0,
+      "gpuPeakAllocatedMiB": 1261.4443359375
+    },
+    {
+      "phase": "test",
+      "utc": "2026-11-04T01:10:22.760692+00:00",
+      "stage": "parent/test",
+      "completed": 12,
+      "total": 12,
+      "stageActiveSeconds": 13.0,
+      "phaseElapsedSeconds": 17.703000000008615,
+      "secondsPerItem": 1.0833333333333333,
+      "stageRemainingEstimateSeconds": 0.0,
+      "processRssMiB": 1121.59765625,
+      "processPrivateMiB": 3483.0703125,
+      "availableRamMiB": 529.8359375,
+      "totalRamMiB": 7895.8671875,
+      "processPageFaults": 779713,
+      "gpuAllocatedMiB": 959.0625,
+      "gpuReservedMiB": 1200.0,
+      "gpuPeakAllocatedMiB": 1079.85888671875
+    },
+    {
+      "phase": "test",
+      "utc": "2026-11-04T01:10:33.158957+00:00",
+      "stage": "candidate/test",
+      "completed": 12,
+      "total": 12,
+      "stageActiveSeconds": 10.23399999999674,
+      "phaseElapsedSeconds": 28.094000000011874,
+      "secondsPerItem": 0.8528333333330617,
+      "stageRemainingEstimateSeconds": 0.0,
+      "processRssMiB": 1123.15625,
+      "processPrivateMiB": 3486.1640625,
+      "availableRamMiB": 529.7578125,
+      "totalRamMiB": 7895.8671875,
+      "processPageFaults": 803247,
+      "gpuAllocatedMiB": 961.3125,
+      "gpuReservedMiB": 1202.0,
+      "gpuPeakAllocatedMiB": 1082.08203125
+    }
+  ],
+  "testingNote": "Direct test command exercised deliberately on diagnostic smoke weights. Production wrapper skips test after failed development."
+}
