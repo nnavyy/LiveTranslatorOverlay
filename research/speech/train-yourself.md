@@ -1,5 +1,7 @@
 # Train the Russian and English recognizer on this Windows machine
 
+After the completed Small continuation plateaued, the recommended next manual experiment is the [Russian specialist benchmark](specialist-benchmark.md). It tests a published pretrained method before spending more time on training and reports the 7% Russian / 3% English / 3% mean goals separately.
+
 For the next Russian accuracy experiment, use the [Whisper Small PowerShell workflow](results/2026-11-03-small-pilot/README.md). The instructions below reproduce the Tiny experiments.
 
 If you already completed Small training, use [Continue Small once on the GPU](refine-small.md) to start from that selected adapter. Repeating the original Small workflow initializes a fresh adapter instead.

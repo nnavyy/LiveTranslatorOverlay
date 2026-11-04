@@ -1,5 +1,7 @@
 # Continue Small once, then measure
 
+The next prepared command is now available in the [Russian specialist benchmark instructions](specialist-benchmark.md).
+
 **Completed-run update:** this continuation failed its Russian accuracy gate: validation WER changed from 23.28% to 23.39%, while English changed from 3.77% to 3.67%. Keep the accepted parent and do not repeat the unchanged command expecting accumulated training. Read the [complete result, runtime and next-experiment recommendation](results/2026-11-04-refinement-completed/README.md). The commands below reproduce the experiment, not a recommendation to rerun it after this result.
 
 The completed model reached 23.93% Russian WER, 3.67% English WER and 0/90 synthetic controls emitting captions on the historical test. Re-running `train-small.ps1` starts a new adapter from pretrained Small. It does not continue that successful adapter.
