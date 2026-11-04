@@ -1,3 +1,5 @@
+Latest: [completed accuracy round and Windows integration](results/2026-11-04-accuracy-round-completed/README.md).
+
 # Local speech research and training
 
 Next experiment: [independent English/Russian improvements, PowerShell command, expected targets and storage cleanup](next-accuracy-round.md). Compare English Distil-Whisper/beam search and Russian GigaAM v3; new models/results use C:. Full accuracy results await the user's manual run.

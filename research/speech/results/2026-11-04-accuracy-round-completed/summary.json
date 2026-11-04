@@ -1,0 +1,240 @@
+{
+  "scores": {
+    "dev": {
+      "en": {
+        "current-en": {
+          "speech": {
+            "en": {
+              "clips": 150,
+              "wordErrors": 117,
+              "referenceWords": 3104,
+              "falseRejections": 0,
+              "wer": 0.03769329896907216,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 45,
+            "emittedClips": 0,
+            "emissionRate": 0.0
+          }
+        },
+        "small-beam5": {
+          "speech": {
+            "en": {
+              "clips": 150,
+              "wordErrors": 111,
+              "referenceWords": 3104,
+              "falseRejections": 0,
+              "wer": 0.03576030927835051,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 45,
+            "emittedClips": 0,
+            "emissionRate": 0.0
+          }
+        },
+        "distil-beam1": {
+          "speech": {
+            "en": {
+              "clips": 150,
+              "wordErrors": 106,
+              "referenceWords": 3104,
+              "falseRejections": 0,
+              "wer": 0.03414948453608247,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 45,
+            "emittedClips": 0,
+            "emissionRate": 0.0
+          }
+        },
+        "distil-beam5": {
+          "speech": {
+            "en": {
+              "clips": 150,
+              "wordErrors": 103,
+              "referenceWords": 3104,
+              "falseRejections": 0,
+              "wer": 0.03318298969072165,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 45,
+            "emittedClips": 0,
+            "emissionRate": 0.0
+          }
+        }
+      },
+      "ru": {
+        "current-ru": {
+          "speech": {
+            "ru": {
+              "clips": 600,
+              "wordErrors": 428,
+              "referenceWords": 6481,
+              "falseRejections": 3,
+              "wer": 0.06603919148279587,
+              "falseRejectionRate": 0.005
+            }
+          },
+          "nonSpeech": {
+            "clips": 45,
+            "emittedClips": 0,
+            "emissionRate": 0.0
+          }
+        },
+        "gigaam-v3": {
+          "speech": {
+            "ru": {
+              "clips": 600,
+              "wordErrors": 488,
+              "referenceWords": 6481,
+              "falseRejections": 3,
+              "wer": 0.07529702206449622,
+              "falseRejectionRate": 0.005
+            }
+          },
+          "nonSpeech": {
+            "clips": 45,
+            "emittedClips": 0,
+            "emissionRate": 0.0
+          }
+        }
+      }
+    },
+    "test": {
+      "en": {
+        "current-en": {
+          "speech": {
+            "en": {
+              "clips": 150,
+              "wordErrors": 102,
+              "referenceWords": 2780,
+              "falseRejections": 0,
+              "wer": 0.03669064748201439,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 45,
+            "emittedClips": 0,
+            "emissionRate": 0.0
+          }
+        },
+        "distil-beam5": {
+          "speech": {
+            "en": {
+              "clips": 150,
+              "wordErrors": 59,
+              "referenceWords": 2780,
+              "falseRejections": 0,
+              "wer": 0.021223021582733814,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 45,
+            "emittedClips": 0,
+            "emissionRate": 0.0
+          }
+        }
+      },
+      "ru": {
+        "current-ru": {
+          "speech": {
+            "ru": {
+              "clips": 600,
+              "wordErrors": 366,
+              "referenceWords": 6418,
+              "falseRejections": 0,
+              "wer": 0.05702711124961047,
+              "falseRejectionRate": 0.0
+            }
+          },
+          "nonSpeech": {
+            "clips": 45,
+            "emittedClips": 0,
+            "emissionRate": 0.0
+          }
+        }
+      }
+    }
+  },
+  "selection": {
+    "en": {
+      "selected": "distil-beam5",
+      "eligibility": {
+        "current": true,
+        "small-beam5": true,
+        "distil-beam1": true,
+        "distil-beam5": true
+      },
+      "improved": true
+    },
+    "ru": {
+      "selected": "current",
+      "eligibility": {
+        "current": true,
+        "gigaam-v3": false
+      },
+      "improved": false
+    }
+  },
+  "targets": {
+    "dev": {
+      "russianAtMost4_70": false,
+      "englishAtMost2_67": false,
+      "macroMeanWer": 0.04961109058675876,
+      "meanAtMost3": false,
+      "bothAtMost2": false
+    },
+    "test": {
+      "russianAtMost4_70": false,
+      "englishAtMost2_67": true,
+      "macroMeanWer": 0.03912506641617214,
+      "meanAtMost3": false,
+      "bothAtMost2": false
+    }
+  },
+  "resources": {
+    "gpuPeakAllocatedMiB": 2051.9892578125,
+    "processRssMiB": 962.51171875,
+    "processPrivateMiB": 6796.57421875,
+    "availableRamMiB": 105.84765625
+  },
+  "elapsedSeconds": 1424.0629999999946,
+  "wallClock": {
+    "totalSecondsIncludingSetup": 1469.7572183,
+    "output": "C:\\Users\\akung\\AppData\\Local\\LiveTranslatorOverlay\\accuracy-round-results\\accuracy-round-20261104-153959"
+  },
+  "sourceHashes": {
+    "report.json": "b941c3d36aac13c35290aaa94144d763459281a74f8ca9f3b7488314f0205967",
+    "configuration.json": "b028ad51e7bdc393e900ce6108f2e358238737478e8c2c43fb381409918dbda2",
+    "selection.json": "fb733928c4efa257df75be3c47c374f8260613e18ad1d2727bb57226a2dbea84",
+    "progress.jsonl": "cf0c49f82121aa664c4689f7857059b2f07c103fb3b7689eaf72cdf73f3f6412",
+    "wall-clock.json": "3e28fd5bb99351526744193a510b71d5188db4b028392e845f44cefa1a187a05"
+  },
+  "auditPassed": true,
+  "trainingPerformed": false,
+  "appVersion": "2.0.0",
+  "integrationChecks": {
+    "englishTranscriptMatch": true,
+    "russianTranscriptMatch": true,
+    "silenceRejectedBoth": true,
+    "autoSourceRejected": true,
+    "translationPairs": [
+      "en-ru",
+      "ru-en",
+      "en-id"
+    ],
+    "regressionPassed": 12,
+    "auditPassed": 9,
+    "speakerPassed": 13
+  }
+}

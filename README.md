@@ -1,3 +1,11 @@
+# Live Translator Overlay — public downloads and reports
+
+Latest Windows release: **v2.0.0**, with optional local speech and local translation after separate model setup. [Download the app](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.0.0).
+
+Future app source is maintained privately. This public repository retains downloads, documentation, research reports and historical MIT-licensed source. Existing MIT permissions are not revoked; the old source tree below does not contain the v2.0.0 implementation. Multi-gigabyte models, training audio and environments stay on local storage.
+
+[Completed accuracy report](research/speech/results/2026-11-04-accuracy-round-completed/README.md): English 2.12%, Russian 5.70%, equal-language mean 3.91% on the historical benchmark. These are not guarantees for live speech. Purchasing remains unconfigured.
+
 # Live Translator Overlay
 
 The stable overlay is for Windows. A separate **Mac developer preview** for Apple Silicon and Intel starts with manual text translation and session history; it does not yet include audio, screen OCR, overlay captions, or capture protection. See [Mac preview notes](MacApp/RELEASE_NOTES.md) and the [November 1 review](docs/reviews/2026-11-01.md).
