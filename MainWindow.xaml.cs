@@ -40,6 +40,7 @@ public partial class MainWindow : Window
     // Audio STT
     private AudioCaptureService? _audioCaptureService;
     private WhisperSttService? _whisperSttService;
+    private LocalSpeechService? _localSpeechService;
     private DiarizedSttService? _diarizedSttService;
     private bool _isAudioMode = false;
     private CancellationTokenSource? _audioCts;
@@ -134,12 +135,22 @@ public partial class MainWindow : Window
         LocalizationManager.Instance.LanguageChanged += (s, e) => Dispatcher.Invoke(ApplyLocalization);
         ApplyLocalization();
         
-        // Initialize with Google Free as default (matches SelectedIndex=0 in XAML)
+        // Prepared local systems start without an API-key dependency.
+        if (System.IO.File.Exists(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiveTranslatorOverlay", "local-speech.json")))
+        {
+            CmbEngine.SelectedIndex = 2;
+            CmbSttMode.SelectedIndex = 2;
+        }
+        // Preserve online choices as optional providers.
         if (loadedSettings.EngineIndex == 1 && !string.IsNullOrWhiteSpace(TxtApiKey.Text))
         {
             var groq = new GroqTranslateProvider(TxtApiKey.Text);
             groq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
             _translationProvider = groq;
+        }
+        else if (CmbEngine.SelectedIndex == 2)
+        {
+            _translationProvider = new LocalTranslateProvider();
         }
         else
         {
@@ -881,6 +892,12 @@ public partial class MainWindow : Window
     {
         if (CmbEngine == null || TxtApiKey == null) return;
         
+        if ((CmbEngine.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "local")
+        {
+            _translationProvider = new LocalTranslateProvider();
+            QuotaTracker.Instance.SetUnlimited("Local translation");
+            return;
+        }
         string selectedModel = "";
         if (CmbGroqModel?.SelectedItem is ComboBoxItem modelItem)
             selectedModel = modelItem.Tag?.ToString() ?? "";
@@ -972,7 +989,8 @@ public partial class MainWindow : Window
 
     private async Task VerifyGroqApiKeyAsync(bool showNotification = false)
     {
-        if (TxtApiKey == null || TxtApiKeyStatus == null || DotApiKeyStatus == null) return;
+        if (CmbEngine == null || TxtApiKey == null || TxtApiKeyStatus == null || DotApiKeyStatus == null) return;
+        if ((CmbEngine.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "local") return;
         string key = TxtApiKey.Text.Trim();
         var loc = LocalizationManager.Instance;
 
@@ -1479,7 +1497,7 @@ public partial class MainWindow : Window
             }
             else
             {
-                await StartGroqWhisperModeAsync();
+                await StartGroqWhisperModeAsync(sttMode == "local");
             }
         }
         else
@@ -1712,13 +1730,33 @@ public partial class MainWindow : Window
         return HallucinationDetector.IsHallucination(text);
     }
 
-    private async Task StartGroqWhisperModeAsync()
+    private async Task StartGroqWhisperModeAsync(bool local = false)
     {
-        QuotaTracker.Instance.NotifyCurrentGroqWhisper();
-        CaptionTranslated.Text = "Loading Groq Whisper...";
+        if (!local) QuotaTracker.Instance.NotifyCurrentGroqWhisper();
+        CaptionTranslated.Text = local ? "Loading local speech..." : "Loading Groq Whisper...";
         CaptionSpeaker.Visibility = Visibility.Collapsed;
 
-        if (_whisperSttService == null)
+        if (local)
+        {
+            var service = new LocalSpeechService();
+            _localSpeechService = service;
+            try
+            {
+                string language = GetSourceLanguage();
+                await service.InitializeAsync(language, CancellationToken.None);
+                if (!_isAudioMode || !ReferenceEquals(_localSpeechService, service))
+                { await service.DisposeAsync(); return; }
+            }
+            catch (Exception error)
+            {
+                await service.DisposeAsync();
+                if (ReferenceEquals(_localSpeechService, service)) _localSpeechService = null;
+                await StopAudioModeAsync();
+                MessageBox.Show(error.Message, "Local speech");
+                return;
+            }
+        }
+        if (!local && _whisperSttService == null)
         {
             _whisperSttService = new WhisperSttService(TxtApiKey.Text);
             _whisperSttService.RateLimitCooldownStarted += (s, secs) =>
@@ -1742,6 +1780,7 @@ public partial class MainWindow : Window
             }
         }
 
+        var localService = _localSpeechService;
         AcousticSpeakerDetector.Reset();
         var capture = new AudioCaptureService();
         _audioCaptureService = capture;
@@ -1758,8 +1797,18 @@ public partial class MainWindow : Window
                 string targetLang = "", sourceLang = "";
                 Dispatcher.Invoke(() => { targetLang = GetTargetLanguage(); sourceLang = GetSourceLanguage(); });
 
-                await _whisperSttService!.ChangeLanguageAsync(sourceLang);
-                string transcribed = await _whisperSttService!.ProcessAudioChunkAsync(chunk);
+                string transcribed;
+                if (local)
+                {
+                    if (localService!.Language != sourceLang)
+                        throw new InvalidOperationException("Source language changed. Stop and restart local audio.");
+                    transcribed = await localService.TranscribeAsync(chunk, sessionToken);
+                }
+                else
+                {
+                    await _whisperSttService!.ChangeLanguageAsync(sourceLang);
+                    transcribed = await _whisperSttService!.ProcessAudioChunkAsync(chunk);
+                }
                 if (sessionToken.IsCancellationRequested || string.IsNullOrWhiteSpace(transcribed)) return;
 
                 // ── HALLUCINATION FILTER (same as Deepgram path) ──
@@ -1833,7 +1882,7 @@ public partial class MainWindow : Window
 
         await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId());
         if (sessionToken.IsCancellationRequested) { capture.Dispose(); return; }
-        TxtAudioStatus.Text = LocalizationManager.Instance.Get("WhisperSpeakerHint");
+        TxtAudioStatus.Text = local ? "Local GPU speech active. English / Russian; speaker labels are estimates." : LocalizationManager.Instance.Get("WhisperSpeakerHint");
         CaptionTranslated.Text = "[Waiting for audio...]";
     }
 
@@ -1846,6 +1895,10 @@ public partial class MainWindow : Window
         _audioCaptureService = null;
 
         AcousticSpeakerDetector.Reset();
+
+        var stoppedLocal = _localSpeechService;
+        _localSpeechService = null;
+        if (stoppedLocal != null) await stoppedLocal.DisposeAsync();
 
         var stoppedService = _diarizedSttService;
         _diarizedSttService = null;
@@ -2143,6 +2196,11 @@ public partial class MainWindow : Window
         _audioCaptureService?.Dispose();
         _audioCaptureService = null;
 
+        if (_localSpeechService != null)
+        {
+            await _localSpeechService.DisposeAsync();
+            _localSpeechService = null;
+        }
         if (_whisperSttService != null)
         {
             await _whisperSttService.DisposeAsync();

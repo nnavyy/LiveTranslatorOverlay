@@ -1,3 +1,7 @@
+# Application source is now private
+
+Future application development is private. Public downloads and reports remain at https://github.com/nnavyy/LiveTranslatorOverlay . Earlier MIT source retains its existing permissions; see LICENSE and APP_LICENSE.md.
+
 # Live Translator Overlay
 
 The stable overlay is for Windows. A separate **Mac developer preview** for Apple Silicon and Intel starts with manual text translation and session history; it does not yet include audio, screen OCR, overlay captions, or capture protection. See [Mac preview notes](MacApp/RELEASE_NOTES.md) and the [November 1 review](docs/reviews/2026-11-01.md).

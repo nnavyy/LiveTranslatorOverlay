@@ -506,6 +506,7 @@
                         <ComboBox x:Name="CmbEngine" SelectedIndex="0" Margin="0,0,0,10" SelectionChanged="CmbEngine_SelectionChanged">
                             <ComboBoxItem x:Name="ItemEngineGoogle" Content="Google Translate (Free &amp; Fast, No Quota)" Tag="google"/>
                             <ComboBoxItem x:Name="ItemEngineGroq" Content="Groq AI (Requires API Key, Limited Quota)" Tag="groq"/>
+                            <ComboBoxItem Content="Local translation (Offline, no key)" Tag="local"/>
                         </ComboBox>
                         
                         <TextBlock x:Name="LblApiKey" Text="API Key (Groq):" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
@@ -554,6 +555,7 @@
                         <ComboBox x:Name="CmbSttMode" Margin="0,0,0,10" SelectedIndex="0">
                             <ComboBoxItem x:Name="ItemSttDeepgram" Content="Deepgram (Streaming + Speaker)" Tag="deepgram"/>
                             <ComboBoxItem x:Name="ItemSttGroq" Content="Groq Whisper (Batch + Speaker)" Tag="groq"/>
+                            <ComboBoxItem Content="Local English / Russian (GPU)" Tag="local" ToolTip="Prepared local models required. Select English or Russian source. Translation uses your selected provider."/>
                         </ComboBox>
 
                         <TextBlock x:Name="LblFontSize" Text="Subtitle Font Size:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>

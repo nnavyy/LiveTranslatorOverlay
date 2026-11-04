@@ -25,5 +25,5 @@ public static class ReleaseNotes
         File.WriteAllText(SeenVersionPath, AppVersion.DisplayString);
     }
 
-    public static string Text => LocalizationManager.Instance.Get("ReleaseNotes151");
+    public static string Text => LocalizationManager.Instance.Get("ReleaseNotes200");
 }
