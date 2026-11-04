@@ -1468,6 +1468,8 @@ public partial class MainWindow : Window
         }
     }
 
+    private void BtnLicense_Click(object sender, RoutedEventArgs e) => PurchaseReminder.Show(this);
+
     private string GetSttMode()
     {
         if (CmbSttMode?.SelectedItem is ComboBoxItem item)

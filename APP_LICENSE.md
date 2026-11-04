@@ -6,4 +6,4 @@ You may download and use the distributed application without payment at this tim
 
 These terms do not revoke or replace permissions already granted for earlier MIT-licensed source or third-party components. The original MIT license in LICENSE continues to apply to that material. Third-party licenses and notices remain applicable; see THIRD_PARTY_NOTICES.md. No exclusive rights are claimed over MIT-licensed components or the previously public source.
 
-Commercial checkout, pricing, purchase benefits and any future paid-license terms must be published before selling licenses. This file does not implement payment or license-key verification.
+The intended offer is US$13 paid once for a lifetime application license. Users may dismiss a reminder with Not now and continue using the app. Checkout, paid activation and license-key verification remain unconfigured; no payment is collected by this release. Future support and update commitments have not been specified.
