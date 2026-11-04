@@ -1,9 +1,16 @@
-# Application distribution terms — v2.0.0 onward
+# Application Distribution Terms — v2.0.0 Onward
 
-Copyright 2026 nnavyy. All rights reserved in the new proprietary additions, subject to the exceptions below. Source for future application development is maintained privately.
+Copyright (c) 2026 nnavyy. All rights reserved in new proprietary additions and future application development.
 
-You may download and use the distributed application without payment at this time. Purchasing, paid activation and purchase reminders are not configured. No trial expiry or mandatory purchase is introduced by this release.
+Future application source code is maintained privately. Public GitHub maintains binary releases, downloads, documentation, and research reports; large models and audio recordings stay local. The release package was verified to contain no API keys or local configuration.
 
-These terms do not revoke or replace permissions already granted for earlier MIT-licensed source or third-party components. The original MIT license in LICENSE continues to apply to that material. Third-party licenses and notices remain applicable; see THIRD_PARTY_NOTICES.md. No exclusive rights are claimed over MIT-licensed components or the previously public source.
+### Licensing and Commercial Terms
+- **License / Support Model**: License / Support displays the planned **US$13 one-time lifetime license** and a **Not now** option.
+- **Current Status**: Purchasing and paid activation remain disabled until checkout is configured; application usage is completely unrestricted and no trial expiration or mandatory payment is imposed by this release.
+- **Future Updates**: Users may dismiss licensing prompts with "Not now" and continue using the software.
 
-The intended offer is US$13 paid once for a lifetime application license. Users may dismiss a reminder with Not now and continue using the app. Checkout, paid activation and license-key verification remain unconfigured; no payment is collected by this release. Future support and update commitments have not been specified.
+### Relationship to Earlier Source
+These terms do not revoke, restrict, or replace permissions already granted for earlier MIT-licensed source code or third-party components:
+- The original MIT license in [LICENSE](LICENSE) continues to apply to all earlier public source code and historical releases prior to v2.0.0.
+- Third-party licenses, notices, and dependencies remain applicable under their respective licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- No exclusive rights or proprietary claims are made over third-party open-source libraries or historical MIT-licensed code.
