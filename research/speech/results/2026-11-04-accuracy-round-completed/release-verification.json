@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "publicRelease": "https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.0.0",
+  "download": "https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v2.0.0/LiveTranslatorOverlay-Windows-x64.zip",
+  "bytes": 9594299,
+  "sha256": "4d8ea4bdc21979a02454b9e1dcac8257f1fb278c7dcc3adc02114a7f74cc2903",
+  "publicDownloadVerified": true,
+  "privateSourceCommit": "02e9f3a",
+  "apiKeysBundled": false,
+  "modelsBundled": false,
+  "pricingUSD": 13,
+  "paymentInterval": "one-time lifetime",
+  "checkoutConfigured": false
+}
