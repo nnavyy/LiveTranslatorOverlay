@@ -1,36 +1,18 @@
-# Live Translator Overlay — public downloads and reports
+# Application Source Is Now Private
 
-Latest Windows release: **v2.0.0**, with optional local speech and local translation after separate model setup. [Download the app](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.0.0).
+Future application development is private. Public GitHub has downloads and reports; large models and recordings stay local. Earlier MIT-licensed source retains its existing permissions; see [LICENSE](LICENSE) and [APP_LICENSE.md](APP_LICENSE.md).
 
-Future app source is maintained privately. This public repository retains downloads, documentation, research reports and historical MIT-licensed source. Existing MIT permissions are not revoked; the old source tree below does not contain the v2.0.0 implementation. Multi-gigabyte models, training audio and environments stay on local storage.
+The release package was verified to contain no API keys or local configuration.
 
-[Completed accuracy report](research/speech/results/2026-11-04-accuracy-round-completed/README.md): English 2.12%, Russian 5.70%, equal-language mean 3.91% on the historical benchmark. These are not guarantees for live speech. Purchasing remains unconfigured.
+---
 
 # Live Translator Overlay
-
-The stable overlay is for Windows. A separate **Mac developer preview** for Apple Silicon and Intel starts with manual text translation and session history; it does not yet include audio, screen OCR, overlay captions, or capture protection. See [Mac preview notes](MacApp/RELEASE_NOTES.md) and the [November 1 review](docs/reviews/2026-11-01.md).
-
-Fully local captions without API keys are under evaluation. See the [offline feasibility report and measured speech results](docs/reviews/2026-11-01-offline-accuracy.md); this mode is not included in the current release.
-
-The [speech hallucination and training review](docs/reviews/2026-11-01-ml-training.md) includes research papers, a local fine-tuning pilot, measured failures, a speech-detector comparison, and the plan for overlapping speakers. No 95% accuracy claim or trained-model release has been made.
-
-## Downloads
-
-| Platform | Download | Status |
-| --- | --- | --- |
-| Windows 10/11 — x64 | [Windows release](https://github.com/nnavyy/LiveTranslatorOverlay/releases/latest) — choose `LiveTranslatorOverlay-Windows-x64.zip` | Stable overlay with audio, OCR, and history |
-| Mac — Apple Silicon (M-series) | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.2-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-arm64.zip` | Developer preview: manual text translation and session history |
-| Mac — Intel | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.2-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-x64.zip` | Developer preview: manual text translation and session history |
-
-Mac requires macOS 14 or newer. The preview bundles are ad-hoc signed and not notarized; read the [Mac preview notes](MacApp/RELEASE_NOTES.md). The **Source code** archives on GitHub are for developers, not the runnable app packages.
-
-If macOS shows **“LiveTranslator” Not Opened**, follow the [Mac installation guide](MacApp/INSTALL.md) for Apple's per-app **Open Anyway** process. Apple Developer ID signing and notarization are still pending.
 
 <p align="center">
   <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 10" />
   <img src="https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows" />
-  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License" />
-  <img src="https://img.shields.io/badge/Status-Free%20%26%20Open%20Source-brightgreen?style=for-the-badge" alt="Free" />
+  <img src="https://img.shields.io/badge/License-Proprietary-blue?style=for-the-badge" alt="Proprietary License" />
+  <img src="https://img.shields.io/badge/Status-v2.0.0%20Published-brightgreen?style=for-the-badge" alt="v2.0.0 Published" />
 </p>
 
 <p align="center">
@@ -40,143 +22,115 @@ If macOS shows **“LiveTranslator” Not Opened**, follow the [Mac installation
 
 ---
 
+## v2.0.0 Release
+
+**v2.0.0 is published: [Download the Windows app](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.0.0)**. The in-app updater can discover it.
+
+It now supports local speech recognition and offline translation without API keys, using the models already configured on your computer. Optional online engines remain available.
+
+### How to test:
+1. Install v2.0.0.
+2. Select **Local English / Russian (GPU)** for speech and **Local translation**.
+3. Choose **English** or **Russian** as the source and an explicit target language.
+4. Start audio.
+
+> [!NOTE]
+> The completed historical result is English 2.12%, Russian 5.70%, mean 3.91%. Live accuracy still needs testing. [Complete report](https://github.com/nnavyy/LiveTranslatorOverlay/blob/main/research/speech/results/2026-11-04-accuracy-round-completed/README.md).
+
+---
+
+## Downloads
+
+| Platform | Download | Status |
+| --- | --- | --- |
+| Windows 10/11 — x64 | [Windows release (v2.0.0)](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.0.0) — choose `LiveTranslatorOverlay-Windows-x64.zip` | v2.0.0: Local STT/translation, Cloud STT, OCR, and history |
+| Mac — Apple Silicon (M-series) | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.2-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-arm64.zip` | Developer preview: manual text translation and session history |
+| Mac — Intel | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.2-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-x64.zip` | Developer preview: manual text translation and session history |
+
+Mac requires macOS 14 or newer. The preview bundles are ad-hoc signed and not notarized; read the [Mac preview notes](MacApp/RELEASE_NOTES.md).
+
+---
+
+## Licensing and Commercial Terms
+
+- **Proprietary Development**: Starting with version 2.0.0, the application is no longer open source. Future application source code is maintained privately. Public GitHub maintains releases, downloads, and research reports.
+- **Lifetime License**: License / Support shows the planned **US$13 one-time lifetime license** and a **Not now** option.
+- **Unrestricted Usage**: Purchasing remains disabled until checkout is configured; usage is completely unrestricted and no trial expiry or mandatory payment is imposed.
+- **Prior Source**: Permissions already granted for earlier MIT-licensed source code prior to v2.0.0 remain in effect. See [LICENSE](LICENSE) and [APP_LICENSE.md](APP_LICENSE.md).
+
+---
+
 ## Features
 
+- **Local Offline Speech & Translation (New in v2.0.0)**
+  - Fully offline, local speech recognition (GPU-accelerated) and local translation without external API keys.
 - **Key-Free Text Translation by Default**
   - Operates out-of-the-box using Google Translate's high-speed endpoint (~100–200ms latency).
-  - No account or API key is required for this text translation path; provider availability and service limits still apply. Audio transcription requires a Deepgram or Groq key.
-- **Real-Time Speech-to-Text (STT)**
-  - **Deepgram Streaming (Recommended)**: Sub-second latency WebSocket streaming with live word-by-word interim preview and multi-speaker diarization with distinct color identification.
+  - No account or API key required; optional cloud engines remain available.
+- **Cloud Real-Time Speech-to-Text (STT)**
+  - **Deepgram Streaming**: Sub-second latency WebSocket streaming with live word-by-word interim preview and multi-speaker diarization with distinct color identification.
   - **Groq Whisper (Large-v3)**: Cloud batch transcription powered by Whisper Large-v3.
 - **Anti-Hallucination and Voice Activity Detection (VAD)**
   - Audio energy gating prevents ambient noise or silence from generating spurious transcriptions.
-  - Multi-language filtering actively blocks common subtitle artifacts (such as *"Subtitles by..."*, *"Spasiba"*, *"To be continued..."*, etc.).
+  - Multi-language filtering actively blocks common subtitle artifacts (*"Subtitles by..."*, *"Spasiba"*, *"To be continued..."*, etc.).
 - **Live Screen OCR Translation**
   - Draw any bounding rectangle to translate foreign in-game dialogues, manga, or application interfaces in real time using native Windows Hardware-Accelerated OCR.
 - **Non-Intrusive Desktop Overlay**
   - **Always-on-top transparent canvas**: Captions render cleanly above full-screen games, media players, and desktop applications.
   - **Freely repositionable**: Move the subtitle banner and settings dialog anywhere on your monitors via drag-and-drop.
-  - **Screen Capture Exclusion (Privacy Mode)**: Employs Windows Graphics Capture Exclusion (`SetWindowDisplayAffinity`) to keep captions and all application windows completely hidden from OBS Studio, Discord screen sharing, Zoom, and screen recordings, with built-in Snipping Tool deadlock protection.
-  - **Translation History**: Integrated history log to review past spoken and translated statements with AI-powered conversation summaries.
+  - **Screen Capture Exclusion (Privacy Mode)**: Employs Windows Graphics Capture Exclusion (`SetWindowDisplayAffinity`) to keep captions and all application windows completely hidden from OBS Studio, Discord screen sharing, Zoom, and screen recordings.
+  - **Translation History**: Integrated history log to review past spoken and translated statements with conversation summaries.
 - **Background Updates with Release Notes**
-  - Starting from v1.2.0, the app checks for new releases on GitHub and downloads updates silently in the background.
-  - Choose **Restart to apply** when convenient. Quitting or reading settings no longer triggers an automatic update restart.
-  - **What's new** appears once for each installed version and can be reopened from App Updates.
+  - The app checks for new releases on GitHub and downloads updates silently in the background.
+  - Choose **Restart to apply** when convenient.
 - **Multi-Language User Interface & Target Translation**
-  - Interface languages: **English**, **Indonesian (Bahasa Indonesia)**, **Russian (Русский)**, and **Spanish (Español)**. Spanish is an initial translation awaiting native-speaker review.
-  - Version 1.4.0 adds Malay, Vietnamese, Thai, Portuguese, Italian, Dutch, Polish, Hindi, and Turkish translation choices. Speech support depends on the selected provider; OCR requires an installed Windows language pack.
-  - Automatically matches your Windows display language by default, with dynamic in-app language switching and auto target language detection.
-- **Instant Groq AI Key Verification & Engine Auto-Switching**
-  - Live API key verification with real-time connection feedback and automatic model population (powered by `llama-3.3-70b-versatile`).
+  - Interface languages: **English**, **Indonesian (Bahasa Indonesia)**, **Russian (Русский)**, and **Spanish (Español)**.
+  - Version 1.4.0+ adds Malay, Vietnamese, Thai, Portuguese, Italian, Dutch, Polish, Hindi, and Turkish translation choices.
 - **In-App Bug Reporting & Resolution Tracker**
-  - Report bugs, feature suggestions, and criticism directly inside the application without needing third-party accounts.
+  - Report bugs, feature suggestions, and feedback directly inside the application.
   - **My Reports History**: Track previously submitted reports and monitor resolution progress (*Pending*, *In Progress*, *Fixed*) per device.
-  - Report resolution follows explicit developer status mappings; a newer release alone never proves a report was fixed.
 
 ---
 
 ## Quick Start
 
-### Option 1: Pre-Built Binary (Recommended)
-1. Navigate to the [Releases](https://github.com/nnavyy/LiveTranslatorOverlay/releases) page.
-2. Download the latest `LiveTranslatorOverlay-Windows-x64.zip`.
-3. Extract the ZIP archive to your desired location.
-4. Launch `LiveTranslatorOverlay.exe`.
-5. *(Optional)* If prompted, install the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
-
-### Option 2: Build From Source
-Ensure that the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) is installed on your machine.
-
-```bash
-# Clone the repository
-git clone https://github.com/nnavyy/LiveTranslatorOverlay.git
-cd LiveTranslatorOverlay
-
-# Restore and compile release build
-dotnet build -c Release
-
-# Execute application
-dotnet run -c Release
-```
+1. Download the latest release from the [Releases](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.0.0) page (`LiveTranslatorOverlay-Windows-x64.zip`).
+2. Extract the ZIP archive to your desired location.
+3. Launch `LiveTranslatorOverlay.exe`.
+4. *(Optional)* If prompted, install the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 ---
 
-## Configuration and API Setup (Bring Your Own Key)
+## Configuration and API Setup (Optional)
 
-The application operates without charge using **Google Translate**. If you prefer to utilize specialized cloud AI models, you may optionally supply your own API keys.
+The application operates without charge using local models or **Google Translate**. If you prefer to utilize specialized cloud AI models, you may optionally supply your own API keys.
 
 | Service | Category | Pricing | Intended Use Case |
 |---|---|---|---|
-| **Google Translate** | Translation | No key required; service limits apply | Text translation |
-| **Deepgram** | Speech-to-Text | Check your provider plan and limits | Streaming transcription and speaker separation |
-| **Groq AI** | Translation & Whisper STT | Check your provider plan and limits | LLM translations and Whisper Large-v3 |
+| **Local Engines** | Speech & Translation | Free / Local GPU & CPU | Offline transcription and translation without keys |
+| **Google Translate** | Translation | No key required; service limits apply | Fast online text translation |
+| **Deepgram** | Speech-to-Text | Check provider plan and limits | Cloud streaming transcription and speaker separation |
+| **Groq AI** | Translation & Whisper STT | Check provider plan and limits | LLM translations and Whisper Large-v3 |
 
-### Supplying API Keys (Optional)
 Keys can be configured directly inside the interface:
 1. Open the **Settings** menu on the overlay.
 2. Enter your Deepgram key under **Deepgram API Key** ([console.deepgram.com](https://console.deepgram.com/)).
 3. Enter your Groq key under **API Key (Groq/DeepL)** ([console.groq.com](https://console.groq.com/)) if utilizing Groq LLM or Groq Whisper.
-4. Windows preferences persist in `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json`. Existing configuration is migrated on first launch of v1.5.0. Writes are atomic; keys remain plaintext, so keep the file private. Mac preview keys stay in session memory.
-
-> [!NOTE]
-> Credentials are stored locally in `appsettings.json` and sent only to the selected service for authentication. This file currently stores keys in plaintext; keep it private.
-
----
-
-## Usage Guide
-
-1. **Configure Languages**:
-   - Set the source language (e.g., `Russian`, `Japanese`, `English`) or select `Auto Detect`.
-   - Set the target output language (e.g., `English`, `Indonesian`).
-2. **Select Audio Source**:
-   - Choose `Default System Playback` to capture audio from your system output (games, media players, web browsers).
-   - Alternatively, choose a specific microphone input or individual application process.
-3. **Initiate Translation**:
-   - Click **Start Audio Translate** to begin live audio subtitle generation.
-   - For on-screen text, click **Select Screen Area**, outline the target region, and click **Start Live OCR**.
-4. **Customize Display**:
-   - Reposition the subtitle box by clicking and dragging it to your preferred position.
-   - Adjust caption font sizing (`Small`, `Medium`, `Large`, `Extra Large`) in the Settings pane.
-
----
-
-## Architecture and Technologies
-
-- **Runtime**: Windows Presentation Foundation (WPF) on .NET 10.0 Windows
-- **Audio Processing**: [NAudio](https://github.com/naudio/NAudio) (WASAPI loopback capture and endpoint enumeration)
-- **Speech-to-Text Engines**:
-  - Deepgram WebSocket Nova-2 API (Real-time streaming with interim tokens and diarization)
-  - Groq Cloud Whisper Large-v3 API
-- **Translation Providers**:
-  - Google Translate GTX Client Endpoint
-  - Groq LLM API (Llama 3.3, GPT-OSS, Mixtral)
-- **Optical Character Recognition**: `Windows.Media.Ocr` (Hardware-accelerated native Windows OCR)
-- **User Interface**: Dark glassmorphic design with native WPF hardware acceleration and non-blocking mouse hit-testing.
-
----
-
-## Contributing
-
-Contributions, issues, and feature proposals are welcome:
-1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature/NewFeature`).
-3. Commit your changes (`git commit -m 'Add NewFeature'`).
-4. Push to your branch (`git push origin feature/NewFeature`).
-5. Open a Pull Request.
+4. Preferences persist in `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json`. Keys remain plaintext locally; keep the file private.
 
 ---
 
 ## Privacy and Data Handling
- 
+
 - **Local-First Audio & OCR**: Audio loopback buffers and desktop screen captures are processed strictly in volatile system memory (RAM) and immediately discarded. No recordings are ever written to disk or sent to developer servers.
 - **Zero Background Telemetry**: The application does not collect background metrics, analytics, or user behavior.
-- **Voluntary In-App Feedback**: When you choose to submit a bug report or suggestion:
-  - An anonymous local Device ID (`ID-XXXX-XXXX-XXXX`) and diagnostic metadata (OS build and app version) are included so you can monitor resolution status (*Pending*, *In Progress*, *Fixed*) directly within the app.
-  - Submitting contact email is completely optional for receiving developer replies.
-- For complete terms, data security policies, and third-party API disclosures, please consult our full [Privacy Policy and Terms of Service (PRIVACY.md)](PRIVACY.md).
+- **Voluntary In-App Feedback**: When submitting feedback, an anonymous local Device ID and basic diagnostic metadata (OS build and app version) are included to correlate reports.
+- For complete terms and data security policies, consult the full [Privacy Policy and Terms of Service (PRIVACY.md)](PRIVACY.md).
 
 ---
 
 ## License
 
-This project is licensed under the terms of the **MIT License**. See the `LICENSE` file for details.
+Starting with version 2.0.0, the application is distributed under proprietary terms (see [APP_LICENSE.md](APP_LICENSE.md)). License / Support displays the planned US$13 one-time lifetime license; checkout is currently disabled and usage is unrestricted.
+
+Earlier public releases and historical source code prior to v2.0.0 remain under the terms of the [MIT License](LICENSE).

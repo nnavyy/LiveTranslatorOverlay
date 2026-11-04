@@ -8,7 +8,7 @@ This document outlines the privacy practices, data handling, and terms of servic
 
 ## 1. Overview and Core Principle
 
-The Software is an open-source, client-side utility designed to provide real-time audio subtitle generation and on-screen text translation. 
+The Software is a client-side utility designed to provide real-time audio subtitle generation and on-screen text translation. Future application source is private; downloads and reports remain public. 
 
 **The core architectural principle of the Software is local-first privacy:**
 - The Software does not operate any centralized tracking, telemetry, or data-collection servers.
@@ -90,7 +90,7 @@ As a user of the Software, you agree to:
 
 ## 8. Disclaimer of Warranty and Limitation of Liability
 
-The Software is distributed under the **MIT License**.
+The Software is distributed under the proprietary terms outlined in [APP_LICENSE.md](APP_LICENSE.md) (with historical open-source code under the MIT License).
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
