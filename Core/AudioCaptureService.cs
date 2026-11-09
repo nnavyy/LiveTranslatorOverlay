@@ -21,7 +21,6 @@ namespace LiveTranslatorOverlay.Core
         // Raw PCM16 bytes streamed continuously for Deepgram WebSocket mode
         public event EventHandler<byte[]>? RawPcmBytesAvailable;
         private bool _isCapturing;
-        private int _debugCallCount = 0;
 
         // Queue dengan batas 2 chunk agar tidak numpuk tapi tidak buang semua
         private readonly SemaphoreSlim _chunkQueue = new SemaphoreSlim(2, 2);
@@ -36,52 +35,42 @@ namespace LiveTranslatorOverlay.Core
         private const int OverlapMs = 500;
         private float[]? _overlapBuffer = null;
 
-        public async Task StartAsync(string? deviceId = null, int? processId = null)
+        public async Task StartAsync(string? deviceId = null, int? processId = null, CancellationToken cancellationToken = default)
         {
             if (_isCapturing) return;
 
             var builder = new NAudio.Wave.WasapiRecorderBuilder();
-            string captureInfo = "default-loopback";
 
             if (processId.HasValue && processId.Value > 0)
             {
                 builder.WithProcessLoopback((uint)processId.Value, NAudio.CoreAudioApi.ProcessLoopbackMode.IncludeTargetProcessTree);
-                captureInfo = $"process-loopback-pid:{processId.Value}";
             }
             else if (!string.IsNullOrEmpty(deviceId) && deviceId != "default")
             {
                 var enumerator = new NAudio.CoreAudioApi.MMDeviceEnumerator();
                 var device = enumerator.GetDevice(deviceId);
-                captureInfo = $"device:{device.FriendlyName} ({device.DataFlow})";
                 builder.WithDevice(device);
                 
                 // If it's a render device (speaker/headphone), MUST use loopback to capture output
                 if (device.DataFlow == NAudio.CoreAudioApi.DataFlow.Render)
                 {
                     builder.WithLoopbackCapture();
-                    captureInfo += " [loopback]";
                 }
             }
             else
             {
                 // Default: use the standard loopback behavior which automatically picks the default endpoint
-                var defaultEnum = new NAudio.CoreAudioApi.MMDeviceEnumerator();
-                var defaultDevice = defaultEnum.GetDefaultAudioEndpoint(
-                    NAudio.CoreAudioApi.DataFlow.Render,
-                    NAudio.CoreAudioApi.Role.Multimedia);
-                captureInfo = $"default-render-loopback:{defaultDevice.FriendlyName}";
                 builder.WithLoopbackCapture();
             }
 
-            _capture = await builder.BuildAsync();
-            _captureFormat = _capture.WaveFormat;
-
-            // Log startup info
-            try {
-                System.IO.File.WriteAllText("audio_debug.txt",
-                    $"[STARTED] CaptureMode={captureInfo}\n" +
-                    $"[FORMAT] {_captureFormat.SampleRate}Hz, {_captureFormat.BitsPerSample}bit, {_captureFormat.Channels}ch, Enc={_captureFormat.Encoding}\n");
-            } catch { }
+            var capture = await builder.BuildAsync();
+            if (cancellationToken.IsCancellationRequested)
+            {
+                capture.Dispose();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            _capture = capture;
+            _captureFormat = capture.WaveFormat;
 
             _capture.DataAvailable += OnDataAvailable;
             _capture.RecordingStopped += OnRecordingStopped;
@@ -99,26 +88,6 @@ namespace LiveTranslatorOverlay.Core
 
         private void OnDataAvailable(ReadOnlySpan<byte> buffer, NAudio.CoreAudioApi.AudioClientBufferFlags flags, long devicePosition, long qpcPosition)
         {
-            // DEBUG LOGGING - log first 10 calls unconditionally, then every 100 calls
-            _debugCallCount++;
-            if (_debugCallCount <= 10 || _debugCallCount % 100 == 1)
-            {
-                float maxAmp = 0f;
-                bool isFloatFmt = _captureFormat != null && (_captureFormat.Encoding == WaveFormatEncoding.IeeeFloat ||
-                    (_captureFormat.Encoding == WaveFormatEncoding.Extensible && _captureFormat.BitsPerSample == 32));
-                
-                if (isFloatFmt && buffer.Length > 0)
-                {
-                    var checkSpan = MemoryMarshal.Cast<byte, float>(buffer);
-                    for (int ci = 0; ci < Math.Min(checkSpan.Length, 256); ci++)
-                        if (Math.Abs(checkSpan[ci]) > maxAmp) maxAmp = Math.Abs(checkSpan[ci]);
-                }
-                try {
-                    System.IO.File.AppendAllText("audio_debug.txt",
-                        $"[{DateTime.Now:HH:mm:ss.fff}] call#{_debugCallCount} bytes={buffer.Length} flags={flags} maxAmp={maxAmp:F4}\n");
-                } catch { }
-            }
-
             if (_captureFormat == null || buffer.Length == 0) return;
 
             int bytesPerSample = _captureFormat.BitsPerSample / 8;
@@ -318,7 +287,6 @@ namespace LiveTranslatorOverlay.Core
                         {
                             try
                             {
-                                try { System.IO.File.AppendAllText("chunk_debug.txt", $"[{DateTime.Now:HH:mm:ss.fff}] Emitting chunk with {chunkToEmit.Length} samples (~{chunkToEmit.Length / 16000.0:F1}s)\n"); } catch {}
                                 AudioChunkReady?.Invoke(this, chunkToEmit);
                                 var handler = AudioChunkHandler;
                                 if (handler != null) await handler(chunkToEmit);

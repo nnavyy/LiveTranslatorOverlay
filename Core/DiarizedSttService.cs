@@ -19,6 +19,7 @@ namespace LiveTranslatorOverlay.Core
 
     public class DiarizedSttService : IAsyncDisposable
     {
+        public const string ModelName = "nova-2";
         private ClientWebSocket? _webSocket;
         private CancellationTokenSource? _cts;
         private readonly string _apiKey;
@@ -62,7 +63,7 @@ namespace LiveTranslatorOverlay.Core
 
                 var uri = new Uri(
                     $"wss://api.deepgram.com/v1/listen" +
-                    $"?model=nova-2" +
+                    $"?model={ModelName}" +
                     $"&diarize_model=v1" +
                     $"&punctuate=true" +
                     $"{langParam}" +

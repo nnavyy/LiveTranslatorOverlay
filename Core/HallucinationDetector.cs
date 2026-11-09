@@ -114,6 +114,11 @@ namespace LiveTranslatorOverlay.Core
             "no text to translate", "please provide the text"
         };
 
+        public static bool IsWhisperArtifact(string text) =>
+            System.Text.RegularExpressions.Regex.IsMatch(text,
+                @"^\s*[\p{P}\s]*(?:субтитры\s+сделал|subtitles\s+made\s+by)\s+dima\s*torzok[\p{P}\s]*$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
         public static bool IsHallucination(string? text)
         {
             if (string.IsNullOrWhiteSpace(text)) return true;

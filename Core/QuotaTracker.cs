@@ -13,6 +13,7 @@ namespace LiveTranslatorOverlay.Core
     public class QuotaInfo
     {
         public string Source { get; set; } = "Google Translate";
+        public string? Model { get; set; }
         public int? LimitRequests { get; set; }
         public int? RemainingRequests { get; set; }
         public string? ResetRequests { get; set; }
@@ -245,6 +246,19 @@ namespace LiveTranslatorOverlay.Core
 
         public QuotaInfo CurrentInfo => _lastInfo;
 
+        public string GetGroqUsage(bool speech)
+        {
+            lock (_lock)
+            {
+                if (string.IsNullOrWhiteSpace(_currentApiKey)) return "Enter a Groq API key.";
+                var usage = speech ? _groqWhisper : _groqLlm;
+                usage.EvaluateExpiration();
+                return usage.CooldownSeconds == 0 && usage.RemainingRequests == null && usage.RemainingTokens == null
+                    ? "Waiting for quota data from Groq."
+                    : string.IsNullOrWhiteSpace(usage.Model) ? usage.DisplayMain : $"Last reported for {usage.Model}: {usage.DisplayMain}";
+            }
+        }
+
         public QuotaTracker()
         {
             try
@@ -308,7 +322,7 @@ namespace LiveTranslatorOverlay.Core
             }
         }
 
-        public void UpdateFromHeaders(HttpResponseHeaders headers, string source)
+        public void UpdateFromHeaders(HttpResponseHeaders headers, string source, string? model = null)
         {
             try
             {
@@ -316,6 +330,12 @@ namespace LiveTranslatorOverlay.Core
                 {
                     bool isWhisper = source.Contains("Whisper", StringComparison.OrdinalIgnoreCase);
                     var target = isWhisper ? _groqWhisper : _groqLlm;
+                    if (model != null && !string.Equals(model, target.Model, StringComparison.Ordinal))
+                    {
+                        target = new QuotaInfo { Model = model };
+                        if (isWhisper) _groqWhisper = target;
+                        else _groqLlm = target;
+                    }
 
                     target.Source = source;
                     target.IsUnlimited = false;

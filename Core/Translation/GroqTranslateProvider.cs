@@ -57,7 +57,8 @@ namespace LiveTranslatorOverlay.Core.Translation
 
         public void UpdateApiKey(string newKey)
         {
-            if (_apiKey != newKey) ResetTranslationCache();
+            if (_apiKey == newKey) return;
+            ResetTranslationCache();
             _apiKey = newKey;
             _model = ""; // Reset model so it refetches on next call
         }
@@ -419,8 +420,8 @@ namespace LiveTranslatorOverlay.Core.Translation
 
                 request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.SendAsync(request);
-                QuotaTracker.Instance.UpdateFromHeaders(response.Headers, "Groq AI (Text)");
+                using var response = await _httpClient.SendAsync(request);
+                QuotaTracker.Instance.UpdateFromHeaders(response.Headers, "Groq AI (Text)", payload.model);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -547,7 +548,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                 request.Content = new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
 
                 using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
-                QuotaTracker.Instance.UpdateFromHeaders(response.Headers, "Groq AI (Streaming)");
+                QuotaTracker.Instance.UpdateFromHeaders(response.Headers, "Groq AI (Streaming)", payload.model);
                 
                 if (!response.IsSuccessStatusCode)
                 {

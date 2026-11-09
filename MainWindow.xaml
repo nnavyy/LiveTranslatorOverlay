@@ -509,41 +509,19 @@
                             <ComboBoxItem x:Name="ItemLocalTranslation" Content="Local translation (advanced setup)" Tag="local" ToolTip="Optional offline text translation requires separately prepared models. Google translation needs no setup or key."/>
                         </ComboBox>
                         
-                        <Expander Header="Optional cloud API keys" Foreground="#AEAEB2" Margin="0,0,0,10">
-                        <StackPanel Margin="0,8,0,0">
-                        <TextBlock x:Name="LblApiKey" Text="API Key (Groq):" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
-                        <Grid Margin="0,0,0,4">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBox x:Name="TxtApiKey" Grid.Column="0"/>
-                            <Button x:Name="BtnVerifyApiKey" Grid.Column="1" Content="Verify" Width="62" Margin="6,0,0,0" ToolTip="Test and verify API key with Groq" Click="BtnVerifyApiKey_Click" Style="{StaticResource ModernButton}" Padding="6,0"/>
-                        </Grid>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="2,2,0,10">
-                            <Ellipse x:Name="DotApiKeyStatus" Width="6" Height="6" Fill="#71717A" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="TxtApiKeyStatus" Text="Free Google Translate active" Foreground="#8E8E93" FontSize="10.5" TextTrimming="CharacterEllipsis"/>
+                        <StackPanel x:Name="GroqModelSettings" Visibility="Collapsed">
+                            <TextBlock x:Name="LblGroqModel" Text="Groq Model:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox x:Name="CmbGroqModel" Grid.Column="0" SelectionChanged="CmbGroqModel_SelectionChanged">
+                                    <ComboBoxItem x:Name="ItemGroqAuto" Content="(Auto)" Tag="" IsSelected="True"/>
+                                </ComboBox>
+                                <Button x:Name="BtnRefreshModels" Grid.Column="1" Content="Refresh" Width="62" Margin="6,0,0,0" ToolTip="Refresh model list" Click="BtnRefreshModels_Click" Style="{StaticResource ModernButton}" Padding="6,0"/>
+                            </Grid>
                         </StackPanel>
-
-                        <TextBlock x:Name="LblDeepgramKey" Text="Deepgram API Key:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
-                        <TextBox x:Name="TxtDeepgramKey" Margin="0,0,0,10" ToolTip="Sign up for free at deepgram.com - 12,000 minutes/month"/>
-                        
-                        <TextBlock x:Name="LblGroqModel" Text="Groq Model:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
-                        <Grid Margin="0,0,0,14">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <ComboBox x:Name="CmbGroqModel" Grid.Column="0" IsEditable="True">
-                                <ComboBoxItem x:Name="ItemGroqAuto" Content="(Auto)" Tag="" IsSelected="True"/>
-                            </ComboBox>
-                            <Button x:Name="BtnRefreshModels" Grid.Column="1" Content="Refresh" Width="62" Margin="6,0,0,0" ToolTip="Refresh model list" Click="BtnRefreshModels_Click" Style="{StaticResource ModernButton}" Padding="6,0"/>
-                        </Grid>
-
-                        <Border Height="1" Background="#26FFFFFF" Margin="0,2,0,14"/>
-
-                        </StackPanel>
-                        </Expander>
                         <!-- Screen OCR Section -->
                         <TextBlock x:Name="TxtTitleOcr" Text="Screen OCR" Foreground="#F2F2F7" FontFamily="Segoe UI Variable Text Semibold, Segoe UI Semibold" FontSize="14.5" Margin="0,0,0,10"/>
                         <Button x:Name="BtnDrawArea" Content="Select Screen Area" Click="BtnDrawArea_Click" Style="{StaticResource ModernButton}" Margin="0,0,0,8"/>
@@ -556,14 +534,33 @@
                         <TextBlock x:Name="TxtTitleAudio" Text="Audio Transcription" Foreground="#F2F2F7" FontFamily="Segoe UI Variable Text Semibold, Segoe UI Semibold" FontSize="14.5" Margin="0,0,0,10"/>
 
                         <TextBlock x:Name="LblSttMode" Text="STT Mode:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
-                        <ComboBox x:Name="CmbSttMode" Margin="0,0,0,10" SelectedIndex="2">
+                        <ComboBox x:Name="CmbSttMode" Margin="0,0,0,10" SelectedIndex="2" SelectionChanged="CmbSttMode_SelectionChanged">
                             <ComboBoxItem x:Name="ItemSttDeepgram" Content="Deepgram (Streaming + Speaker)" Tag="deepgram"/>
                             <ComboBoxItem x:Name="ItemSttGroq" Content="Groq Whisper (Batch + Speaker)" Tag="groq"/>
                             <ComboBoxItem Content="Local multilingual — balanced, no key" Tag="local" ToolTip="Runs on CPU. Automatically downloads a 148 MB speech model once. Supports auto-detect. No NVIDIA card or Python needed."/>
                             <ComboBoxItem Content="Local multilingual — larger model, no key" Tag="local-small" ToolTip="Runs on CPU with a larger 488 MB model. May improve recognition, but is slower. Accuracy varies by language and audio."/>
                         </ComboBox>
-                        <TextBlock Text="No API key or GPU needed for local speech. First use downloads a model. Google translation needs internet. For clearer captions, select the spoken language. Older PCs may be slower."
-                                   TextWrapping="Wrap" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,10"/>
+                        <TextBlock x:Name="TxtSpeechSelection" TextWrapping="Wrap" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,10"/>
+                        <StackPanel x:Name="GroqKeySettings" Visibility="Collapsed">
+                            <TextBlock x:Name="LblApiKey" Text="API Key (Groq):" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <PasswordBox x:Name="TxtApiKey" Grid.Column="0" Background="#292930" Foreground="#F2F2F7" Padding="6"/>
+                                <Button x:Name="BtnVerifyApiKey" Grid.Column="1" Content="Verify" Width="62" Margin="6,0,0,0" ToolTip="Test and verify API key with Groq" Click="BtnVerifyApiKey_Click" Style="{StaticResource ModernButton}" Padding="6,0"/>
+                            </Grid>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="2,2,0,10">
+                                <Ellipse x:Name="DotApiKeyStatus" Width="6" Height="6" Fill="#71717A" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="TxtApiKeyStatus" Text="Enter a Groq key" Foreground="#8E8E93" FontSize="10.5" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel x:Name="DeepgramKeySettings" Visibility="Collapsed">
+                            <TextBlock x:Name="LblDeepgramKey" Text="Deepgram API Key:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
+                            <PasswordBox x:Name="TxtDeepgramKey" Margin="0,0,0,10" Background="#292930" Foreground="#F2F2F7" Padding="6"/>
+                        </StackPanel>
+
 
                         <TextBlock x:Name="LblFontSize" Text="Subtitle Font Size:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
                         <ComboBox x:Name="CmbFontSize" Margin="0,0,0,10" SelectedIndex="1" SelectionChanged="CmbFontSize_SelectionChanged">
@@ -588,25 +585,13 @@
                         <TextBlock x:Name="TxtAudioStatus" Text="" Foreground="#8E8E93" FontSize="11" Margin="2,0,0,6" TextWrapping="Wrap"/>
                         <Button x:Name="BtnStartAudio" Content="Start Audio Translate" Click="BtnStartAudio_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,14"/>
 
-                        <!-- API Quota -->
-                        <Border Background="#1D1D24" BorderBrush="#2E2E38" BorderThickness="1" CornerRadius="10" Padding="12,9" Margin="0,0,0,14">
+                        <Border x:Name="QuotaPanel" Visibility="Collapsed" Background="#1D1D24" BorderBrush="#2E2E38" BorderThickness="1" CornerRadius="10" Padding="12,9" Margin="0,0,0,14">
                             <StackPanel>
-                                <Grid Margin="0,0,0,4">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock x:Name="TxtTitleQuota" Text="API Quota" Foreground="#ECECEE" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                    <Border x:Name="BadgeQuotaStatus" Grid.Column="1" Background="#065F46" CornerRadius="5" Padding="6,1">
-                                        <TextBlock x:Name="TxtQuotaBadge" Text="Unlimited" Foreground="#34D399" FontSize="10" FontWeight="Bold"/>
-                                    </Border>
-                                </Grid>
-
-                                <ProgressBar x:Name="PbQuotaRequests" Height="4" Margin="0,3,0,4" Background="#2A2A32" Foreground="#10B981" BorderThickness="0" Value="100" Maximum="100"/>
-                                <TextBlock x:Name="TxtQuotaInfo" Text="Unlimited" Foreground="#34D399" FontSize="10"/>
+                                <TextBlock x:Name="TxtTitleQuota" Text="API Quota" Foreground="#ECECEE" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                <TextBlock x:Name="TxtQuotaInfo" Foreground="#C4C4CC" FontSize="11" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
-                        
+
                         <!-- App Preferences -->
                         <Border Height="1" Background="#26FFFFFF" Margin="0,2,0,14"/>
                         <Border Background="#1F1F26" BorderBrush="#2F2F38" BorderThickness="1" CornerRadius="10" Padding="12,10" Margin="0,0,0,14">
@@ -631,6 +616,8 @@
                                     <Button x:Name="BtnCheckUpdate" Grid.Column="1" Content="Check" Width="58" Margin="6,0,0,0" Click="BtnCheckUpdate_Click" Style="{StaticResource ModernButton}" Padding="4,3"/>
                                 </Grid>
                                 <Button x:Name="BtnReleaseNotes" Content="What’s new" Click="BtnReleaseNotes_Click" Style="{StaticResource ModernButton}" Margin="0,6,0,2" Padding="6,5"/>
+                                <Button Content="Privacy and terms" Click="BtnPrivacy_Click" Style="{StaticResource ModernButton}" Margin="0,4,0,2" Padding="6,5"/>
+                                <Button x:Name="BtnDeveloper" Content="Developer tools" Visibility="Collapsed" Click="BtnDeveloper_Click" Style="{StaticResource ModernButton}" Margin="0,4,0,2" Padding="6,5"/>
                                 <Button x:Name="BtnApplyUpdateNow" Visibility="Collapsed" Content="Restart to Apply Update" Click="BtnApplyUpdateNow_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,4,0,2" Padding="6,5"/>
                             </StackPanel>
                         </Border>

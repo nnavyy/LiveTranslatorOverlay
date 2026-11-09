@@ -67,8 +67,10 @@ public sealed class LocalSpeechService(bool small = false) : IAsyncDisposable
             var text = new StringBuilder();
             await foreach (var segment in _processor.ProcessAsync(samples, timeout.Token))
             {
+                string line = segment.Text.Trim();
+                if (HallucinationDetector.IsWhisperArtifact(line)) continue;
                 if (text.Length > 0) text.Append(' ');
-                text.Append(segment.Text.Trim());
+                text.Append(line);
             }
             string result = text.ToString();
             return HallucinationDetector.IsHallucination(result) ? "" : result;

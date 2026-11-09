@@ -1,10 +1,10 @@
 # Privacy Policy and Terms of Service
 
-## Local CPU speech (v2.1.1)
+## Local CPU speech and setup
 
-The default local speech engine processes audio on the device. On first use it downloads model files from Hugging Face over HTTPS; that request exposes normal network metadata such as the device IP address to the download service, but contains no captured audio. Models are cached in the per-user application data directory. When Google translation is selected, recognized text is sent to the translation providers described below. Local speech does not make online text translation offline.
+The default speech engine processes audio on the device. The welcome screen offers to download models from Hugging Face over HTTPS, or you can download them the first time you start local speech. The model service receives normal connection metadata such as your IP address. The app sends no audio with that download. Models are cached in the per-user application data directory. Default text translation sends recognized text to Google or its MyMemory fallback. Users with a separately configured offline translation model can select it to keep text processing on the device.
 
-Last Updated: September 2026
+Last Updated: November 2026
 
 This document outlines the privacy practices, data handling, and terms of service for the **Live Translator Overlay** desktop application ("the Software").
 
@@ -25,7 +25,7 @@ The Software is a client-side utility designed to provide real-time audio subtit
 
 - **Volatile In-Memory Processing**: When Audio Translation is active, the Software captures system audio output (via Windows WASAPI loopback) or microphone input in short temporary buffers (typically 0.5 to 1.5 seconds) within volatile system memory (RAM).
 - **No Disk Recording**: Audio data is never written to your hard drive, SSD, or external storage.
-- **Immediate Discard**: Once an audio segment is transcribed or determined to be silent, the buffer is immediately overwritten and purged from memory.
+- **Temporary buffers**: Audio buffers are released after processing. Recent samples may overlap between segments to preserve words at segment boundaries.
 
 ---
 
@@ -43,7 +43,7 @@ The Software allows users to connect to third-party providers for machine transl
 
 1. **Google Translate (Default)**: Text queries are transmitted to Google's translation endpoints over encrypted HTTPS connections. No audio or images are transmitted to Google Translate.
 2. **Deepgram (Optional)**: If you supply a Deepgram API key for streaming transcription, PCM audio streams are transmitted via encrypted WebSockets (`wss://api.deepgram.com`) directly to Deepgram servers in accordance with [Deepgram's Privacy Policy](https://deepgram.com/privacy).
-3. **Groq (Optional)**: If you supply a Groq API key, text prompts and audio chunks are transmitted via encrypted HTTPS (`https://api.groq.com`) directly to Groq servers in accordance with [Groq's Privacy Policy](https://groq.com/privacy-policy).
+3. **Groq (Optional)**: If you select Groq speech, audio chunks are sent to Groq. If you select Groq translation, recognized text and recent context may be sent to Groq. Using Summarize in History with Groq translation selected sends the history text to Groq. Requests use HTTPS and are subject to [Groq's Privacy Policy](https://groq.com/privacy-policy).
 
 4. **MyMemory (Fallback)**: If the default text translation service fails, text may be sent over HTTPS to `api.mymemory.translated.net` for fallback translation.
 
@@ -93,6 +93,8 @@ As a user of the Software, you agree to:
 ---
 
 ## 8. Disclaimer of Warranty and Limitation of Liability
+
+Speech recognition and translation are approximate. Captions can omit words, change meaning, add words nobody said or attribute speech to the wrong speaker. Check the original audio or text when accuracy matters.
 
 The Software is distributed under the proprietary terms outlined in [APP_LICENSE.md](APP_LICENSE.md) (with historical open-source code under the MIT License).
 

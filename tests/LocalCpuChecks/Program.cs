@@ -31,7 +31,7 @@ if (args.Contains("--ui"))
             var speech = (System.Windows.Controls.ComboBox)window.FindName("CmbSttMode");
             var translation = (System.Windows.Controls.ComboBox)window.FindName("CmbEngine");
             Check(speech.SelectedIndex == 2 && translation.SelectedIndex == 0, "WPF starts with local speech and key-free translation selected");
-            Check(((System.Windows.Controls.TextBox)window.FindName("TxtApiKey")).Text == "", "Fresh UI requires no API key");
+            Check(((System.Windows.Controls.PasswordBox)window.FindName("TxtApiKey")).Password == "", "Fresh UI requires no API key");
             Check(!((System.Windows.Controls.ComboBoxItem)window.FindName("ItemLocalTranslation")).IsEnabled, "Unconfigured advanced translation cannot be selected");
             window.Close();
             app.Shutdown();
