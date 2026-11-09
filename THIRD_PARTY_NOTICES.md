@@ -1,6 +1,8 @@
 # Third-party notices for local speech
 
-The app includes Whisper.net 1.9.1 and its native CPU runtime for Silero VAD (MIT); their copyright/license notices accompany the package assets. Other existing dependencies retain their original notices and licenses.
+The app includes Whisper.net 1.9.1 and its native CPU and NoAvx runtimes for Whisper speech and Silero VAD (MIT); their copyright/license notices accompany the package assets. Other existing dependencies retain their original notices and licenses.
+
+Version 2.1.1 bundles the .NET runtime and Microsoft Visual C++ redistributable DLLs for application-local use. Their upstream redistribution terms apply. Whisper base/small models (OpenAI, MIT) and Silero VAD (MIT) are downloaded from Hugging Face on first use; model checksums are verified before loading. See licenses/Whisper-models.txt and licenses/Silero-VAD.txt.
 
 Optional locally prepared recognition assets are not bundled into the application ZIP:
 

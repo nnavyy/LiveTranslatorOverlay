@@ -1,14 +1,15 @@
-# Live Translator Overlay v2.0.0
+# Live Translator Overlay v2.1.1
 
-Windows adds local speech recognition and local translation, usable without API keys after model setup. On prepared systems the app selects local engines by default. Choose an explicit English or Russian source language for audio; select an explicit target language for local translation. Auto detection is not supported by the local path. Existing cloud engines remain optional.
+Windows users can start local multilingual speech without an NVIDIA/RTX GPU, API key, Python installation or developer workspace. New installs use local CPU speech and key-free online text translation. Existing cloud selections with keys remain optional.
 
-Local speech requires the prepared NVIDIA CUDA environment. Translation uses a separate CPU model and releases its RAM after each request; it can be slower than online translation. Models and Python environments are separate from the application ZIP. On the prepared machine setup is already complete. Stop audio before changing the source language.
+- Automatic, checksum-verified model downloads: 148 MB balanced model or optional 488 MB larger model, plus a small neural speech detector. Progress and cancellation are supported; incomplete files are not loaded.
+- Speech auto-detection and language choices covering the multilingual Whisper base/small models. Select the spoken language for better results.
+- The Windows x64 ZIP bundles .NET, the C++ runtime and a fallback speech runtime for older CPUs. Extract and launch the EXE.
+- API key fields are grouped under optional cloud settings. Old settings without keys fall back to available engines.
+- Translation service failures now show an error instead of passing the original text off as a successful translation.
 
-Download LiveTranslatorOverlay-Windows-x64.zip, extract it and run LiveTranslatorOverlay.exe. Requires .NET 10 Windows Desktop Runtime. Existing API keys/settings are preserved locally and are not included in the download. The updater uses this ZIP.
+Internet is needed for the initial model download and Google text translation. Cached speech models run offline. Advanced offline text translation still uses separately prepared models. Windows 10/11 x64, model storage and available memory are required; slower computers may lag behind speech.
 
-Future application source is private. Public downloads and historical MIT-licensed source remain available under their existing permissions. Purchasing is unconfigured; this release adds no expiry or mandatory payment. This update does not collect audio to train models.
+Accuracy is not guaranteed for every language, accent or recording. The larger model was slower and helped some Russian smoke samples; neither model inherits the earlier English/Russian GPU research scores. During live text checks, Google rate-limited the test connection and MyMemory returned a wrong negation for one Indonesian phrase. This remains a known upstream translation-quality limitation.
 
-The new local features are Windows-only. Live conversation and translation quality still need representative testing; historical research accuracy is not a live-product guarantee.
-
-License / Support shows the planned US$13 one-time lifetime offer and a Not now button. Buying and paid activation remain disabled until checkout is configured; usage is not blocked.
-
+See docs/cpu-release-verification.md for verification results and limits. Source remains private. No API keys, user settings, recordings or research datasets are included in the download. No new payment or activation requirement is introduced.
