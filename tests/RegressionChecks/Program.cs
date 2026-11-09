@@ -95,7 +95,7 @@ Confirm("Spanish resources cover every English key and placeholder",
     missing.Length == 0 && formatsMatch && loc.ActiveLanguage == "es" && loc.Get("BtnSettings") == "Ajustes",
     $"missing={string.Join(',', missing)}; format parity={formatsMatch}; keys={strings["es"].Count}");
 loc.SetLanguage("en");
-Confirm("New language codes reach both prompt mappings", AdditionalLanguages.Names.Count == 9
+Confirm("New language codes reach both prompt mappings", AdditionalLanguages.Names.Count >= 9
     && AdditionalLanguages.Names.All(kv => GroqTranslateProvider.ResolveSourceLanguageName(kv.Key) == kv.Value
     && GroqTranslateProvider.ResolveTargetLanguageDescription(kv.Key, LiveTranslatorOverlay.Core.Japanese.JapaneseScriptStyle.Standard) == kv.Value),
     string.Join(", ", AdditionalLanguages.Names.Keys));

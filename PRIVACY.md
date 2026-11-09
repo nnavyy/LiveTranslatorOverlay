@@ -1,5 +1,9 @@
 # Privacy Policy and Terms of Service
 
+## Local CPU speech (v2.1.0)
+
+The default local speech engine processes audio on the device. On first use it downloads model files from Hugging Face over HTTPS; that request exposes normal network metadata such as the device IP address to the download service, but contains no captured audio. Models are cached in the per-user application data directory. When Google translation is selected, recognized text is sent to the translation providers described below. Local speech does not make online text translation offline.
+
 Last Updated: September 2026
 
 This document outlines the privacy practices, data handling, and terms of service for the **Live Translator Overlay** desktop application ("the Software").

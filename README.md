@@ -12,7 +12,7 @@ The release package was verified to contain no API keys or local configuration.
   <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 10" />
   <img src="https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows" />
   <img src="https://img.shields.io/badge/License-Proprietary-blue?style=for-the-badge" alt="Proprietary License" />
-  <img src="https://img.shields.io/badge/Status-v2.0.0%20Published-brightgreen?style=for-the-badge" alt="v2.0.0 Published" />
+  <img src="https://img.shields.io/badge/Status-v2.1.0-brightgreen?style=for-the-badge" alt="v2.1.0" />
 </p>
 
 <p align="center">
@@ -22,20 +22,18 @@ The release package was verified to contain no API keys or local configuration.
 
 ---
 
-## v2.0.0 Release
+## v2.1.0 — CPU speech, no API key
 
-**v2.0.0 is published: [Download the Windows app](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.0.0)**. The in-app updater can discover it.
+Local multilingual speech runs on the CPU. An NVIDIA/RTX card, Python installation, API key and developer workspace are no longer needed for the default mode. The Windows x64 download bundles .NET and the C++ runtime, including a fallback for older CPUs.
 
-It now supports local speech recognition and offline translation without API keys, using the models already configured on your computer. Optional online engines remain available.
+1. Extract the Windows ZIP and launch `LiveTranslatorOverlay.exe`.
+2. Choose the spoken language, or **Auto-detect**, and your target language.
+3. Leave **Local multilingual — balanced, no key** and **Google Translate** selected, then start audio.
+4. On first use, the app downloads and verifies the 148 MB speech model plus a small speech detector. Progress is shown; Stop cancels. Later speech sessions can run offline with the cached models.
 
-### How to test:
-1. Install v2.0.0.
-2. Select **Local English / Russian (GPU)** for speech and **Local translation**.
-3. Choose **English** or **Russian** as the source and an explicit target language.
-4. Start audio.
+The optional larger speech model downloads 488 MB and may improve recognition at the cost of speed. Google text translation needs internet and has service limits; no key is needed. Cloud engines with user keys remain optional. Advanced offline text translation still requires separately prepared models.
 
-> [!NOTE]
-> The completed historical result is English 2.12%, Russian 5.70%, mean 3.91%. Live accuracy still needs testing. [Complete report](https://github.com/nnavyy/LiveTranslatorOverlay/blob/main/research/speech/results/2026-11-04-accuracy-round-completed/README.md).
+**Compatibility and accuracy:** Windows 10/11 x64, model storage and enough memory are still necessary. Caption speed depends on the CPU. Language choices cover the multilingual Whisper model's supported languages, not every language in the world. Accuracy varies with language, names, accents and noise; earlier English/Russian research scores do not apply to these CPU models. Live checks found a wrong-negation response from the online fallback when Google was rate-limited. Translation output is not guaranteed accurate.
 
 ---
 
@@ -43,7 +41,7 @@ It now supports local speech recognition and offline translation without API key
 
 | Platform | Download | Status |
 | --- | --- | --- |
-| Windows 10/11 — x64 | [Windows release (v2.0.0)](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.0.0) — choose `LiveTranslatorOverlay-Windows-x64.zip` | v2.0.0: Local STT/translation, Cloud STT, OCR, and history |
+| Windows 10/11 — x64 | [Windows release (v2.1.0)](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.1.0) — choose `LiveTranslatorOverlay-Windows-x64.zip` | v2.1.0: CPU speech, key-free online translation, OCR and history |
 | Mac — Apple Silicon (M-series) | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.2-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-arm64.zip` | Developer preview: manual text translation and session history |
 | Mac — Intel | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.2-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-x64.zip` | Developer preview: manual text translation and session history |
 
@@ -62,10 +60,10 @@ Mac requires macOS 14 or newer. The preview bundles are ad-hoc signed and not no
 
 ## Features
 
-- **Local Offline Speech & Translation (New in v2.0.0)**
-  - Fully offline, local speech recognition (GPU-accelerated) and local translation without external API keys.
+- **Local Multilingual Speech**
+  - Local CPU speech with automatic model download and auto-detection; no GPU or API key. Optional offline text translation uses separately prepared models.
 - **Key-Free Text Translation by Default**
-  - Operates out-of-the-box using Google Translate's high-speed endpoint (~100–200ms latency).
+  - Uses Google Translate without a key; internet availability and service limits affect response time.
   - No account or API key required; optional cloud engines remain available.
 - **Cloud Real-Time Speech-to-Text (STT)**
   - **Deepgram Streaming**: Sub-second latency WebSocket streaming with live word-by-word interim preview and multi-speaker diarization with distinct color identification.
@@ -94,10 +92,10 @@ Mac requires macOS 14 or newer. The preview bundles are ad-hoc signed and not no
 
 ## Quick Start
 
-1. Download the latest release from the [Releases](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.0.0) page (`LiveTranslatorOverlay-Windows-x64.zip`).
+1. Download the latest release from the [Releases](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.1.0) page (`LiveTranslatorOverlay-Windows-x64.zip`).
 2. Extract the ZIP archive to your desired location.
 3. Launch `LiveTranslatorOverlay.exe`.
-4. *(Optional)* If prompted, install the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0).
+4. Start audio and wait for the automatic first-use speech model download. No separate .NET installer is needed.
 
 ---
 

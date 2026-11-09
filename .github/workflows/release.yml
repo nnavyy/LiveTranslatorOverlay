@@ -42,6 +42,9 @@ jobs:
       - name: Speaker attribution and popup scrolling checks
         run: dotnet run --project tests/SpeakerChecks/SpeakerChecks.csproj -c Release --nologo
 
+      - name: Key-free defaults and download cancellation checks
+        run: dotnet run --project tests/LocalCpuChecks/LocalCpuChecks.csproj -c Release --nologo
+
       - name: Verify release tag matches application version
         if: startsWith(github.ref, 'refs/tags/')
         run: |
@@ -50,11 +53,7 @@ jobs:
           if ($env:GITHUB_REF_NAME -ne $expectedTag) { throw "Release tag must be $expectedTag" }
 
       - name: Publish Release Build
-        run: dotnet publish LiveTranslatorOverlay.csproj -c Release -r win-x64 --self-contained false -o ./publish
-
-      - name: Copy Clean appsettings Template
-        run: |
-          Copy-Item -Force ./appsettings.example.json ./publish/appsettings.json
+        run: ./scripts/package-windows.ps1
 
       - name: Package ZIP
         run: |

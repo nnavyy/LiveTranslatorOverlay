@@ -20,7 +20,7 @@ foreach (string lang in new[] { "en", "ru" })
         if (read == 0) throw new IOException("Truncated WAV");
         position += read;
     }
-    await using var service = new LocalSpeechService();
+    await using var service = new PreparedSpeechService();
     await service.InitializeAsync(lang, timeout.Token);
     var transcript = await service.TranscribeAsync(samples, timeout.Token);
     string expected = speech.GetProperty("prediction").GetString()!;
@@ -29,7 +29,7 @@ foreach (string lang in new[] { "en", "ru" })
     Console.WriteLine($"PASS {lang}: exact benchmark transcript; four-second silence rejected");
     await service.DisposeAsync(); // Stop/close can safely call cleanup twice.
 }
-await using (var service = new LocalSpeechService())
+await using (var service = new PreparedSpeechService())
 {
     try { await service.InitializeAsync("auto", timeout.Token); throw new Exception("Auto accepted"); }
     catch (InvalidOperationException) { Console.WriteLine("PASS unsupported source fails explicitly"); }

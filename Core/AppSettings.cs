@@ -13,7 +13,7 @@ namespace LiveTranslatorOverlay.Core
         public string SourceLangTag { get; set; } = "auto";
         public string TargetLangTag { get; set; } = "auto";
         public int EngineIndex { get; set; } = 0;
-        public int SttModeIndex { get; set; } = 0;
+        public int SttModeIndex { get; set; } = 2;
         public int JapaneseStyleIndex { get; set; } = 0;
         public string AudioDeviceName { get; set; } = "";
         public double CaptionLeft { get; set; } = -1;
@@ -23,6 +23,18 @@ namespace LiveTranslatorOverlay.Core
         public int UiLanguageIndex { get; set; } = 0; // 0=en, 1=id, 2=auto
         public bool HideFromCapture { get; set; } = false;
         public string DeviceId { get; set; } = "";
+
+        public void UseAvailableEngines(bool preparedTranslation)
+        {
+            if (SttModeIndex is < 0 or > 3 ||
+                (SttModeIndex == 0 && string.IsNullOrWhiteSpace(DeepgramApiKey)) ||
+                (SttModeIndex == 1 && string.IsNullOrWhiteSpace(GroqApiKey)))
+                SttModeIndex = 2;
+            if (EngineIndex is < 0 or > 2 ||
+                (EngineIndex == 1 && string.IsNullOrWhiteSpace(GroqApiKey)) ||
+                (EngineIndex == 2 && !preparedTranslation))
+                EngineIndex = 0;
+        }
 
         public static string GetOrCreateDeviceId()
         {

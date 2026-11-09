@@ -62,7 +62,7 @@ namespace LiveTranslatorOverlay.Core.Translation
                 return result;
             }
 
-            return text;
+            throw new HttpRequestException("Translation is unavailable. Check your internet connection and try again.");
         }
 
         public async Task TranslateStreamAsync(string text, string targetLanguage, string sourceLanguage, Action<string> onTokenReceived)
