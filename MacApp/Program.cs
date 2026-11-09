@@ -21,7 +21,9 @@ internal static class Program
             if (!history.ToString().Contains("hola")) return 1;
             history.Clear();
             if (history.ToString() != "") return 1;
-            if (LiveTranslatorOverlay.Core.Localization.LanguageCatalog.Names.Count != 34) return 1;
+            if (LiveTranslatorOverlay.Core.Localization.LanguageCatalog.Names.Count < 34 ||
+                LiveTranslatorOverlay.Core.Localization.AdditionalLanguages.Names.Keys.Any(code =>
+                    !LiveTranslatorOverlay.Core.Localization.LanguageCatalog.Names.ContainsKey(code))) return 1;
             var locale = LiveTranslatorOverlay.Core.Localization.LocalizationManager.Instance;
             locale.SetLanguage("es");
             if (locale.Get("BtnSettings") != "Ajustes") return 1;

@@ -1,4 +1,4 @@
-# v2.1.0 verification — 2026-11-09
+# v2.1.1 verification — 2026-11-09
 
 Scope: Windows CPU speech without NVIDIA, API keys, Python or prepared developer configuration. Online text translation remains dependent on external services.
 

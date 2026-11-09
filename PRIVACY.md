@@ -1,6 +1,6 @@
 # Privacy Policy and Terms of Service
 
-## Local CPU speech (v2.1.0)
+## Local CPU speech (v2.1.1)
 
 The default local speech engine processes audio on the device. On first use it downloads model files from Hugging Face over HTTPS; that request exposes normal network metadata such as the device IP address to the download service, but contains no captured audio. Models are cached in the per-user application data directory. When Google translation is selected, recognized text is sent to the translation providers described below. Local speech does not make online text translation offline.
 

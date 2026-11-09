@@ -1,4 +1,4 @@
-# Live Translator Overlay v2.1.0
+# Live Translator Overlay v2.1.1
 
 Windows users can start local multilingual speech without an NVIDIA/RTX GPU, API key, Python installation or developer workspace. New installs use local CPU speech and key-free online text translation. Existing cloud selections with keys remain optional.
 

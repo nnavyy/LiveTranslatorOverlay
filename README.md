@@ -12,7 +12,7 @@ The release package was verified to contain no API keys or local configuration.
   <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 10" />
   <img src="https://img.shields.io/badge/Platform-Windows%2010%20%2F%2011-0078D6?style=for-the-badge&logo=windows&logoColor=white" alt="Windows" />
   <img src="https://img.shields.io/badge/License-Proprietary-blue?style=for-the-badge" alt="Proprietary License" />
-  <img src="https://img.shields.io/badge/Status-v2.1.0-brightgreen?style=for-the-badge" alt="v2.1.0" />
+  <img src="https://img.shields.io/badge/Status-v2.1.1-brightgreen?style=for-the-badge" alt="v2.1.1" />
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@ The release package was verified to contain no API keys or local configuration.
 
 ---
 
-## v2.1.0 — CPU speech, no API key
+## v2.1.1 — CPU speech, no API key
 
 Local multilingual speech runs on the CPU. An NVIDIA/RTX card, Python installation, API key and developer workspace are no longer needed for the default mode. The Windows x64 download bundles .NET and the C++ runtime, including a fallback for older CPUs.
 
@@ -41,7 +41,7 @@ The optional larger speech model downloads 488 MB and may improve recognition at
 
 | Platform | Download | Status |
 | --- | --- | --- |
-| Windows 10/11 — x64 | [Windows release (v2.1.0)](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.1.0) — choose `LiveTranslatorOverlay-Windows-x64.zip` | v2.1.0: CPU speech, key-free online translation, OCR and history |
+| Windows 10/11 — x64 | [Windows release (v2.1.1)](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.1.1) — choose `LiveTranslatorOverlay-Windows-x64.zip` | v2.1.1: CPU speech, key-free online translation, OCR and history |
 | Mac — Apple Silicon (M-series) | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.2-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-arm64.zip` | Developer preview: manual text translation and session history |
 | Mac — Intel | [Mac preview](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.2-mac-preview) — choose `LiveTranslatorOverlay-Mac-preview-osx-x64.zip` | Developer preview: manual text translation and session history |
 
@@ -92,7 +92,7 @@ Mac requires macOS 14 or newer. The preview bundles are ad-hoc signed and not no
 
 ## Quick Start
 
-1. Download the latest release from the [Releases](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.1.0) page (`LiveTranslatorOverlay-Windows-x64.zip`).
+1. Download the latest release from the [Releases](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v2.1.1) page (`LiveTranslatorOverlay-Windows-x64.zip`).
 2. Extract the ZIP archive to your desired location.
 3. Launch `LiveTranslatorOverlay.exe`.
 4. Start audio and wait for the automatic first-use speech model download. No separate .NET installer is needed.
