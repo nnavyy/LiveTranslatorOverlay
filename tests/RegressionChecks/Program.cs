@@ -68,20 +68,26 @@ Confirm("Fallback application errors do not become captions", rejectedError == "
 
 var audio = new AudioCaptureService();
 var buffer = Get<ConcurrentQueue<float>>(audio, "_audioBuffer");
-int emitted = 0;
-audio.AudioChunkReady += (_, _) => Interlocked.Increment(ref emitted);
+var emitted = new ConcurrentQueue<int>();
+using var chunkReady = new SemaphoreSlim(0);
+audio.AudioChunkReady += (_, chunk) =>
+{
+    emitted.Enqueue(chunk.Length);
+    chunkReady.Release();
+};
 Set(audio, "_isCapturing", true);
 for (int i = 0; i < 32000; i++) buffer.Enqueue((float)(0.1 * Math.Sin(i * 0.1)));
 var loop = (Task)typeof(AudioCaptureService).GetMethod("ChunkEmitterLoop", PrivateInstance)!.Invoke(audio, null)!;
-await Task.Delay(1300);
-int shortCount = emitted;
+bool firstChunk = await chunkReady.WaitAsync(TimeSpan.FromSeconds(5));
+int shortCount = emitted.Count;
 for (int i = 0; i < 32000; i++) buffer.Enqueue((float)(0.1 * Math.Sin(i * 0.1)));
-await Task.Delay(1300);
-int fourSecondCount = emitted;
+bool secondChunk = await chunkReady.WaitAsync(TimeSpan.FromSeconds(5));
+bool extraChunk = await chunkReady.WaitAsync(TimeSpan.FromMilliseconds(1300));
 audio.Stop();
 await loop.WaitAsync(TimeSpan.FromSeconds(2));
-Confirm("Short playback emits exactly once per segment", shortCount == 1 && fourSecondCount == 2,
-    $"2 seconds + 1.3 seconds idle: {shortCount} chunks; after total 4 seconds: {fourSecondCount} chunk");
+Confirm("Short playback emits exactly once per segment",
+    firstChunk && shortCount == 1 && secondChunk && !extraChunk && emitted.SequenceEqual([32000, 40000]),
+    $"first segment: {shortCount} chunk; emitted samples: {string.Join(", ", emitted)}");
 
 Confirm("Silence and repetition stay filtered",
     HallucinationDetector.IsHallucination("...") && HallucinationDetector.IsHallucination("[music]")
