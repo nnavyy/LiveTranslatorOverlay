@@ -8,13 +8,14 @@ using LiveTranslatorOverlay.Core.Localization;
 using LiveTranslatorOverlay.Core.Update;
 using LiveTranslatorOverlay.Core.Feedback;
 using System.IO;
+using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
 // Offline regression checks against the current release assembly. No credentials,
-// devices, updater execution, feedback submissions, or real HTTP requests.
+// devices, updater restart, feedback submissions, or real HTTP requests.
 const BindingFlags PrivateInstance = BindingFlags.Instance | BindingFlags.NonPublic;
 AppContext.SetData("LiveTranslatorOverlay.QuotaCacheDirectory",
     System.IO.Path.Combine(System.IO.Path.GetTempPath(), "LiveTranslatorQuotaChecks-" + Guid.NewGuid().ToString("N")));
@@ -139,6 +140,31 @@ try
     catch (InvalidDataException) { mismatchRejected = true; }
     Confirm("Update checksum rejects same-sized tampering", mismatchRejected, "verified original payload, rejected altered payload");
 
+    using (var stream = File.Create(archive))
+    using (var zip = new ZipArchive(stream, ZipArchiveMode.Create))
+    {
+        using (var writer = new StreamWriter(zip.CreateEntry("LiveTranslatorOverlay.exe").Open())) writer.Write("fixture");
+        using (var writer = new StreamWriter(zip.CreateEntry("appsettings.json").Open())) writer.Write("{}");
+    }
+    var zipBytes = File.ReadAllBytes(archive);
+    string packageManifest = manifest.Replace($"\"size\":{payload.Length}", $"\"size\":{zipBytes.Length}")
+        .Replace(checksum, Convert.ToHexString(SHA256.HashData(zipBytes)));
+    const string directoryKey = "LiveTranslatorOverlay.DataDirectory";
+    var previousDirectory = AppContext.GetData(directoryKey);
+    AppContext.SetData(directoryKey, releaseFixture);
+    try
+    {
+        var updater = new AutoUpdaterService();
+        Get<HttpClient>(updater, "_httpClient").Dispose();
+        using var client = new HttpClient(new UpdateHandler(packageManifest, zipBytes));
+        Set(updater, "_httpClient", client);
+        bool staged = await updater.CheckAndDownloadAsync();
+        Confirm("Update stages the verified 1.x package without replacing user configuration", staged && updater.IsUpdateReady
+            && updater.PendingVersion == "v1.0.1" && File.Exists(Path.Combine(updater.StagedDirectory, "LiveTranslatorOverlay.exe"))
+            && !File.Exists(Path.Combine(updater.StagedDirectory, "appsettings.json")), $"pending={updater.PendingVersion}");
+    }
+    finally { AppContext.SetData(directoryKey, previousDirectory); }
+
     string receipt = Path.Combine(releaseFixture, "terms-accepted.txt");
     bool newInstall = !TermsNotice.HasAccepted(releaseFixture);
     File.WriteAllLines(receipt, ["1", DateTimeOffset.UtcNow.ToString("O")]);
@@ -177,7 +203,15 @@ applyStatuses.Invoke(null, [records, explicitFix.RootElement]);
 Confirm("Only explicit report mappings change resolution", keptPending && records[0].Status == "Fixed"
     && records[0].ResolutionNote == "Resolved in v1.4.0", $"unrelated release kept pending={keptPending}");
 
-Console.WriteLine($"Regression result: {observed}/17 passed"); Environment.ExitCode = observed == 17 ? 0 : 1;
+Console.WriteLine($"Regression result: {observed}/18 passed"); Environment.ExitCode = observed == 18 ? 0 : 1;
+sealed class UpdateHandler(string manifest, byte[] archive) : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) =>
+        Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = request.RequestUri?.AbsoluteUri == StableRelease.ManifestUrl ? new StringContent(manifest) : new ByteArrayContent(archive)
+        });
+}
 sealed class ManualTime : TimeProvider
 {
     private long _seconds;

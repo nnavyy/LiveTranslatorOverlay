@@ -113,7 +113,7 @@ namespace LiveTranslatorOverlay.Core.Update
 
                 // Setup version-isolated local temp directories to prevent file locking collisions
                 string tagName = $"v{release.Version}";
-                string localAppData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiveTranslatorOverlay");
+                string localAppData = AppSettings.DataDirectory;
                 string updateTempDir = Path.Combine(localAppData, "UpdateTemp");
                 string updateStagedDir = Path.Combine(localAppData, $"Staged_ml_{tagName}");
 
@@ -271,7 +271,7 @@ exit /b 0
 
             try
             {
-                string localAppData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiveTranslatorOverlay");
+                string localAppData = AppSettings.DataDirectory;
                 CreateUpdateScript(localAppData); // Always write fresh update script
                 string scriptPath = Path.Combine(localAppData, "apply_update.cmd");
 
