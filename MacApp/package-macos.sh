@@ -6,6 +6,10 @@ case "$rid" in osx-arm64|osx-x64) ;; *) echo 'Unsupported runtime' >&2; exit 1 ;
 app="$output/LiveTranslator.app"
 mkdir -p "$app/Contents/MacOS"
 dotnet publish MacApp/LiveTranslatorMac.csproj -c Release -r "$rid" --self-contained true -o "$app/Contents/MacOS"
+arch="${rid#osx-}"
+[[ "$arch" != x64 ]] || arch=x86_64
+xcrun swiftc -swift-version 5 -O -emit-library -target "$arch-apple-macosx14.0" \
+    MacApp/NativeAudio.swift -o "$app/Contents/MacOS/libLiveTranslatorAudio.dylib"
 version=$(python3 -c 'import xml.etree.ElementTree as e; print(e.parse("MacApp/LiveTranslatorMac.csproj").findtext("PropertyGroup/Version"))')
 cat > "$app/Contents/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -19,6 +23,7 @@ cat > "$app/Contents/Info.plist" <<EOF
 <key>CFBundleShortVersionString</key><string>$version</string>
 <key>CFBundleVersion</key><string>$version</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
+<key>NSMicrophoneUsageDescription</key><string>Translate speech from your microphone on this Mac.</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>NSPrincipalClass</key><string>NSApplication</string>
 </dict></plist>

@@ -2,7 +2,7 @@
 
 ## Local CPU speech and setup
 
-The default speech engine processes audio on the device. Windows setup reuses valid local speech files and downloads missing files from Hugging Face over HTTPS. If you skip that download or use the portable app, missing files download when you start local speech. The model service receives normal connection metadata such as your IP address. The app sends no audio with that download. Models are cached in the per-user application data directory. Default text translation sends recognized text to Google or its MyMemory fallback. Users with a separately configured offline translation model can select it to keep text processing on the device.
+The default speech engine processes audio on the device. Windows setup reuses valid local speech files and can download missing files from Hugging Face over HTTPS. If you skip that download, use the portable app, or use macOS, missing files download when you start local speech. The model service receives normal connection metadata such as your IP address. The app sends no audio with that download. Models are cached in the per-user application data directory. Default text translation sends recognized text to Google or its MyMemory fallback. On Windows, users with a separately configured offline translation model can select it to keep text processing on the device.
 
 Last Updated: November 2026
 
@@ -23,7 +23,7 @@ The Software is a client-side utility designed to provide real-time audio subtit
 
 ## 2. Audio Capture and Processing
 
-- **Volatile In-Memory Processing**: When Audio Translation is active, the Software captures system audio output (via Windows WASAPI loopback) or microphone input in short temporary buffers (typically 0.5 to 1.5 seconds) within volatile system memory (RAM).
+- **Volatile In-Memory Processing**: When Audio Translation is active, the Software receives system audio or microphone input into temporary buffers in memory. Windows uses WASAPI. macOS uses ScreenCaptureKit for system audio and AVAudioEngine for microphone input. The app asks macOS for the permissions required by the selected source and consumes only audio samples.
 - **No Disk Recording**: Audio data is never written to your hard drive, SSD, or external storage.
 - **Temporary buffers**: Audio buffers are released after processing. Recent samples may overlap between segments to preserve words at segment boundaries.
 

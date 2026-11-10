@@ -1,11 +1,10 @@
 using System;
-using System.Reflection;
 
 namespace LiveTranslatorOverlay.Core.Update
 {
     public static class AppVersion
     {
-        public static readonly Version Current = new Version(2, 1, 2);
+        public static readonly Version Current = Version.Parse(typeof(AppVersion).Assembly.GetName().Version!.ToString(3));
         public static string DisplayString => $"v{Current.Major}.{Current.Minor}.{Current.Build}";
 
         public static bool IsNewerThanCurrent(string tagOrVersion)

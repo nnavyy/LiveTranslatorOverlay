@@ -29,10 +29,15 @@ SetCompressor zlib
 Var TermsAccepted
 
 Function SkipAcceptedTerms
-  ReadRegStr $0 HKCU "Software\LiveTranslatorOverlay" "SetupTermsVersion"
-  ${If} $0 == "1"
+  ClearErrors
+  FileOpen $0 "$LOCALAPPDATA\LiveTranslatorOverlay\terms-accepted.txt" r
+  IfErrors showTerms
+  FileRead $0 $1
+  FileClose $0
+  ${If} $1 == "${TERMS_REVISION}$\r$\n"
     Abort
   ${EndIf}
+  showTerms:
 FunctionEnd
 
 Function AcceptTerms
@@ -41,7 +46,13 @@ FunctionEnd
 
 Function .onInit
   ${IfNot} ${RunningX64}
-    MessageBox MB_ICONSTOP "This setup requires 64-bit Windows."
+    MessageBox MB_ICONSTOP "This setup requires 64-bit Windows." /SD IDOK
+    Abort
+  ${EndIf}
+  System::Call 'kernel32::OpenMutexW(i 0x100000, i 0, w "Local\LiveTranslatorOverlay_SingleInstance_Mutex_v1") p.r0'
+  ${If} $0 != 0
+    System::Call 'kernel32::CloseHandle(p r0)'
+    MessageBox MB_ICONSTOP "Close Live Translator Overlay before running setup." /SD IDOK
     Abort
   ${EndIf}
   StrCpy $INSTDIR "$LOCALAPPDATA\Programs\LiveTranslatorOverlay"
@@ -59,7 +70,12 @@ Section "Install"
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LiveTranslatorOverlay" "NoModify" 1
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LiveTranslatorOverlay" "NoRepair" 1
   ${If} $TermsAccepted == "1"
-    WriteRegStr HKCU "Software\LiveTranslatorOverlay" "SetupTermsVersion" "1"
+    ClearErrors
+    ExecWait '"$INSTDIR\LiveTranslatorOverlay.exe" --record-setup-terms ${TERMS_REVISION}' $0
+    ${If} ${Errors}
+    ${OrIf} $0 != 0
+      DetailPrint "Review the terms again when you open Live Translator."
+    ${EndIf}
   ${EndIf}
 
   IfSilent done

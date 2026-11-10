@@ -5,7 +5,6 @@ namespace LiveTranslatorOverlay.Core;
 
 public static class PurchaseReminder
 {
-    public const string Price = "US$13";
     public const bool PurchaseRequiredToContinue = false;
 
     public static void Show(Window owner)
@@ -24,13 +23,13 @@ public static class PurchaseReminder
         });
         panel.Children.Add(new TextBlock
         {
-            Text = $"A lifetime license costs {Price}, paid once.\nYou can choose Not now and keep using the app.\n\nPurchasing is not configured yet.",
+            Text = "You can continue using stable translation for free.\n\nSupport purchases will be available when the payment flow is ready.",
             TextWrapping = TextWrapping.Wrap
         });
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 18, 0, 0) };
         buttons.Children.Add(new Button
         {
-            Content = $"Buy lifetime — {Price}", IsEnabled = false,
+            Content = "Purchases unavailable", IsEnabled = false,
             Padding = new Thickness(12, 6, 12, 6), ToolTip = "Checkout has not been configured."
         });
         var later = new Button { Content = "Not now", IsCancel = true, IsDefault = true, Margin = new Thickness(12, 0, 0, 0), Padding = new Thickness(12, 6, 12, 6) };

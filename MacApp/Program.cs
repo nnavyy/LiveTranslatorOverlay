@@ -1,5 +1,7 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Layout;
 using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Themes.Fluent;
 using LiveTranslatorOverlay.Core;
@@ -50,14 +52,62 @@ public sealed class MacApplication : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new TranslatorWindow();
-            desktop.MainWindow.Opened += (_, _) =>
+            if (Program.UiSmokeTest || TermsNotice.HasAccepted(AppSettings.DataDirectory))
             {
-                Program.WindowOpened = true;
+                var window = new TranslatorWindow();
+                desktop.MainWindow = window;
                 if (Program.UiSmokeTest)
-                    Avalonia.Threading.DispatcherTimer.RunOnce(() => desktop.MainWindow.Close(), TimeSpan.FromSeconds(2));
-            };
+                    window.Opened += (_, _) =>
+                    {
+                        Program.WindowOpened = true;
+                        Avalonia.Threading.DispatcherTimer.RunOnce(window.Close, TimeSpan.FromSeconds(2));
+                    };
+            }
+            else desktop.MainWindow = CreateTermsWindow(desktop);
         }
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private static Window CreateTermsWindow(IClassicDesktopStyleApplicationLifetime desktop)
+    {
+        var window = new Window
+        {
+            Title = "Live Translator — Terms and privacy",
+            Width = 740, Height = 590, MinWidth = 380, MinHeight = 300,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen
+        };
+        var accept = new Button { Content = "Accept terms" };
+        var decline = new Button { Content = "Exit" };
+        var error = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+        var actions = new StackPanel
+        {
+            Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
+            Spacing = 8, Children = { accept, decline }
+        };
+        var footer = new StackPanel { Margin = new Thickness(0, 12, 0, 0), Children = { error, actions } };
+        DockPanel.SetDock(footer, Dock.Bottom);
+        window.Content = new DockPanel
+        {
+            Margin = new Thickness(18),
+            Children = { footer, new TextBox
+            {
+                Text = TermsNotice.Text, IsReadOnly = true, AcceptsReturn = true,
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap
+            } }
+        };
+        decline.Click += (_, _) => window.Close();
+        accept.Click += (_, _) =>
+        {
+            try { TermsNotice.Accept(AppSettings.DataDirectory); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                error.Text = "Could not save acceptance. Check that your app data folder is writable.";
+                return;
+            }
+            desktop.MainWindow = new TranslatorWindow();
+            desktop.MainWindow.Show();
+            window.Close();
+        };
+        return window;
     }
 }

@@ -28,7 +28,7 @@ public static class SpeechModelDownload
         EnsureFileAsync(VadName, VadHash, VadSize,
             "https://huggingface.co/ggml-org/whisper-vad/resolve/9ffd54a1e1ee413ddf265af9913beaf518d1639b/", progress, token);
 
-    internal static async Task<bool> HasDefaultModelsAsync(CancellationToken token)
+    public static async Task<bool> HasDefaultModelsAsync(CancellationToken token)
     {
         string directory = Path.Combine(AppSettings.DataDirectory, "models");
         string speech = Path.Combine(directory, BaseName);
