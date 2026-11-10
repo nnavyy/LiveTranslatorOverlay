@@ -36,6 +36,9 @@ public static class PurchaseReminder
         later.Click += (_, _) => window.Close();
         buttons.Children.Add(later);
         panel.Children.Add(buttons);
+        var terms = new Button { Content = "Terms and privacy", HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, 8, 0, 0) };
+        terms.Click += (_, _) => App.ShowTerms(window);
+        panel.Children.Add(terms);
         window.Content = panel;
         window.ShowDialog();
     }

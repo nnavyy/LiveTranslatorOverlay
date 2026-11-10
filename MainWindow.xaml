@@ -583,6 +583,7 @@
                         </Grid>
 
                         <TextBlock x:Name="TxtAudioStatus" Text="" Foreground="#8E8E93" FontSize="11" Margin="2,0,0,6" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="TxtAudioUsage" Loaded="AudioUsage_Loaded" Foreground="#8E8E93" FontSize="11" Margin="2,0,0,6" TextWrapping="Wrap"/>
                         <Button x:Name="BtnStartAudio" Content="Start Audio Translate" Click="BtnStartAudio_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,0,0,14"/>
 
                         <Border x:Name="QuotaPanel" Visibility="Collapsed" Background="#1D1D24" BorderBrush="#2E2E38" BorderThickness="1" CornerRadius="10" Padding="12,9" Margin="0,0,0,14">

@@ -27,6 +27,17 @@ internal sealed class MacAudioCapture : IAsyncDisposable
     public Task Stopped => _stopped.Task;
     public string? Error { get; private set; }
 
+    internal static bool CanLoadNativeBridge()
+    {
+        if (!NativeLibrary.TryLoad(Path.Combine(AppContext.BaseDirectory, "libLiveTranslatorAudio.dylib"), out var library)) return false;
+        try
+        {
+            return NativeLibrary.TryGetExport(library, "lt_start_audio", out _) &&
+                NativeLibrary.TryGetExport(library, "lt_stop_audio", out _);
+        }
+        finally { NativeLibrary.Free(library); }
+    }
+
     public async Task StartAsync(bool microphone, CancellationToken token)
     {
         if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException("Audio capture needs macOS.");

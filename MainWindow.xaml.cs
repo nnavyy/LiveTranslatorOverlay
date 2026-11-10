@@ -338,6 +338,7 @@ public partial class MainWindow : Window
 
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        StopUsageClock();
         _audioCts?.Cancel();
         _audioCaptureService?.Stop();
         CaptureExclusion.Shutdown();
@@ -1626,6 +1627,7 @@ public partial class MainWindow : Window
         };
         await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId(), _audioCts!.Token);
         if (!IsCurrent()) { capture.Dispose(); return; }
+        StartUsageClock(capture);
         TxtAudioStatus.Text = $"Active speech: Deepgram · {DiarizedSttService.ModelName}";
         CaptionTranslated.Text = "[Waiting for audio...]";
     }
@@ -1835,6 +1837,7 @@ public partial class MainWindow : Window
 
         await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId(), sessionToken);
         if (sessionToken.IsCancellationRequested) { capture.Dispose(); return; }
+        StartUsageClock(capture);
         TxtAudioStatus.Text = $"Active speech: {(localService == null ? $"Groq · {WhisperSttService.ModelName}" : mode == "local-small" ? "Local Whisper small" : "Local Whisper base")}. Speaker labels are estimates.";
         CaptionTranslated.Text = "[Waiting for audio...]";
     }
@@ -1842,6 +1845,7 @@ public partial class MainWindow : Window
     private async Task StopAudioModeAsync()
     {
         _isAudioMode = false;
+        StopUsageClock();
         BtnStartAudio.IsEnabled = false;
         var cancellation = _audioCts;
         _audioCts = null;

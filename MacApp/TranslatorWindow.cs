@@ -129,13 +129,15 @@ public sealed partial class TranslatorWindow : Window
             }
         } });
         var about = new Button { Content = "About & feedback", HorizontalAlignment = HorizontalAlignment.Left };
+        var terms = new Button { Content = "Terms and privacy" };
+        terms.Click += async (_, _) => await MacApplication.CreateTermsWindow().ShowDialog(this);
         about.Flyout = new Flyout { Content = new StackPanel
         {
             Spacing = 12, MaxWidth = 340, Children =
             {
                 new TextBlock { Text = "Live Translator", FontSize = 18, FontWeight = FontWeight.SemiBold },
                 new TextBlock { Text = $"Live Translator {Program.DisplayVersion} for Mac. Translate text, system audio, or microphone input. Session history stays in memory unless you export it.", TextWrapping = TextWrapping.Wrap, Classes = { "secondary" } },
-                report
+                report, terms
             }
         } };
         content.Children.Add(about);
@@ -149,7 +151,7 @@ public sealed partial class TranslatorWindow : Window
                 await TranslateAsync();
             }
         };
-        Closing += (_, _) => { _closed = true; _request?.Cancel(); _audioRequest?.Cancel(); };
+        Closing += (_, _) => { _closed = true; _request?.Cancel(); _audioRequest?.Cancel(); _usageClock.Stop(); };
     }
 
     private static Grid CreateEditorPane(string label, ComboBox language, TextBox editor)

@@ -146,6 +146,24 @@ try
     TermsNotice.Accept(releaseFixture);
     Confirm("Terms require acceptance of the current bundled revision", newInstall && oldRejected
         && TermsNotice.HasAccepted(releaseFixture) && TermsNotice.Text.Contains("Privacy Policy"), TermsNotice.Revision);
+
+    var time = new ManualTime();
+    var usage = new GuestAudioUsage(releaseFixture, time);
+    time.Advance(15);
+    var beforeStart = usage.Checkpoint();
+    usage.Start();
+    time.Advance(15);
+    var afterFirstCheckpoint = usage.Checkpoint();
+    time.Advance(600); // Sleep or a missed heartbeat.
+    var afterSleep = usage.Checkpoint();
+    time.Advance(2);
+    var stopped = usage.Stop();
+    time.Advance(10);
+    var reloaded = new GuestAudioUsage(releaseFixture, time).Checkpoint();
+    Confirm("Guest audio duration counts healthy capture time once and persists locally",
+        beforeStart == TimeSpan.Zero && afterFirstCheckpoint == TimeSpan.FromSeconds(15)
+        && afterSleep == afterFirstCheckpoint && stopped == TimeSpan.FromSeconds(17)
+        && usage.Checkpoint() == stopped && reloaded == stopped, $"persisted={reloaded.TotalSeconds}s");
 }
 finally { Directory.Delete(releaseFixture, recursive: true); }
 
@@ -159,7 +177,14 @@ applyStatuses.Invoke(null, [records, explicitFix.RootElement]);
 Confirm("Only explicit report mappings change resolution", keptPending && records[0].Status == "Fixed"
     && records[0].ResolutionNote == "Resolved in v1.4.0", $"unrelated release kept pending={keptPending}");
 
-Console.WriteLine($"Regression result: {observed}/16 passed"); Environment.ExitCode = observed == 16 ? 0 : 1;
+Console.WriteLine($"Regression result: {observed}/17 passed"); Environment.ExitCode = observed == 17 ? 0 : 1;
+sealed class ManualTime : TimeProvider
+{
+    private long _seconds;
+    public override long TimestampFrequency => 1;
+    public override long GetTimestamp() => _seconds;
+    public void Advance(long seconds) => _seconds += seconds;
+}
 sealed class MockHandler : HttpMessageHandler
 {
     public const string Error = "INVALID LANGUAGE PAIR";

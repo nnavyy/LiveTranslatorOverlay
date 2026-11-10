@@ -18,6 +18,11 @@ internal static class Program
     {
         if (args.Contains("--smoke-test"))
         {
+            if (OperatingSystem.IsMacOS() && !MacAudioCapture.CanLoadNativeBridge())
+            {
+                Console.Error.WriteLine("The bundled Mac audio bridge could not be loaded.");
+                return 1;
+            }
             var history = new TranslationHistory();
             history.Add("hello", "hola");
             if (!history.ToString().Contains("hola")) return 1;
@@ -63,27 +68,33 @@ public sealed class MacApplication : Application
                         Avalonia.Threading.DispatcherTimer.RunOnce(window.Close, TimeSpan.FromSeconds(2));
                     };
             }
-            else desktop.MainWindow = CreateTermsWindow(desktop);
+            else desktop.MainWindow = CreateTermsWindow(() =>
+            {
+                desktop.MainWindow = new TranslatorWindow();
+                desktop.MainWindow.Show();
+            });
         }
         base.OnFrameworkInitializationCompleted();
     }
 
-    private static Window CreateTermsWindow(IClassicDesktopStyleApplicationLifetime desktop)
+    internal static Window CreateTermsWindow(Action? onAccepted = null)
     {
         var window = new Window
         {
             Title = "Live Translator — Terms and privacy",
             Width = 740, Height = 590, MinWidth = 380, MinHeight = 300,
-            WindowStartupLocation = WindowStartupLocation.CenterScreen
+            WindowStartupLocation = onAccepted == null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen
         };
         var accept = new Button { Content = "Accept terms" };
-        var decline = new Button { Content = "Exit" };
+        var decline = new Button { Content = onAccepted == null ? "Close" : "Exit" };
         var error = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var actions = new StackPanel
         {
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
-            Spacing = 8, Children = { accept, decline }
+            Spacing = 8
         };
+        if (onAccepted != null) actions.Children.Add(accept);
+        actions.Children.Add(decline);
         var footer = new StackPanel { Margin = new Thickness(0, 12, 0, 0), Children = { error, actions } };
         DockPanel.SetDock(footer, Dock.Bottom);
         window.Content = new DockPanel
@@ -104,8 +115,7 @@ public sealed class MacApplication : Application
                 error.Text = "Could not save acceptance. Check that your app data folder is writable.";
                 return;
             }
-            desktop.MainWindow = new TranslatorWindow();
-            desktop.MainWindow.Show();
+            onAccepted?.Invoke();
             window.Close();
         };
         return window;

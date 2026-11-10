@@ -92,17 +92,20 @@ public partial class App : Application
         }
 
         Core.Japanese.JapaneseScriptConverter.NativePhoneticReader = Core.Japanese.WindowsPhoneticReader.Read;
-        StartupUri = new Uri("MainWindow.xaml", UriKind.Relative);
         base.OnStartup(e);
+        MainWindow = new MainWindow();
+        MainWindow.Show();
     }
 
-    private static bool ShowTerms()
+    internal static bool ShowTerms(Window? owner = null)
     {
+        bool review = owner != null;
         var dialog = new Window
         {
+            Owner = owner,
             Title = "Live Translator Overlay — Terms and privacy",
             Width = 740, Height = 590, MinWidth = 380, MinHeight = 300,
-            WindowStartupLocation = WindowStartupLocation.CenterScreen
+            WindowStartupLocation = review ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen
         };
         var layout = new System.Windows.Controls.DockPanel { Margin = new Thickness(18) };
         var actions = new System.Windows.Controls.StackPanel
@@ -111,7 +114,7 @@ public partial class App : Application
             HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0)
         };
         var accept = new System.Windows.Controls.Button { Content = "Accept terms", Padding = new Thickness(14, 6, 14, 6) };
-        var decline = new System.Windows.Controls.Button { Content = "Exit", IsCancel = true, Margin = new Thickness(8, 0, 0, 0), Padding = accept.Padding };
+        var decline = new System.Windows.Controls.Button { Content = review ? "Close" : "Exit", IsCancel = true, Margin = new Thickness(8, 0, 0, 0), Padding = accept.Padding };
         accept.Click += (_, _) =>
         {
             try
@@ -124,7 +127,7 @@ public partial class App : Application
                 MessageBox.Show(dialog, "Live Translator could not save your acceptance. Check that your app data folder is writable.", dialog.Title);
             }
         };
-        actions.Children.Add(accept);
+        if (!review) actions.Children.Add(accept);
         actions.Children.Add(decline);
         System.Windows.Controls.DockPanel.SetDock(actions, System.Windows.Controls.Dock.Bottom);
         layout.Children.Add(actions);

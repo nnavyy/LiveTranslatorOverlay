@@ -26,6 +26,7 @@ The Software is a client-side utility designed to provide real-time audio subtit
 - **Volatile In-Memory Processing**: When Audio Translation is active, the Software receives system audio or microphone input into temporary buffers in memory. Windows uses WASAPI. macOS uses ScreenCaptureKit for system audio and AVAudioEngine for microphone input. The app asks macOS for the permissions required by the selected source and consumes only audio samples.
 - **No Disk Recording**: Audio data is never written to your hard drive, SSD, or external storage.
 - **Temporary buffers**: Audio buffers are released after processing. Recent samples may overlap between segments to preserve words at segment boundaries.
+- **Local usage total**: The app stores the duration of audio translation on this device so you can see your personal total. This file stays on the device. It contains no audio, captions, or identity information.
 
 ---
 

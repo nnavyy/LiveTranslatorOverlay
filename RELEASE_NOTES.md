@@ -8,6 +8,6 @@ This private candidate prepares the machine-learning release line. Public releas
 - Filters the reported Whisper subtitle credit. Speech recognition and translation can still make mistakes.
 - The Windows installer and both applications use the same versioned terms and privacy documents. The Windows installer offers to prepare missing speech models. Valid models are reused, and first audio use can prepare missing files later.
 
-The candidate includes a Mac audio capture bridge and floating captions. Native device, permission, and package testing are release gates. Accounts, public rankings, supporter payments, private messaging, and the Insider library are pending.
+The candidate includes a Mac audio capture bridge and floating captions. Both apps display a private audio usage total on the current device. Native device and permission testing are release gates. Accounts, public rankings, supporter payments, private messaging, and the Insider library are pending.
 
 Default speech runs locally. Default text translation uses Google or its online fallback. Advanced offline text translation still requires a separately configured translation model.

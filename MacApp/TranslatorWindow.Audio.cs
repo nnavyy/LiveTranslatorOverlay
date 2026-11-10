@@ -12,13 +12,16 @@ public sealed partial class TranslatorWindow
     private readonly ComboBox _audioSource = new() { ItemsSource = new[] { "System audio", "Microphone" }, SelectedIndex = 0 };
     private readonly ComboBox _speechModel = new() { ItemsSource = new[] { "Balanced", "Larger model" }, SelectedIndex = 0 };
     private readonly Button _audioToggle = new() { Content = "Start audio" };
+    private readonly GuestAudioUsage _usageClock = new(AppSettings.DataDirectory);
+    private readonly TextBlock _usageText = new() { Classes = { "secondary" } };
     private CancellationTokenSource? _audioRequest;
 
     private Control CreateAudioControls()
     {
+        ShowAudioUsage(_usageClock.Checkpoint());
         _audioToggle.Click += async (_, _) =>
         {
-            if (_audioRequest != null) { _audioRequest.Cancel(); return; }
+            if (_audioRequest != null) { _audioRequest.Cancel(); ShowAudioUsage(_usageClock.Stop()); return; }
             await TranslateAudioAsync();
         };
         Avalonia.Automation.AutomationProperties.SetName(_audioSource, "Audio source");
@@ -33,7 +36,8 @@ public sealed partial class TranslatorWindow
                     Text = "macOS asks for microphone or system audio permission when you start. Audio stays on this Mac. The selected translation service receives text.",
                     TextWrapping = TextWrapping.Wrap, Classes = { "secondary" }
                 },
-                new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { _audioSource, _speechModel, _audioToggle } }
+                new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { _audioSource, _speechModel, _audioToggle } },
+                _usageText
             }
         };
     }
@@ -61,6 +65,8 @@ public sealed partial class TranslatorWindow
         };
         frame.PointerPressed += (_, e) => { if (e.GetCurrentPoint(frame).Properties.IsLeftButtonPressed) overlay.BeginMoveDrag(e); };
         SetStatus("Preparing the local speech model…");
+        var usageCheckpoint = new DispatcherTimer { Interval = GuestAudioUsage.CheckpointInterval };
+        usageCheckpoint.Tick += (_, _) => ShowAudioUsage(_usageClock.Checkpoint());
         try
         {
             await using var speech = new LocalSpeechService(small: _speechModel.SelectedIndex == 1);
@@ -73,6 +79,8 @@ public sealed partial class TranslatorWindow
             await capture.StartAsync(microphone, request.Token);
             request.Token.ThrowIfCancellationRequested();
             overlay.Show(this);
+            _usageClock.Start();
+            usageCheckpoint.Start();
             SetStatus("Audio translation is running. Drag the captions to reposition them.");
             using var processing = CancellationTokenSource.CreateLinkedTokenSource(request.Token);
             var processingToken = processing.Token;
@@ -99,13 +107,15 @@ public sealed partial class TranslatorWindow
                 }
             }
             catch (OperationCanceledException) when (processingToken.IsCancellationRequested) { }
-            finally { request.Cancel(); await watchCapture; }
+            finally { usageCheckpoint.Stop(); ShowAudioUsage(_usageClock.Stop()); request.Cancel(); await watchCapture; }
             if (!_closed) SetStatus(capture.Error ?? "Audio translation stopped.");
         }
         catch (OperationCanceledException) when (request.IsCancellationRequested) { if (!_closed) SetStatus("Audio translation stopped."); }
         catch (Exception ex) { if (!_closed) SetStatus($"Could not translate audio: {ex.Message}"); }
         finally
         {
+            usageCheckpoint.Stop();
+            ShowAudioUsage(_usageClock.Stop());
             if (overlay.IsVisible) overlay.Close();
             _audioRequest = null;
             _audioToggle.Content = "Start audio";
@@ -113,4 +123,7 @@ public sealed partial class TranslatorWindow
                 _translate.IsEnabled = _audioSource.IsEnabled = _speechModel.IsEnabled = true;
         }
     }
+
+    private void ShowAudioUsage(TimeSpan duration) =>
+        _usageText.Text = $"Audio translation on this device: {GuestAudioUsage.Format(duration)}";
 }

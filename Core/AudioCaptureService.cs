@@ -17,10 +17,12 @@ namespace LiveTranslatorOverlay.Core
         private WaveFormat? _captureFormat;
 
         public event EventHandler<float[]>? AudioChunkReady;
+        public event EventHandler? CaptureEnded;
         public Func<float[], Task>? AudioChunkHandler { get; set; }
         // Raw PCM16 bytes streamed continuously for Deepgram WebSocket mode
         public event EventHandler<byte[]>? RawPcmBytesAvailable;
-        private bool _isCapturing;
+        private volatile bool _isCapturing;
+        public bool IsCapturing => _isCapturing;
 
         // Queue dengan batas 2 chunk agar tidak numpuk tapi tidak buang semua
         private readonly SemaphoreSlim _chunkQueue = new SemaphoreSlim(2, 2);
@@ -74,8 +76,15 @@ namespace LiveTranslatorOverlay.Core
 
             _capture.DataAvailable += OnDataAvailable;
             _capture.RecordingStopped += OnRecordingStopped;
-            _capture.StartRecording();
             _isCapturing = true;
+            try { _capture.StartRecording(); }
+            catch
+            {
+                _isCapturing = false;
+                capture.Dispose();
+                _capture = null;
+                throw;
+            }
 
             _ = Task.Run(ChunkEmitterLoop);
         }
@@ -309,6 +318,7 @@ namespace LiveTranslatorOverlay.Core
             _isCapturing = false;
             _capture?.Dispose();
             _capture = null;
+            CaptureEnded?.Invoke(this, EventArgs.Empty);
         }
 
         public void Dispose()
