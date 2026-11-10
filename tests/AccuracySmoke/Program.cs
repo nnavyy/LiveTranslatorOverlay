@@ -1,5 +1,11 @@
 using LiveTranslatorOverlay.Core.Translation;
 
+if (args is ["--ru-report"] or ["--ru-report", "--force-fallback"])
+{
+    await RussianTranslationProbe.RunAsync(args.Length == 2);
+    return;
+}
+
 // Optional live check. Only these synthetic phrases are sent; no credentials or recordings.
 var cases = new (string Source, string From, string To, Func<string, bool> Check)[]
 {

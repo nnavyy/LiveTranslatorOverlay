@@ -17,6 +17,12 @@ static void Check(bool result, string message)
     Console.WriteLine("PASS: " + message);
 }
 
+if (args is ["--ru-caption-report", var manifest])
+{
+    await RussianCaptionProbe.RunAsync(manifest);
+    return;
+}
+
 if (args.Contains("--ui"))
 {
     Exception? error = null;
