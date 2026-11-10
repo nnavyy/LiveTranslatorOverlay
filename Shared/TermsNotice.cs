@@ -5,7 +5,29 @@ namespace LiveTranslatorOverlay.Core;
 public static class TermsNotice
 {
     public static readonly string Revision = ReadResource("TERMS_REVISION.txt").Trim();
-    public static string Text => ReadResource("APP_LICENSE.md").TrimEnd() + "\n\n" + ReadResource("PRIVACY.md");
+    public static string LicenseText => ReadResource("APP_LICENSE.md");
+    public static string PrivacyText => ReadResource("PRIVACY.md");
+    public static string Text => LicenseText.TrimEnd() + "\n\n" + PrivacyText;
+
+    public static IEnumerable<(string Heading, string Body)> Sections(string markdown)
+    {
+        string heading = "";
+        var body = new List<string>();
+        foreach (string line in markdown.ReplaceLineEndings("\n").Split('\n'))
+        {
+            if (line.StartsWith('#'))
+            {
+                if (heading.Length > 0 || body.Count > 0) yield return (heading, string.Join('\n', body).Trim());
+                heading = line.TrimStart('#', ' ');
+                body.Clear();
+            }
+            else if (line.Trim() != "---")
+            {
+                body.Add(line.TrimEnd().Replace("**", "", StringComparison.Ordinal));
+            }
+        }
+        if (heading.Length > 0 || body.Count > 0) yield return (heading, string.Join('\n', body).Trim());
+    }
 
     public static bool HasAccepted(string dataDirectory)
     {

@@ -22,6 +22,7 @@ try {
       as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   `);
   await db.exec(await readFile(new URL('../../supabase/migrations/20261110152000_community_rankings.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../../supabase/migrations/20261111100000_manual_purchase_preview.sql', import.meta.url), 'utf8'));
   const board = async (kind, search = '', offset = 0) =>
     (await db.query('select public.lt_community_board($1, $2, $3) as board', [kind, search, offset])).rows[0].board;
 
@@ -87,5 +88,29 @@ try {
     { rank: 1, nickname: 'Bob', score: 10000, medals: [] }
   ]);
   await assert.rejects(db.query('select * from community_private.verified_support'), { code: '42501' });
-  console.log('Community SQL passed: closed defaults, consent, verified nickname, overlap, UTC boundaries, ties, search, pagination, refunds, and private access.');
+  const requestPurchase = async (offer) => (await db.query('select public.lt_request_manual_purchase($1) as id', [offer])).rows[0].id;
+  await assert.rejects(requestPurchase('supporter'), { code: '42501' });
+  await db.exec('reset role');
+  await setUser(alice);
+  await db.exec('set role authenticated');
+  await assert.rejects(requestPurchase('supporter'), { code: '42501' });
+  await db.exec('reset role');
+  await db.exec('update community_private.settings set manual_purchase_preview_open = true');
+  await setUser(unverified);
+  await db.exec('set role authenticated');
+  await assert.rejects(requestPurchase('supporter'), { code: '42501' });
+  await setUser(alice);
+  await assert.rejects(requestPurchase('donation'), { code: '22023' });
+  const firstRequest = await requestPurchase('supporter');
+  assert.match(firstRequest, /^[\da-f-]{36}$/);
+  assert.equal(await requestPurchase('supporter'), firstRequest);
+  assert.notEqual(await requestPurchase('insider'), firstRequest);
+  await assert.rejects(db.query('select * from community_private.manual_purchase_requests'), { code: '42501' });
+  await setUser(bob);
+  assert.notEqual(await requestPurchase('supporter'), firstRequest);
+  await db.exec('reset role');
+  assert.equal((await db.query('select count(*)::integer as count from community_private.manual_purchase_requests')).rows[0].count, 3);
+  assert.equal((await db.query('select count(*)::integer as count from community_private.verified_support')).rows[0].count, 4);
+  console.log('Community SQL passed: consent, closed defaults, overlap, UTC boundaries, ties, pagination, refunds, and private access.');
+  console.log('Manual purchase preview passed: closed by default, verified accounts only, private requests, idempotent retry, and no credit.');
 } finally { await db.close(); }

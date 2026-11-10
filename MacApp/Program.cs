@@ -82,10 +82,11 @@ public sealed class MacApplication : Application
         var window = new Window
         {
             Title = "Live Translator — Terms and privacy",
-            Width = 740, Height = 590, MinWidth = 380, MinHeight = 300,
+            Width = 740, Height = 620, MinWidth = 400, MinHeight = 365,
             WindowStartupLocation = onAccepted == null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen
         };
         var accept = new Button { Content = "Accept terms" };
+        accept.Classes.Add("primary");
         var decline = new Button { Content = onAccepted == null ? "Close" : "Exit" };
         var error = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
         var actions = new StackPanel
@@ -93,17 +94,26 @@ public sealed class MacApplication : Application
             Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right,
             Spacing = 8
         };
-        if (onAccepted != null) actions.Children.Add(accept);
         actions.Children.Add(decline);
+        if (onAccepted != null) actions.Children.Add(accept);
+        var header = new StackPanel
+        {
+            Margin = new Thickness(0, 0, 0, 14), Spacing = 5,
+            Children =
+            {
+                new TextBlock { Text = "Terms and privacy", FontSize = 27, FontWeight = Avalonia.Media.FontWeight.SemiBold },
+                new TextBlock { Text = $"Live Translator Overlay  ·  Revision {TermsNotice.Revision}", FontSize = 13 }
+            }
+        };
+        DockPanel.SetDock(header, Dock.Top);
         var footer = new StackPanel { Margin = new Thickness(0, 12, 0, 0), Children = { error, actions } };
         DockPanel.SetDock(footer, Dock.Bottom);
         window.Content = new DockPanel
         {
-            Margin = new Thickness(18),
-            Children = { footer, new TextBox
+            Margin = new Thickness(24, 20, 24, 18),
+            Children = { header, footer, new TabControl
             {
-                Text = TermsNotice.Text, IsReadOnly = true, AcceptsReturn = true,
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                ItemsSource = new[] { TermsTab("Terms of Service", TermsNotice.LicenseText), TermsTab("Privacy notice", TermsNotice.PrivacyText) }
             } }
         };
         decline.Click += (_, _) => window.Close();
@@ -119,5 +129,25 @@ public sealed class MacApplication : Application
             window.Close();
         };
         return window;
+    }
+
+    private static TabItem TermsTab(string label, string markdown)
+    {
+        var document = new StackPanel { Margin = new Thickness(14, 14, 14, 18), Spacing = 12 };
+        foreach (var section in TermsNotice.Sections(markdown))
+        {
+            if (section.Heading.Length > 0)
+                document.Children.Add(new TextBlock
+                {
+                    Text = section.Heading, FontSize = 17, FontWeight = Avalonia.Media.FontWeight.SemiBold,
+                    TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                });
+            if (section.Body.Length > 0)
+                document.Children.Add(new SelectableTextBlock
+                {
+                    Text = section.Body, FontSize = 14, LineHeight = 21, TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                });
+        }
+        return new TabItem { Header = label, Content = new ScrollViewer { Content = document } };
     }
 }

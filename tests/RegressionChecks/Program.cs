@@ -219,6 +219,21 @@ try
         SupportCatalog.Offers.Select(offer => (offer.Id, offer.Price)).SequenceEqual(new[]
         { ("supporter", "US$19.99 once"), ("insider", "US$100 once"), ("donation", "Choose an amount") })
         && SupportCatalog.Closed.Contains("closed"), string.Join(", ", SupportCatalog.Offers.Select(offer => offer.Price)));
+
+    var purchaseHandler = new PurchasePreviewHandler();
+    using var purchaseHttp = new HttpClient(purchaseHandler);
+    var purchaseClosed = await new CommunityClient(releaseFixture, purchaseHttp).SendPurchaseCodeAsync("fixture@example.test", default);
+    File.WriteAllText(Path.Combine(releaseFixture, "community.json"), """
+        {"url":"https://example.test/","publishableKey":"sb_publishable_test","previewManualRequests":true}
+        """);
+    var purchasePreview = new CommunityClient(releaseFixture, purchaseHttp);
+    var codeStatus = await purchasePreview.SendPurchaseCodeAsync("fixture@example.test", default);
+    var rejected = await purchasePreview.RequestManualPurchaseAsync("fixture@example.test", "000000", "supporter", default);
+    var pending = await purchasePreview.RequestManualPurchaseAsync("fixture@example.test", "123456", "supporter", default);
+    Confirm("Manual purchase preview sends a request only after OTP verification",
+        purchaseClosed == SupportCatalog.Closed && purchasePreview.ManualRequestPreview && codeStatus.Contains("code was sent")
+        && rejected.Contains("Could not verify") && pending.Contains(PurchasePreviewHandler.Receipt) && pending.Contains("No payment")
+        && purchaseHandler.Valid && purchaseHandler.Calls == 4, pending);
 }
 finally { Directory.Delete(releaseFixture, recursive: true); }
 
@@ -232,7 +247,39 @@ applyStatuses.Invoke(null, [records, explicitFix.RootElement]);
 Confirm("Only explicit report mappings change resolution", keptPending && records[0].Status == "Fixed"
     && records[0].ResolutionNote == "Resolved in v1.4.0", $"unrelated release kept pending={keptPending}");
 
-Console.WriteLine($"Regression result: {observed}/21 passed"); Environment.ExitCode = observed == 21 ? 0 : 1;
+Console.WriteLine($"Regression result: {observed}/22 passed"); Environment.ExitCode = observed == 22 ? 0 : 1;
+sealed class PurchasePreviewHandler : HttpMessageHandler
+{
+    public const string Receipt = "00000000-0000-4000-8000-000000000099";
+    public bool Valid { get; private set; } = true;
+    public int Calls { get; private set; }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+    {
+        Calls++;
+        using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));
+        var fields = body.RootElement;
+        Valid &= request.Headers.GetValues("apikey").Single() == "sb_publishable_test";
+        switch (request.RequestUri?.AbsolutePath)
+        {
+            case "/auth/v1/otp":
+                Valid &= request.Headers.Authorization == null && !fields.GetProperty("create_user").GetBoolean();
+                return new HttpResponseMessage(HttpStatusCode.OK);
+            case "/auth/v1/verify":
+                Valid &= request.Headers.Authorization == null && fields.GetProperty("type").GetString() == "email";
+                return fields.GetProperty("token").GetString() == "123456"
+                    ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"access_token":"test-session"}""") }
+                    : new HttpResponseMessage(HttpStatusCode.Forbidden);
+            case "/rest/v1/rpc/lt_request_manual_purchase":
+                Valid &= request.Headers.Authorization?.Scheme == "Bearer"
+                    && request.Headers.Authorization.Parameter == "test-session" && fields.GetProperty("p_offer").GetString() == "supporter";
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(Receipt)) };
+            default:
+                Valid = false;
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+        }
+    }
+}
 sealed class CommunityHandler : HttpMessageHandler
 {
     public int Calls { get; private set; }
