@@ -26,7 +26,8 @@ public sealed class LocalSpeechService(bool small = false) : IAsyncDisposable
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_processor != null) throw new InvalidOperationException("Speech is already initialized.");
             // CPU-only, including a fallback for older processors without AVX instructions.
-            RuntimeOptions.RuntimeLibraryOrder = [RuntimeLibrary.Cpu, RuntimeLibrary.CpuNoAvx];
+            RuntimeOptions.RuntimeLibraryOrder = OperatingSystem.IsWindows()
+                ? [RuntimeLibrary.Cpu, RuntimeLibrary.CpuNoAvx] : [RuntimeLibrary.Cpu];
             string normalized = language == "auto" ? "auto" : language.Split('-')[0].ToLowerInvariant();
             if (normalized != "auto" && !WhisperFactory.GetSupportedLanguages().Contains(normalized))
                 throw new InvalidOperationException("This speech language is not supported. Choose a supported language or Auto-detect.");
@@ -67,8 +68,10 @@ public sealed class LocalSpeechService(bool small = false) : IAsyncDisposable
             var text = new StringBuilder();
             await foreach (var segment in _processor.ProcessAsync(samples, timeout.Token))
             {
+                string line = segment.Text.Trim();
+                if (HallucinationDetector.IsWhisperArtifact(line)) continue;
                 if (text.Length > 0) text.Append(' ');
-                text.Append(segment.Text.Trim());
+                text.Append(line);
             }
             string result = text.ToString();
             return HallucinationDetector.IsHallucination(result) ? "" : result;

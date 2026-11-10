@@ -11,6 +11,7 @@ namespace LiveTranslatorOverlay.Core
 {
     public class WhisperSttService : IAsyncDisposable
     {
+        public const string ModelName = "whisper-large-v3";
         private readonly string _apiKey;
         private readonly HttpClient _httpClient;
         private readonly SemaphoreSlim _processingLock = new SemaphoreSlim(1, 1);
@@ -103,7 +104,7 @@ namespace LiveTranslatorOverlay.Core
             return voicedFrames >= 6 && voicedRatio >= 0.05;
         }
 
-        public async Task<string> ProcessAudioChunkAsync(float[] pcmData)
+        public async Task<string> ProcessAudioChunkAsync(float[] pcmData, CancellationToken cancellationToken = default)
         {
             // Strict multi-metric VAD check before calling Whisper API
             if (!HasSustainedVoiceActivity(pcmData))
@@ -118,7 +119,7 @@ namespace LiveTranslatorOverlay.Core
             }
 
             // Non-blocking lock check
-            await _processingLock.WaitAsync();
+            await _processingLock.WaitAsync(cancellationToken);
 
             try
             {
@@ -128,20 +129,20 @@ namespace LiveTranslatorOverlay.Core
                 {
                     int waitMs = (int)(3500 - msSinceLast);
                     if (waitMs > 0 && waitMs <= 3500)
-                        await Task.Delay(waitMs);
+                        await Task.Delay(waitMs, cancellationToken);
                 }
 
                 _lastRequestTime = DateTime.UtcNow;
                 byte[] wavBytes = CreateWavBytes(pcmData, 16000);
 
-                var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/audio/transcriptions");
+                using var request = new HttpRequestMessage(HttpMethod.Post, "https://api.groq.com/openai/v1/audio/transcriptions");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey.Trim());
 
                 var content = new MultipartFormDataContent();
                 var fileContent = new ByteArrayContent(wavBytes);
                 fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("audio/wav");
                 content.Add(fileContent, "file", "chunk.wav");
-                content.Add(new StringContent("whisper-large-v3"), "model");
+                content.Add(new StringContent(ModelName), "model");
                 // Request verbose_json so we can inspect no_speech_prob, avg_logprob, and compression_ratio per segment
                 content.Add(new StringContent("verbose_json"), "response_format");
                 content.Add(new StringContent("0.0"), "temperature");
@@ -153,13 +154,12 @@ namespace LiveTranslatorOverlay.Core
 
                 request.Content = content;
 
-                var response = await _httpClient.SendAsync(request);
-                QuotaTracker.Instance.UpdateFromHeaders(response.Headers, "Groq Whisper (STT)");
+                using var response = await _httpClient.SendAsync(request, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                QuotaTracker.Instance.UpdateFromHeaders(response.Headers, "Groq Whisper (STT)", ModelName);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    string errJson = await response.Content.ReadAsStringAsync();
-                    
                     if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                         throw new Exception("API Key Groq tidak valid (Invalid API Key)!");
                     else if (response.StatusCode == (System.Net.HttpStatusCode)429)
@@ -178,7 +178,7 @@ namespace LiveTranslatorOverlay.Core
                         throw new Exception($"HTTP {response.StatusCode}");
                 }
 
-                var json = await response.Content.ReadAsStringAsync();
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
                 using var doc = JsonDocument.Parse(json);
 
                 // 1. Inspect segment-level acoustic metrics (no_speech_prob, avg_logprob, compression_ratio)
@@ -209,7 +209,7 @@ namespace LiveTranslatorOverlay.Core
                             continue;
                         }
 
-                        if (!HallucinationDetector.IsHallucination(segText))
+                        if (!HallucinationDetector.IsHallucination(segText) && !HallucinationDetector.IsWhisperArtifact(segText))
                         {
                             if (validTextBuilder.Length > 0) validTextBuilder.Append(' ');
                             validTextBuilder.Append(segText);
@@ -226,7 +226,7 @@ namespace LiveTranslatorOverlay.Core
                 if (doc.RootElement.TryGetProperty("text", out var textEl))
                 {
                     string text = textEl.GetString()?.Trim() ?? "";
-                    if (HallucinationDetector.IsHallucination(text))
+                    if (HallucinationDetector.IsHallucination(text) || HallucinationDetector.IsWhisperArtifact(text))
                     {
                         return "";
                     }

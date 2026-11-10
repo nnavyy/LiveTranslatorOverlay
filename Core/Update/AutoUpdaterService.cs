@@ -2,9 +2,9 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -34,9 +34,6 @@ namespace LiveTranslatorOverlay.Core.Update
         private static readonly Lazy<AutoUpdaterService> _instance = new(() => new AutoUpdaterService());
         public static AutoUpdaterService Instance => _instance.Value;
 
-        private const string GitHubOwner = "nnavyy";
-        private const string GitHubRepo = "LiveTranslatorOverlay";
-        private const string GitHubApiUrl = $"https://api.github.com/repos/{GitHubOwner}/{GitHubRepo}/releases/latest";
 
         private readonly HttpClient _httpClient;
         private readonly SemaphoreSlim _updateLock = new(1, 1);
@@ -53,7 +50,6 @@ namespace LiveTranslatorOverlay.Core.Update
             _httpClient = new HttpClient();
             _httpClient.Timeout = TimeSpan.FromSeconds(60);
             _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("LiveTranslatorOverlay-Updater", AppVersion.DisplayString));
-            _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
         }
 
         private CancellationTokenSource? _periodicCheckCts;
@@ -83,7 +79,7 @@ namespace LiveTranslatorOverlay.Core.Update
                     }
                     catch { }
 
-                    // Periodically poll GitHub releases every 15 minutes (protects against GitHub API 60 req/hr rate limit)
+                    // Recheck the stable feed every 15 minutes.
                     await Task.Delay(TimeSpan.FromMinutes(15), token).ConfigureAwait(false);
                 }
             }, token);
@@ -94,12 +90,19 @@ namespace LiveTranslatorOverlay.Core.Update
             if (!await _updateLock.WaitAsync(100))
                 return false;
 
+            string? zipFilePath = null;
             try
             {
+                if (IsUpdateReady) return true;
                 StatusChanged?.Invoke(this, new UpdateStatusEventArgs("Checking for updates...", 0));
 
-                using var request = new HttpRequestMessage(HttpMethod.Get, GitHubApiUrl);
-                using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+                using var response = await _httpClient.GetAsync(StableRelease.ManifestUrl);
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    StatusChanged?.Invoke(this, new UpdateStatusEventArgs("No public 1.x release yet.", 100));
+                    return false;
+                }
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -108,45 +111,18 @@ namespace LiveTranslatorOverlay.Core.Update
                     return false;
                 }
 
-                var json = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-
-                string tagName = root.TryGetProperty("tag_name", out var tagEl) ? tagEl.GetString() ?? "" : "";
-                if (string.IsNullOrWhiteSpace(tagName) || !AppVersion.IsNewerThanCurrent(tagName))
+                var release = StableRelease.Read(await response.Content.ReadAsStringAsync(), "win-x64");
+                if (release == null || release.Version <= AppVersion.Current)
                 {
                     StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Up to date ({AppVersion.DisplayString})", 100));
                     return false;
                 }
 
-                // Locate zip asset
-                string downloadUrl = "";
-                long expectedSize = 0;
-                if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var asset in assets.EnumerateArray())
-                    {
-                        string name = asset.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? "" : "";
-                        if (name.Equals("LiveTranslatorOverlay-Windows-x64.zip", StringComparison.OrdinalIgnoreCase))
-                        {
-                            downloadUrl = asset.TryGetProperty("browser_download_url", out var urlEl) ? urlEl.GetString() ?? "" : "";
-                            expectedSize = asset.TryGetProperty("size", out var sizeEl) ? sizeEl.GetInt64() : 0;
-                            break;
-                        }
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(downloadUrl))
-                {
-                    StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Update {tagName} found, but zip asset is not ready yet.", 0, isError: true));
-                    return false;
-                }
-
                 // Setup version-isolated local temp directories to prevent file locking collisions
-                string cleanTag = tagName.Replace("/", "_").Replace("\\", "_");
-                string localAppData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiveTranslatorOverlay");
+                string tagName = $"v{release.Version}";
+                string localAppData = AppSettings.DataDirectory;
                 string updateTempDir = Path.Combine(localAppData, "UpdateTemp");
-                string updateStagedDir = Path.Combine(localAppData, $"Staged_{cleanTag}");
+                string updateStagedDir = Path.Combine(localAppData, $"Staged_ml_{tagName}");
 
                 Directory.CreateDirectory(updateTempDir);
                 if (Directory.Exists(updateStagedDir))
@@ -155,21 +131,21 @@ namespace LiveTranslatorOverlay.Core.Update
                 }
                 Directory.CreateDirectory(updateStagedDir);
 
-                string zipFilePath = Path.Combine(updateTempDir, $"update_{cleanTag}.zip");
-                if (File.Exists(zipFilePath))
-                {
-                    try { File.Delete(zipFilePath); } catch { }
-                }
+                zipFilePath = Path.Combine(updateTempDir, $"update_ml_{tagName}.zip");
 
                 // Download ZIP with progress
                 StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Downloading update {tagName}...", 5, newVersion: tagName));
 
-                using (var downloadResponse = await _httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead))
+                using var downloadTimeout = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+                var token = downloadTimeout.Token;
+                using (var downloadResponse = await _httpClient.GetAsync(release.DownloadUri, HttpCompletionOption.ResponseHeadersRead, token))
                 {
                     downloadResponse.EnsureSuccessStatusCode();
-                    long totalBytes = downloadResponse.Content.Headers.ContentLength ?? expectedSize;
+                    long totalBytes = release.Size;
+                    if (downloadResponse.Content.Headers.ContentLength is long size && size != totalBytes)
+                        throw new InvalidDataException("The update response does not match the published size.");
 
-                    using (var contentStream = await downloadResponse.Content.ReadAsStreamAsync())
+                    using (var contentStream = await downloadResponse.Content.ReadAsStreamAsync(token))
                     using (var fileStream = new FileStream(zipFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite, 81920, true))
                     {
                         var buffer = new byte[81920];
@@ -177,10 +153,11 @@ namespace LiveTranslatorOverlay.Core.Update
                         int bytesRead;
                         int lastReportedPercent = 5;
 
-                        while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                        while ((bytesRead = await contentStream.ReadAsync(buffer.AsMemory(), token)) > 0)
                         {
-                            await fileStream.WriteAsync(buffer, 0, bytesRead);
                             totalRead += bytesRead;
+                            if (totalRead > totalBytes) throw new InvalidDataException("The update download exceeded the published size.");
+                            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), token);
 
                             if (totalBytes > 0)
                             {
@@ -195,6 +172,7 @@ namespace LiveTranslatorOverlay.Core.Update
                     }
                 }
 
+                await release.VerifyAsync(zipFilePath, token);
                 // Extract Zip
                 StatusChanged?.Invoke(this, new UpdateStatusEventArgs("Extracting update files...", 92, newVersion: tagName));
                 ZipFile.ExtractToDirectory(zipFilePath, updateStagedDir, overwriteFiles: true);
@@ -208,9 +186,6 @@ namespace LiveTranslatorOverlay.Core.Update
                 {
                     try { File.Delete(stagedAppSettings); } catch { }
                 }
-
-                // Clean up zip
-                try { File.Delete(zipFilePath); } catch { }
 
                 // Create helper script
                 CreateUpdateScript(localAppData);
@@ -231,6 +206,12 @@ namespace LiveTranslatorOverlay.Core.Update
             }
             finally
             {
+                if (zipFilePath != null)
+                {
+                    try { File.Delete(zipFilePath); }
+                    catch (IOException) { }
+                    catch (UnauthorizedAccessException) { }
+                }
                 _updateLock.Release();
             }
         }
@@ -245,6 +226,8 @@ set ""TARGET_DIR=%~1""
 set ""SOURCE_DIR=%~2""
 set ""TARGET_EXE=%~3""
 set ""OLD_PID=%~4""
+set ""DEVELOPER_ARG=""
+if ""%~5""==""1"" set ""DEVELOPER_ARG=--developer""
 
 echo [%date% %time%] Updater started. Target=%TARGET_DIR% OldPID=%OLD_PID% > ""%~dp0updater.log""
 
@@ -274,7 +257,7 @@ timeout /t 1 /nobreak >nul
 :: Relaunch updated application exactly once
 echo [%date% %time%] Launching updated %TARGET_DIR%\%TARGET_EXE% >> ""%~dp0updater.log""
 cd /d ""%TARGET_DIR%""
-start """" ""%TARGET_DIR%\%TARGET_EXE%""
+start """" ""%TARGET_DIR%\%TARGET_EXE%"" %DEVELOPER_ARG%
 exit /b 0
 ";
             File.WriteAllText(scriptPath, scriptContent);
@@ -297,18 +280,19 @@ exit /b 0
 
             try
             {
-                string localAppData = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LiveTranslatorOverlay");
+                string localAppData = AppSettings.DataDirectory;
                 CreateUpdateScript(localAppData); // Always write fresh update script
                 string scriptPath = Path.Combine(localAppData, "apply_update.cmd");
 
                 string currentDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string exeName = Process.GetCurrentProcess().MainModule?.ModuleName ?? "LiveTranslatorOverlay.exe";
                 int currentPid = Process.GetCurrentProcess().Id;
+                int developer = App.IsDeveloperMode ? 1 : 0;
 
                 var psi = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/c \"\"{scriptPath}\" \"{currentDir}\" \"{StagedDirectory}\" \"{exeName}\" {currentPid}\"",
+                    Arguments = $"/c \"\"{scriptPath}\" \"{currentDir}\" \"{StagedDirectory}\" \"{exeName}\" {currentPid} {developer}\"",
                     CreateNoWindow = true,
                     UseShellExecute = false,
                     WindowStyle = ProcessWindowStyle.Hidden

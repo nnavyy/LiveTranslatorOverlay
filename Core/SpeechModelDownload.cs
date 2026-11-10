@@ -9,18 +9,39 @@ public static class SpeechModelDownload
 {
     private static readonly HttpClient Client = new() { Timeout = Timeout.InfiniteTimeSpan };
     private static readonly SemaphoreSlim DownloadLock = new(1, 1);
+    private const string WhisperDownloadRoot = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/";
+    private const string BaseName = "ggml-base.bin";
+    private const string BaseHash = "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe";
+    private const long BaseSize = 147951465;
+    private const string VadName = "ggml-silero-v6.2.0.bin";
+    private const string VadHash = "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987";
+    private const long VadSize = 885098;
 
     public static Task<string> EnsureAsync(bool small, Action<string>? progress, CancellationToken token) =>
-        EnsureFileAsync(small ? "ggml-small.bin" : "ggml-base.bin",
+        EnsureFileAsync(small ? "ggml-small.bin" : BaseName,
             small ? "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b"
-                : "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe",
-            small ? 487601967 : 147951465,
-            "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/", progress, token);
+                : BaseHash,
+            small ? 487601967 : BaseSize,
+            WhisperDownloadRoot, progress, token);
 
     public static Task<string> EnsureVadAsync(Action<string>? progress, CancellationToken token) =>
-        EnsureFileAsync("ggml-silero-v6.2.0.bin",
-            "2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987", 885098,
+        EnsureFileAsync(VadName, VadHash, VadSize,
             "https://huggingface.co/ggml-org/whisper-vad/resolve/9ffd54a1e1ee413ddf265af9913beaf518d1639b/", progress, token);
+
+    public static async Task<bool> HasDefaultModelsAsync(CancellationToken token)
+    {
+        string directory = Path.Combine(AppSettings.DataDirectory, "models");
+        string speech = Path.Combine(directory, BaseName);
+        string detector = Path.Combine(directory, VadName);
+        if (!File.Exists(speech) || !File.Exists(detector)) return false;
+        try
+        {
+            return await IsValidAsync(detector, VadSize, VadHash, token)
+                && await IsValidAsync(speech, BaseSize, BaseHash, token);
+        }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
+    }
 
     private static async Task<string> EnsureFileAsync(string name, string hash, long size, string baseUrl,
         Action<string>? progress, CancellationToken token)

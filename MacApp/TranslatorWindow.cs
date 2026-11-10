@@ -13,7 +13,7 @@ using LiveTranslatorOverlay.Core.Translation;
 
 namespace LiveTranslatorMac;
 
-public sealed class TranslatorWindow : Window
+public sealed partial class TranslatorWindow : Window
 {
     private readonly TextBox _source = new() { AcceptsReturn = true, MaxLength = 4000, PlaceholderText = "Type or paste text…", TextWrapping = TextWrapping.Wrap, Classes = { "editor" } };
     private readonly TextBox _result = new() { IsReadOnly = true, AcceptsReturn = true, PlaceholderText = "Your translation appears here", TextWrapping = TextWrapping.Wrap, Classes = { "editor" } };
@@ -110,6 +110,7 @@ public sealed class TranslatorWindow : Window
         Grid.SetColumn(_copy, 1); Grid.SetColumn(_translate, 2);
         actions.Children.Add(_providerNote); actions.Children.Add(_copy); actions.Children.Add(_translate);
         content.Children.Add(actions);
+        content.Children.Add(CreateAudioControls());
         content.Children.Add(_status);
 
         var settings = new StackPanel { Spacing = 12, Margin = new Thickness(16, 8, 16, 16), Children =
@@ -127,14 +128,21 @@ public sealed class TranslatorWindow : Window
                 new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8, Children = { _clear, _save } }
             }
         } });
+        var rankings = new Button { Content = "Community rankings" };
+        rankings.Click += async (_, _) => await new CommunityWindow(_usageClock.Checkpoint(), showSupport: false).ShowDialog(this);
+        var support = new Button { Content = "Support development" };
+        support.Click += async (_, _) => await new CommunityWindow(_usageClock.Checkpoint(), showSupport: true).ShowDialog(this);
+        content.Children.Add(new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { rankings, support } });
         var about = new Button { Content = "About & feedback", HorizontalAlignment = HorizontalAlignment.Left };
+        var terms = new Button { Content = "Terms and privacy" };
+        terms.Click += async (_, _) => await MacApplication.CreateTermsWindow().ShowDialog(this);
         about.Flyout = new Flyout { Content = new StackPanel
         {
             Spacing = 12, MaxWidth = 340, Children =
             {
                 new TextBlock { Text = "Live Translator", FontSize = 18, FontWeight = FontWeight.SemiBold },
-                new TextBlock { Text = $"Live Translator {Program.DisplayVersion} for Mac. Text translation and session history are available. Audio, screen OCR, overlay captions, and capture protection are not included yet. History is kept only for this session unless you export it.", TextWrapping = TextWrapping.Wrap, Classes = { "secondary" } },
-                report
+                new TextBlock { Text = $"Live Translator {Program.DisplayVersion} for Mac. Translate text, system audio, or microphone input. Session history stays in memory unless you export it.", TextWrapping = TextWrapping.Wrap, Classes = { "secondary" } },
+                report, terms
             }
         } };
         content.Children.Add(about);
@@ -148,7 +156,7 @@ public sealed class TranslatorWindow : Window
                 await TranslateAsync();
             }
         };
-        Closing += (_, _) => { _closed = true; _request?.Cancel(); };
+        Closing += (_, _) => { _closed = true; _request?.Cancel(); _audioRequest?.Cancel(); _usageClock.Stop(); };
     }
 
     private static Grid CreateEditorPane(string label, ComboBox language, TextBox editor)
@@ -167,16 +175,14 @@ public sealed class TranslatorWindow : Window
         _status.IsVisible = text.Length > 0;
     }
 
-    private async Task TranslateAsync()
+    private ITranslationProvider? GetTranslationProvider()
     {
-        string source = _source.Text?.Trim() ?? "";
-        if (source.Length == 0) { SetStatus("Enter text to translate."); _source.Focus(); return; }
         bool useGroq = _engine.SelectedIndex == 1;
         if (useGroq && string.IsNullOrWhiteSpace(_key.Text))
         {
             _settings.IsExpanded = true;
             SetStatus("Add your Groq API key in Translation settings."); _key.Focus();
-            return;
+            return null;
         }
         if (useGroq)
         {
@@ -184,7 +190,22 @@ public sealed class TranslatorWindow : Window
             _groq ??= new GroqTranslateProvider(key);
             if (key != _sessionKey) { _groq.UpdateApiKey(key); _sessionKey = key; }
         }
-        ITranslationProvider provider = useGroq ? _groq! : _google;
+        return useGroq ? _groq : _google;
+    }
+
+    private void AddToHistory(string source, string translated)
+    {
+        _history.Add(source, translated);
+        _historyText.Text = _history.ToString();
+        _clear.IsEnabled = _save.IsEnabled = !string.IsNullOrEmpty(_historyText.Text);
+    }
+
+    private async Task TranslateAsync()
+    {
+        string source = _source.Text?.Trim() ?? "";
+        if (source.Length == 0) { SetStatus("Enter text to translate."); _source.Focus(); return; }
+        var provider = GetTranslationProvider();
+        if (provider == null) return;
         string sourceTag = ((ComboBoxItem)_sourceLang.SelectedItem!).Tag!.ToString()!;
         string targetTag = ((ComboBoxItem)_targetLang.SelectedItem!).Tag!.ToString()!;
         int generation = _historyGeneration;
@@ -198,11 +219,7 @@ public sealed class TranslatorWindow : Window
             if (_closed) return;
             _result.Text = translated;
             _copy.IsEnabled = !string.IsNullOrEmpty(translated);
-            if (generation == _historyGeneration)
-            {
-                _history.Add(source, translated); _historyText.Text = _history.ToString();
-                _clear.IsEnabled = _save.IsEnabled = !string.IsNullOrEmpty(_historyText.Text);
-            }
+            if (generation == _historyGeneration) AddToHistory(source, translated);
             SetStatus(string.IsNullOrWhiteSpace(translated) || source == translated.Trim()
                 ? "The service returned no new translation. Check the language selection or try again."
                 : "Translation complete. Check important results.");

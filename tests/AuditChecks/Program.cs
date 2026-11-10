@@ -44,7 +44,6 @@ Check("Changing model invalidates old translation", modelOutput == "New model ou
 
 var capture = new AudioCaptureService();
 Set(capture, "_captureFormat", WaveFormat.CreateCustomFormat(WaveFormatEncoding.Pcm, 16000, 1, 64000, 4, 32));
-Set(capture, "_debugCallCount", 10);
 var consume = (CaptureData)Delegate.CreateDelegate(typeof(CaptureData), capture, typeof(AudioCaptureService).GetMethod("OnDataAvailable", Fields)!);
 consume([0, 0, 0, 64, 0, 0, 0, 64], (AudioClientBufferFlags)0, 0, 0);
 float[] samples = Get<ConcurrentQueue<float>>(capture, "_audioBuffer").ToArray();

@@ -1,10 +1,10 @@
 # Privacy Policy and Terms of Service
 
-## Local CPU speech (v2.1.1)
+## Local CPU speech and setup
 
-The default local speech engine processes audio on the device. On first use it downloads model files from Hugging Face over HTTPS; that request exposes normal network metadata such as the device IP address to the download service, but contains no captured audio. Models are cached in the per-user application data directory. When Google translation is selected, recognized text is sent to the translation providers described below. Local speech does not make online text translation offline.
+The default speech engine processes audio on the device. Windows setup reuses valid local speech files and can download missing files from Hugging Face over HTTPS. If you skip that download, use the portable app, or use macOS, missing files download when you start local speech. The model service receives normal connection metadata such as your IP address. The app sends no audio with that download. Models are cached in the per-user application data directory. Default text translation sends recognized text to Google or its MyMemory fallback. On Windows, users with a separately configured offline translation model can select it to keep text processing on the device.
 
-Last Updated: September 2026
+Last Updated: November 2026
 
 This document outlines the privacy practices, data handling, and terms of service for the **Live Translator Overlay** desktop application ("the Software").
 
@@ -23,9 +23,10 @@ The Software is a client-side utility designed to provide real-time audio subtit
 
 ## 2. Audio Capture and Processing
 
-- **Volatile In-Memory Processing**: When Audio Translation is active, the Software captures system audio output (via Windows WASAPI loopback) or microphone input in short temporary buffers (typically 0.5 to 1.5 seconds) within volatile system memory (RAM).
+- **Volatile In-Memory Processing**: When Audio Translation is active, the Software receives system audio or microphone input into temporary buffers in memory. Windows uses WASAPI. macOS uses ScreenCaptureKit for system audio and AVAudioEngine for microphone input. The app asks macOS for the permissions required by the selected source and consumes only audio samples.
 - **No Disk Recording**: Audio data is never written to your hard drive, SSD, or external storage.
-- **Immediate Discard**: Once an audio segment is transcribed or determined to be silent, the buffer is immediately overwritten and purged from memory.
+- **Temporary buffers**: Audio buffers are released after processing. Recent samples may overlap between segments to preserve words at segment boundaries.
+- **Local usage total**: The app stores the duration of audio translation on this device so you can see your personal total. This file stays on the device. It contains no audio, captions, or identity information.
 
 ---
 
@@ -43,16 +44,16 @@ The Software allows users to connect to third-party providers for machine transl
 
 1. **Google Translate (Default)**: Text queries are transmitted to Google's translation endpoints over encrypted HTTPS connections. No audio or images are transmitted to Google Translate.
 2. **Deepgram (Optional)**: If you supply a Deepgram API key for streaming transcription, PCM audio streams are transmitted via encrypted WebSockets (`wss://api.deepgram.com`) directly to Deepgram servers in accordance with [Deepgram's Privacy Policy](https://deepgram.com/privacy).
-3. **Groq (Optional)**: If you supply a Groq API key, text prompts and audio chunks are transmitted via encrypted HTTPS (`https://api.groq.com`) directly to Groq servers in accordance with [Groq's Privacy Policy](https://groq.com/privacy-policy).
+3. **Groq (Optional)**: If you select Groq speech, audio chunks are sent to Groq. If you select Groq translation, recognized text and recent context may be sent to Groq. Using Summarize in History with Groq translation selected sends the history text to Groq. Requests use HTTPS and are subject to [Groq's Privacy Policy](https://groq.com/privacy-policy).
 
 4. **MyMemory (Fallback)**: If the default text translation service fails, text may be sent over HTTPS to `api.mymemory.translated.net` for fallback translation.
 
 Starting with version 1.4.0, normal operation does not write raw Deepgram or Groq transcripts to debug files. Older versions may have created `deepgram_debug.txt` or `groq_debug.txt` in their working folder. Those existing files are not automatically deleted. Translation history can still be explicitly exported by the user.
 
 **Security of API Keys**:
-All API keys entered in the application are saved exclusively on your local machine in the `appsettings.json` file. They are never sent to the Software's developer or any intermediary server.
+The Windows app masks Groq and Deepgram API keys on screen and encrypts saved keys using Windows Data Protection tied to your Windows account. The app decrypts keys when loading settings so it can authenticate with the selected provider over HTTPS or WSS. The keys are never sent to the developer. If you move to a different Windows account or PC, you may need to enter your keys again.
 
-From v1.5.0, Windows settings use `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json`; existing settings are migrated without deleting the older file. Keys in Windows settings are still plaintext. The Mac developer preview keeps its Groq key only in session memory. Session history holds up to 500 entries and is exported only through an explicit save action.
+The app upgrades older plaintext keys in its active settings file at `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json`. Copies from older installations and backups may still contain plaintext. The Mac developer preview keeps its Groq key only in session memory. Session history holds up to 500 entries and is exported only through an explicit save action.
 
 ---
 
@@ -93,6 +94,8 @@ As a user of the Software, you agree to:
 ---
 
 ## 8. Disclaimer of Warranty and Limitation of Liability
+
+Speech recognition and translation are approximate. Captions can omit words, change meaning, add words nobody said or attribute speech to the wrong speaker. Check the original audio or text when accuracy matters.
 
 The Software is distributed under the proprietary terms outlined in [APP_LICENSE.md](APP_LICENSE.md) (with historical open-source code under the MIT License).
 

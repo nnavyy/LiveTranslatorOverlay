@@ -95,6 +95,13 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        TxtInstalledVersion.Text = $"Installed {AppVersion.DisplayString}";
+        if (App.IsDeveloperMode)
+        {
+            BtnDeveloper.Visibility = Visibility.Visible;
+            DeveloperBadge.Visibility = Visibility.Visible;
+            Title = $"Live Translator Overlay {AppVersion.DisplayString} — Developer mode";
+        }
         foreach (var language in AdditionalLanguages.Names)
         {
             CmbSourceLang.Items.Add(new ComboBoxItem { Content = $"{language.Value} ({language.Key})", Tag = language.Key });
@@ -105,8 +112,8 @@ public partial class MainWindow : Window
         var loadedSettings = LiveTranslatorOverlay.Core.AppSettings.Load();
         loadedSettings.UseAvailableEngines(System.IO.File.Exists(System.IO.Path.Combine(AppSettings.DataDirectory, "local-speech.json")));
         ItemLocalTranslation.IsEnabled = System.IO.File.Exists(System.IO.Path.Combine(AppSettings.DataDirectory, "local-speech.json"));
-        TxtApiKey.Text = loadedSettings.GroqApiKey;
-        TxtDeepgramKey.Text = loadedSettings.DeepgramApiKey;
+        TxtApiKey.Password = loadedSettings.GroqApiKey;
+        TxtDeepgramKey.Password = loadedSettings.DeepgramApiKey;
         if (!string.IsNullOrEmpty(loadedSettings.SourceLangTag))
             SelectLanguageByTag(CmbSourceLang, loadedSettings.SourceLangTag, loadedSettings.SourceLangIndex);
         else if (loadedSettings.SourceLangIndex >= 0 && loadedSettings.SourceLangIndex < CmbSourceLang.Items.Count)
@@ -138,9 +145,9 @@ public partial class MainWindow : Window
         ApplyLocalization();
         
         // Preserve online choices as optional providers.
-        if (loadedSettings.EngineIndex == 1 && !string.IsNullOrWhiteSpace(TxtApiKey.Text))
+        if (loadedSettings.EngineIndex == 1 && !string.IsNullOrWhiteSpace(TxtApiKey.Password))
         {
-            var groq = new GroqTranslateProvider(TxtApiKey.Text);
+            var groq = new GroqTranslateProvider(TxtApiKey.Password);
             groq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
             _translationProvider = groq;
         }
@@ -154,13 +161,14 @@ public partial class MainWindow : Window
             google.ScriptStyle = GetSelectedJapaneseScriptStyle();
             _translationProvider = google;
         }
+        UpdateProviderUi();
         SortLanguageComboBoxAscending(CmbSourceLang);
         SortLanguageComboBoxAscending(CmbTargetLang);
         UpdateScriptStyleVisibilityAndOptions(animate: false);
 
         QuotaTracker.Instance.QuotaChanged += (s, info) =>
         {
-            Dispatcher.Invoke(() => UpdateQuotaUi(info));
+            Dispatcher.BeginInvoke(UpdateProviderUi);
         };
 
         CaptureExclusion.Initialize();
@@ -169,13 +177,13 @@ public partial class MainWindow : Window
 
         this.Closing += MainWindow_Closing;
 
-        this.Loaded += async (s, e) =>
+        this.Loaded += (s, e) =>
         {
             var loadedSettings = LiveTranslatorOverlay.Core.AppSettings.Load();
             CaptureExclusion.ApplyToAllWindows(loadedSettings.HideFromCapture);
 
             QuotaTracker.Instance.Initialize(loadedSettings.GroqApiKey, loadedSettings.EngineIndex, loadedSettings.SttModeIndex);
-            UpdateQuotaUi(QuotaTracker.Instance.CurrentInfo);
+            UpdateProviderUi();
 
             if (loadedSettings.CaptionLeft != -1 && loadedSettings.CaptionTop != -1)
             {
@@ -213,21 +221,9 @@ public partial class MainWindow : Window
                 if (!found) CmbAudioDevice.SelectedIndex = 0;
             }
             
-            // Auto-populate model list from Groq
-            await RefreshGroqModelsAsync();
-
             _fadeInStoryboard = (Storyboard)this.Resources["FadeInCaption"];
             _fadeOutStoryboard = (Storyboard)this.Resources["FadeOutCaption"];
-
-            // Verify existing Groq key if loaded from settings
-            if (!string.IsNullOrWhiteSpace(TxtApiKey.Text))
-            {
-                _ = VerifyGroqApiKeyAsync(showNotification: false);
-            }
-            else
-            {
-                UpdateApiKeyStatusVisual();
-            }
+            UpdateApiKeyStatusVisual();
         };
         
         // Timer for auto-hiding subtitle (Disabled per user request for STT)
@@ -324,8 +320,8 @@ public partial class MainWindow : Window
             var settings = new LiveTranslatorOverlay.Core.AppSettings
             {
                 HideFromCapture = ChkHideAllWindows.IsChecked == true,
-                GroqApiKey = TxtApiKey.Text,
-                DeepgramApiKey = TxtDeepgramKey.Text,
+                GroqApiKey = TxtApiKey.Password,
+                DeepgramApiKey = TxtDeepgramKey.Password,
                 SourceLangIndex = CmbSourceLang.SelectedIndex,
                 TargetLangIndex = CmbTargetLang.SelectedIndex,
                 SourceLangTag = (CmbSourceLang.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "auto",
@@ -347,6 +343,9 @@ public partial class MainWindow : Window
 
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        StopUsageClock();
+        _audioCts?.Cancel();
+        _audioCaptureService?.Stop();
         CaptureExclusion.Shutdown();
         SaveCurrentSettings();
         QuotaTracker.Instance.Flush();
@@ -591,16 +590,6 @@ public partial class MainWindow : Window
 
         UpdateScriptStyleVisibilityAndOptions(animate: true);
 
-        string srcLang = GetSourceLanguage();
-        if (_whisperSttService != null)
-        {
-            _ = _whisperSttService.ChangeLanguageAsync(srcLang);
-        }
-        if (_diarizedSttService != null)
-        {
-            _diarizedSttService.SetLanguage(srcLang == "auto" ? "multi" : srcLang);
-            TxtAudioStatus.Text = LocalizationManager.Instance.Get("RestartLanguage");
-        }
     }
 
     /// <summary>
@@ -858,9 +847,9 @@ public partial class MainWindow : Window
         {
             string apiKey = "";
             if (Dispatcher.CheckAccess())
-                apiKey = TxtApiKey?.Text ?? "";
+                apiKey = GetTranslationMode() == "groq" ? TxtApiKey.Password : "";
             else
-                apiKey = Dispatcher.Invoke(() => TxtApiKey?.Text ?? "");
+                apiKey = Dispatcher.Invoke(() => GetTranslationMode() == "groq" ? TxtApiKey.Password : "");
 
             return await JapaneseScriptConverter.ConvertForLanguageAsync(text, langCode, style, apiKey);
         }
@@ -882,6 +871,14 @@ public partial class MainWindow : Window
     {
         UpdateEngine();
         UpdateApiKeyStatusVisual();
+        UpdateProviderUi();
+    }
+
+    private void CmbGroqModel_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_translationProvider is GroqTranslateProvider groq)
+            groq.SetModel((CmbGroqModel.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "");
+        UpdateProviderUi();
     }
     
     private void UpdateEngine()
@@ -891,7 +888,6 @@ public partial class MainWindow : Window
         if ((CmbEngine.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "local")
         {
             _translationProvider = new LocalTranslateProvider();
-            QuotaTracker.Instance.SetUnlimited("Local translation");
             return;
         }
         string selectedModel = "";
@@ -900,17 +896,16 @@ public partial class MainWindow : Window
         
         if (CmbEngine.SelectedItem is ComboBoxItem item && item.Tag?.ToString() == "groq")
         {
-            QuotaTracker.Instance.NotifyCurrentGroq();
             if (_translationProvider is GroqTranslateProvider groq)
             {
-                groq.UpdateApiKey(TxtApiKey.Text);
+                groq.UpdateApiKey(TxtApiKey.Password);
                 groq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
                 if (!string.IsNullOrEmpty(selectedModel))
                     groq.SetModel(selectedModel);
             }
             else
             {
-                var newGroq = new GroqTranslateProvider(TxtApiKey.Text);
+                var newGroq = new GroqTranslateProvider(TxtApiKey.Password);
                 newGroq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
                 if (!string.IsNullOrEmpty(selectedModel))
                     newGroq.SetModel(selectedModel);
@@ -919,7 +914,6 @@ public partial class MainWindow : Window
         }
         else
         {
-            QuotaTracker.Instance.SetUnlimited("Google Translate");
             if (_translationProvider is GoogleFreeTranslateProvider existingGoogle)
             {
                 existingGoogle.ScriptStyle = GetSelectedJapaneseScriptStyle();
@@ -946,9 +940,11 @@ public partial class MainWindow : Window
             await VerifyGroqApiKeyAsync(showNotification: false);
         };
 
-        TxtApiKey.TextChanged += (s, e) =>
+        TxtApiKey.PasswordChanged += (s, e) =>
         {
+            QuotaTracker.Instance.SetApiKey(TxtApiKey.Password.Trim());
             UpdateEngine();
+            UpdateProviderUi();
             _apiKeyDebounceTimer.Stop();
             _apiKeyDebounceTimer.Start();
         };
@@ -958,36 +954,26 @@ public partial class MainWindow : Window
     {
         if (TxtApiKeyStatus == null || DotApiKeyStatus == null) return;
         var loc = LocalizationManager.Instance;
-        string key = TxtApiKey?.Text?.Trim() ?? "";
+        string key = TxtApiKey?.Password?.Trim() ?? "";
 
         if (string.IsNullOrWhiteSpace(key))
         {
             DotApiKeyStatus.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#71717A"));
-            TxtApiKeyStatus.Text = loc.Get("ApiKeyEmpty");
+            TxtApiKeyStatus.Text = "Enter a Groq API key";
             TxtApiKeyStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#71717A"));
             return;
         }
 
-        bool isGroqSelected = (CmbEngine?.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "groq";
-        if (isGroqSelected)
-        {
-            DotApiKeyStatus.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
-            TxtApiKeyStatus.Text = loc.Get("ApiKeyValid");
-            TxtApiKeyStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
-        }
-        else
-        {
-            DotApiKeyStatus.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#60A5FA"));
-            TxtApiKeyStatus.Text = "Key stored — Google Translate active";
-            TxtApiKeyStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#93C5FD"));
-        }
+        DotApiKeyStatus.Fill = Brushes.Gray;
+        TxtApiKeyStatus.Text = "Groq key entered";
+        TxtApiKeyStatus.Foreground = Brushes.LightGray;
     }
 
     private async Task VerifyGroqApiKeyAsync(bool showNotification = false)
     {
         if (CmbEngine == null || TxtApiKey == null || TxtApiKeyStatus == null || DotApiKeyStatus == null) return;
-        if ((CmbEngine.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "local") return;
-        string key = TxtApiKey.Text.Trim();
+        if (!UsesGroq()) return;
+        string key = TxtApiKey.Password.Trim();
         var loc = LocalizationManager.Instance;
 
         if (string.IsNullOrWhiteSpace(key))
@@ -1003,20 +989,16 @@ public partial class MainWindow : Window
 
         var (isValid, message, models) = await GroqTranslateProvider.ValidateKeyAsync(key);
 
+        if (!UsesGroq() || key != TxtApiKey.Password.Trim()) return;
+
         if (isValid)
         {
             DotApiKeyStatus.Fill = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981")); // Emerald
             TxtApiKeyStatus.Text = loc.Get("ApiKeyValid");
             TxtApiKeyStatus.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#10B981"));
 
-            // Auto-switch engine to Groq
-            if (CmbEngine.SelectedIndex != 1)
-            {
-                CmbEngine.SelectedIndex = 1;
-            }
-
             // Populate Groq Models
-            if (models.Count > 0)
+            if (GetTranslationMode() == "groq" && models.Count > 0)
             {
                 string prevSelected = (CmbGroqModel.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "";
                 CmbGroqModel.Items.Clear();
@@ -1031,34 +1013,11 @@ public partial class MainWindow : Window
                 CmbGroqModel.SelectedIndex = selectedIdx;
             }
 
-            // Update translation provider
-            if (_translationProvider is GroqTranslateProvider groq)
-            {
-                groq.UpdateApiKey(key);
-                groq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
-            }
-            else
-            {
-                var newGroq = new GroqTranslateProvider(key);
-                newGroq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
-                _translationProvider = newGroq;
-            }
-
-            // Update Whisper STT if initialized
-            if (_whisperSttService != null)
-            {
-                _whisperSttService = new WhisperSttService(key);
-            }
-
-            // Save key to settings immediately
-            var settings = LiveTranslatorOverlay.Core.AppSettings.Load();
+            var settings = AppSettings.Load();
             settings.GroqApiKey = key;
-            settings.EngineIndex = 1;
             settings.Save();
-
             QuotaTracker.Instance.SetApiKey(key);
-            await GroqTranslateProvider.ProbeRateLimitsAsync(key, models.FirstOrDefault());
-            QuotaTracker.Instance.NotifyCurrentGroq();
+            UpdateProviderUi();
         }
         else
         {
@@ -1085,7 +1044,7 @@ public partial class MainWindow : Window
 
     private void SetupAutoUpdater()
     {
-        TxtUpdateStatus.Text = $"v{AppVersion.Current} (Up to date)";
+        TxtUpdateStatus.Text = "Waiting for update check…";
 
         AutoUpdaterService.Instance.StatusChanged += (s, e) =>
         {
@@ -1149,21 +1108,44 @@ public partial class MainWindow : Window
         AutoUpdaterService.Instance.ApplyUpdateAndRestart();
     }
 
-    private void UpdateQuotaUi(QuotaInfo info)
+    private string GetTranslationMode() => (CmbEngine?.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "google";
+
+    internal string GetGroqTranslationKey() => GetTranslationMode() == "groq" ? TxtApiKey.Password.Trim() : "";
+
+    private bool UsesGroq() => GetTranslationMode() == "groq" || GetSttMode() == "groq";
+
+    private void CmbSttMode_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateProviderUi();
+
+    private void UpdateProviderUi()
     {
-        try
+        if (QuotaPanel == null) return; // Selection events can fire during XAML initialization.
+        string speech = GetSttMode();
+        bool groqTranslation = GetTranslationMode() == "groq";
+        GroqKeySettings.Visibility = UsesGroq() ? Visibility.Visible : Visibility.Collapsed;
+        DeepgramKeySettings.Visibility = speech == "deepgram" ? Visibility.Visible : Visibility.Collapsed;
+        GroqModelSettings.Visibility = groqTranslation ? Visibility.Visible : Visibility.Collapsed;
+
+        string model = speech switch
         {
-            TxtQuotaBadge.Text = info.BadgeText;
-            BadgeQuotaStatus.Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(info.BadgeBgColor));
-            TxtQuotaBadge.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(info.BadgeFgColor));
+            "deepgram" => $"Deepgram · {DiarizedSttService.ModelName}",
+            "groq" => $"Groq · {WhisperSttService.ModelName}",
+            "local-small" => "Local Whisper small · CPU",
+            _ => "Local Whisper base · CPU"
+        };
+        TxtSpeechSelection.Text = _isAudioMode
+            ? $"{model} · Stop audio to change speech settings."
+            : $"{model} · {(speech is "local" or "local-small" ? "No key needed. Downloads the model on first use." : "Sends audio to the selected provider.")}";
 
-            PbQuotaRequests.Value = info.ProgressValue;
-            PbQuotaRequests.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(info.BadgeFgColor));
-
-            TxtQuotaInfo.Text = info.DisplayMain;
-            TxtQuotaInfo.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(info.BadgeFgColor));
+        var usage = new List<string>();
+        if (speech == "deepgram") usage.Add($"{model} (speech)\nCheck usage in your Deepgram dashboard.");
+        if (speech == "groq") usage.Add($"{model} (speech)\n{QuotaTracker.Instance.GetGroqUsage(speech: true)}");
+        if (groqTranslation)
+        {
+            string? translationModel = (_translationProvider as GroqTranslateProvider)?.CurrentModel;
+            usage.Add($"Groq · {(string.IsNullOrEmpty(translationModel) ? "Auto model" : translationModel)} (translation)\n{QuotaTracker.Instance.GetGroqUsage(speech: false)}");
         }
-        catch { }
+        QuotaPanel.Visibility = usage.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        TxtQuotaInfo.Text = string.Join("\n\n", usage);
     }
 
     private string GetTargetLanguage()
@@ -1464,7 +1446,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private void BtnLicense_Click(object sender, RoutedEventArgs e) => PurchaseReminder.Show(this);
+    private void BtnLicense_Click(object sender, RoutedEventArgs e) => new CommunityWindow(this, _usageClock.Checkpoint(), showSupport: true).ShowDialog();
+
+    private void BtnCommunity_Click(object sender, RoutedEventArgs e) => new CommunityWindow(this, _usageClock.Checkpoint(), showSupport: false).ShowDialog();
 
     private string GetSttMode()
     {
@@ -1477,42 +1461,65 @@ public partial class MainWindow : Window
 
     private async void BtnStartAudio_Click(object sender, RoutedEventArgs e)
     {
-        var loc = LocalizationManager.Instance;
-        if (!_isAudioMode)
-        {
-            _isAudioMode = true;
-            BtnStartAudio.Content = loc.Get("BtnStopAudio");
-            BtnStartAudio.ClearValue(Button.BackgroundProperty);
-            BtnStartAudio.Style = (Style)FindResource("ActionDangerButton");
-            CaptionBar.Visibility = Visibility.Visible;
-            ShowSubtitleWithAnimation();
-
-            string sttMode = GetSttMode();
-
-            if (sttMode == "deepgram")
-            {
-                await StartDeepgramModeAsync();
-            }
-            else
-            {
-                await StartGroqWhisperModeAsync(sttMode is "local" or "local-small", sttMode == "local-small");
-            }
-        }
-        else
+        if (_isAudioMode)
         {
             await StopAudioModeAsync();
+            return;
         }
+
+        string sttMode = GetSttMode();
+        if ((sttMode == "groq" && string.IsNullOrWhiteSpace(TxtApiKey.Password)) ||
+            (sttMode == "deepgram" && string.IsNullOrWhiteSpace(TxtDeepgramKey.Password)))
+        {
+            TxtAudioStatus.Text = sttMode == "groq" ? "Enter a Groq API key to start audio." : "Enter a Deepgram API key to start audio.";
+            return;
+        }
+
+        _audioCts = new CancellationTokenSource();
+        var token = _audioCts.Token;
+        _isAudioMode = true;
+        SetSpeechControlsLocked(true);
+        BtnStartAudio.Content = LocalizationManager.Instance.Get("BtnStopAudio");
+        BtnStartAudio.ClearValue(Button.BackgroundProperty);
+        BtnStartAudio.Style = (Style)FindResource("ActionDangerButton");
+        CaptionOriginal.Text = "";
+        CaptionBar.Visibility = Visibility.Visible;
+        ShowSubtitleWithAnimation();
+        UpdateProviderUi();
+
+        try
+        {
+            if (sttMode == "deepgram")
+                await StartDeepgramModeAsync();
+            else
+                await StartWhisperModeAsync(sttMode, token);
+        }
+        catch (Exception error)
+        {
+            if (token.IsCancellationRequested) return;
+            await StopAudioModeAsync();
+            TxtAudioStatus.Text = error.Message;
+        }
+    }
+
+    private void SetSpeechControlsLocked(bool locked)
+    {
+        CmbSttMode.IsEnabled = !locked;
+        CmbSourceLang.IsEnabled = !locked;
+        CmbAudioDevice.IsEnabled = !locked;
+        BtnRefreshAudio.IsEnabled = !locked;
+        TxtDeepgramKey.IsEnabled = !locked;
+        TxtApiKey.IsEnabled = !locked || GetSttMode() != "groq";
     }
 
     private async Task StartDeepgramModeAsync()
     {
         var loc = LocalizationManager.Instance;
-        QuotaTracker.Instance.SetDeepgram();
         CaptionTranslated.Text = loc.Get("ConnectingDeepgram");
         CaptionSpeaker.Visibility = Visibility.Visible;
         CaptionSpeaker.Text = loc.Get("SpeakerDetectionOn");
 
-        var service = new DiarizedSttService(TxtDeepgramKey.Text);
+        var service = new DiarizedSttService(TxtDeepgramKey.Password);
         _diarizedSttService = service;
         bool IsCurrent() => _isAudioMode && ReferenceEquals(_diarizedSttService, service);
         string sourceLang = GetSourceLanguage();
@@ -1523,17 +1530,7 @@ public partial class MainWindow : Window
 
         if (!IsCurrent()) { await service.DisposeAsync(); return; }
 
-        if (!ok)
-        {
-            _isAudioMode = false;
-            BtnStartAudio.Content = loc.Get("BtnStartAudio");
-            BtnStartAudio.Style = (Style)FindResource("ActionPrimaryButton");
-            CaptionSpeaker.Visibility = Visibility.Collapsed;
-            TxtAudioStatus.Text = loc.Get("FailedDeepgram");
-            if (ReferenceEquals(_diarizedSttService, service)) _diarizedSttService = null;
-            await service.DisposeAsync();
-            return;
-        }
+        if (!ok) throw new InvalidOperationException(loc.Get("FailedDeepgram"));
 
         service.TranscriptReady += async (s, args) =>
         {
@@ -1635,9 +1632,10 @@ public partial class MainWindow : Window
         {
             if (IsCurrent()) await service.SendAudioAsync(pcmBytes);
         };
-        await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId());
+        await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId(), _audioCts!.Token);
         if (!IsCurrent()) { capture.Dispose(); return; }
-        TxtAudioStatus.Text = " Deepgram Streaming + Speaker Detection active";
+        StartUsageClock(capture);
+        TxtAudioStatus.Text = $"Active speech: Deepgram · {DiarizedSttService.ModelName}";
         CaptionTranslated.Text = "[Waiting for audio...]";
     }
 
@@ -1728,68 +1726,38 @@ public partial class MainWindow : Window
         return HallucinationDetector.IsHallucination(text);
     }
 
-    private async Task StartGroqWhisperModeAsync(bool local = false, bool small = false)
+    private async Task StartWhisperModeAsync(string mode, CancellationToken sessionToken)
     {
-        if (!local) QuotaTracker.Instance.NotifyCurrentGroqWhisper();
-        CaptionTranslated.Text = local ? "Loading local speech..." : "Loading Groq Whisper...";
         CaptionSpeaker.Visibility = Visibility.Collapsed;
-
-        if (local)
+        string source = GetSourceLanguage();
+        LocalSpeechService? localService = null;
+        WhisperSttService? cloudService = null;
+        if (mode == "groq")
         {
-            var service = new LocalSpeechService(small);
-            _localSpeechService = service;
-            try
+            cloudService = _whisperSttService = new WhisperSttService(TxtApiKey.Password);
+            cloudService.RateLimitCooldownStarted += (_, seconds) => Dispatcher.BeginInvoke(() =>
             {
-                string language = GetSourceLanguage();
-                await service.InitializeAsync(language, CancellationToken.None, message => Dispatcher.Invoke(() =>
-                {
-                    if (_isAudioMode && ReferenceEquals(_localSpeechService, service))
-                        TxtAudioStatus.Text = CaptionTranslated.Text = message;
-                }));
-                if (!_isAudioMode || !ReferenceEquals(_localSpeechService, service))
-                { await service.DisposeAsync(); return; }
-            }
-            catch (Exception error)
-            {
-                await service.DisposeAsync();
-                if (!ReferenceEquals(_localSpeechService, service)) return;
-                _localSpeechService = null;
-                await StopAudioModeAsync();
-                MessageBox.Show(error.Message, "Local speech");
-                return;
-            }
+                if (!sessionToken.IsCancellationRequested)
+                    TxtAudioStatus.Text = $"Groq · {WhisperSttService.ModelName} · {LocalizationManager.Instance.Get("RateLimitCooldown", seconds)}";
+            });
+            await cloudService.ChangeLanguageAsync(source);
+            if (!await cloudService.InitializeAsync(null))
+                throw new InvalidOperationException(LocalizationManager.Instance.Get("FailedWhisper"));
         }
-        if (!local && _whisperSttService == null)
+        else
         {
-            _whisperSttService = new WhisperSttService(TxtApiKey.Text);
-            _whisperSttService.RateLimitCooldownStarted += (s, secs) =>
+            localService = _localSpeechService = new LocalSpeechService(mode == "local-small");
+            await localService.InitializeAsync(source, sessionToken, message => Dispatcher.Invoke(() =>
             {
-                Dispatcher.Invoke(() =>
-                {
-                    TxtAudioStatus.Text = LocalizationManager.Instance.Get("RateLimitCooldown", secs);
-                });
-            };
-
-            bool ok = await _whisperSttService.InitializeAsync(msg =>
-                Dispatcher.Invoke(() => { TxtAudioStatus.Text = msg; CaptionTranslated.Text = msg; }));
-
-            if (!ok)
-            {
-                _isAudioMode = false;
-                BtnStartAudio.Content = LocalizationManager.Instance.Get("BtnStartAudio");
-                BtnStartAudio.Style = (Style)FindResource("ActionPrimaryButton");
-                CaptionTranslated.Text = LocalizationManager.Instance.Get("FailedWhisper");
-                return;
-            }
+                if (!sessionToken.IsCancellationRequested)
+                    TxtAudioStatus.Text = CaptionTranslated.Text = message;
+            }));
         }
+        sessionToken.ThrowIfCancellationRequested();
 
-        var localService = _localSpeechService;
         AcousticSpeakerDetector.Reset();
         var capture = new AudioCaptureService();
         _audioCaptureService = capture;
-        _audioCts = new CancellationTokenSource();
-
-        var sessionToken = _audioCts.Token;
         capture.AudioChunkHandler = async chunk =>
         {
             if (sessionToken.IsCancellationRequested) return;
@@ -1800,23 +1768,14 @@ public partial class MainWindow : Window
                 string targetLang = "", sourceLang = "";
                 Dispatcher.Invoke(() => { targetLang = GetTargetLanguage(); sourceLang = GetSourceLanguage(); });
 
-                string transcribed;
-                if (local)
-                {
-                    if (localService!.Language != sourceLang)
-                        throw new InvalidOperationException("Source language changed. Stop and restart local audio.");
-                    transcribed = await localService.TranscribeAsync(chunk, sessionToken);
-                }
-                else
-                {
-                    await _whisperSttService!.ChangeLanguageAsync(sourceLang);
-                    transcribed = await _whisperSttService!.ProcessAudioChunkAsync(chunk);
-                }
+                string transcribed = localService != null
+                    ? await localService.TranscribeAsync(chunk, sessionToken)
+                    : await cloudService!.ProcessAudioChunkAsync(chunk, sessionToken);
                 if (sessionToken.IsCancellationRequested || string.IsNullOrWhiteSpace(transcribed)) return;
 
                 // ── HALLUCINATION FILTER (same as Deepgram path) ──
                 // Groq Whisper also hallucinates "subtitles by...", "спасибо", etc. from noise
-                if (IsWhisperHallucination(transcribed)) return;
+                if (IsWhisperHallucination(transcribed) || HallucinationDetector.IsWhisperArtifact(transcribed)) return;
 
                 // Whisper has no word-level diarization; keep its local estimates explicit.
                 var speaker = AcousticSpeakerDetector.DetectSpeaker(chunk, sessionToken);
@@ -1883,49 +1842,55 @@ public partial class MainWindow : Window
             finally { _translateSemaphore.Release(); }
         };
 
-        await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId());
+        await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId(), sessionToken);
         if (sessionToken.IsCancellationRequested) { capture.Dispose(); return; }
-        TxtAudioStatus.Text = local ? "Local CPU speech active — no key or GPU. Translation uses the selected provider. Speaker labels are estimates." : LocalizationManager.Instance.Get("WhisperSpeakerHint");
+        StartUsageClock(capture);
+        TxtAudioStatus.Text = $"Active speech: {(localService == null ? $"Groq · {WhisperSttService.ModelName}" : mode == "local-small" ? "Local Whisper small" : "Local Whisper base")}. Speaker labels are estimates.";
         CaptionTranslated.Text = "[Waiting for audio...]";
     }
 
     private async Task StopAudioModeAsync()
     {
         _isAudioMode = false;
-        _audioCts?.Cancel();
-        _audioCaptureService?.Stop();
+        StopUsageClock();
+        BtnStartAudio.IsEnabled = false;
+        var cancellation = _audioCts;
+        _audioCts = null;
+        cancellation?.Cancel();
         _audioCaptureService?.Dispose();
         _audioCaptureService = null;
-
         AcousticSpeakerDetector.Reset();
 
         var stoppedLocal = _localSpeechService;
         _localSpeechService = null;
-        if (stoppedLocal != null) await stoppedLocal.DisposeAsync();
-
-        var stoppedService = _diarizedSttService;
+        var stoppedGroq = _whisperSttService;
+        _whisperSttService = null;
+        var stoppedDeepgram = _diarizedSttService;
         _diarizedSttService = null;
-        if (stoppedService != null) await stoppedService.DisposeAsync();
-        if (_isAudioMode) return; // A new session started while the old socket was closing.
 
         _subtitleHideTimer.Stop();
-        BtnStartAudio.Content = LocalizationManager.Instance.Get("BtnStartAudio");
-        BtnStartAudio.Style = (Style)FindResource("ActionPrimaryButton");
         CaptionBar.Visibility = Visibility.Collapsed;
         CaptionBar.Opacity = 0;
         CaptionSpeaker.Visibility = Visibility.Collapsed;
-        // Reset translated color to default green
+        CaptionOriginal.Text = CaptionTranslated.Text = "";
         CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString("#00FF88"));
         _isCaptionVisible = false;
-        TxtAudioStatus.Text = "";
-
-        if (CmbEngine?.SelectedItem is ComboBoxItem item && item.Tag?.ToString() == "groq")
+        TxtAudioStatus.Text = "Stopping audio…";
+        try
         {
-            QuotaTracker.Instance.NotifyCurrentGroq();
+            if (stoppedLocal != null) await stoppedLocal.DisposeAsync();
+            if (stoppedGroq != null) await stoppedGroq.DisposeAsync();
+            if (stoppedDeepgram != null) await stoppedDeepgram.DisposeAsync();
         }
-        else
+        finally
         {
-            QuotaTracker.Instance.SetUnlimited("Google Translate");
+            cancellation?.Dispose();
+            BtnStartAudio.Content = LocalizationManager.Instance.Get("BtnStartAudio");
+            BtnStartAudio.Style = (Style)FindResource("ActionPrimaryButton");
+            TxtAudioStatus.Text = "";
+            SetSpeechControlsLocked(false);
+            BtnStartAudio.IsEnabled = true;
+            UpdateProviderUi();
         }
     }
 

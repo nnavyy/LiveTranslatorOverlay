@@ -79,12 +79,12 @@ namespace LiveTranslatorOverlay
                 string apiKey = "";
                 if (Application.Current.MainWindow is MainWindow mainWin)
                 {
-                    apiKey = mainWin.TxtApiKey.Text;
+                    apiKey = mainWin.GetGroqTranslationKey();
                 }
 
                 if (string.IsNullOrWhiteSpace(apiKey))
                 {
-                    MessageBox.Show(loc.Get("MsgMissingApiKey"), loc.Get("TitleError"), MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Select Groq translation and enter a key to summarize history. This sends the history text to Groq.", loc.Get("TitleError"), MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
 
