@@ -215,6 +215,15 @@ try
         !disconnected.Available && !closed.Available && open.Available && open.Entries is [{ Rank: 3, Nickname: "Alice", Score: 3660 }]
         && communityHandler.Calls == 2 && communityHandler.CorrectRequest,
         $"network calls={communityHandler.Calls}; entries={open.Entries.Length}");
+    var standings = new CommunityPage(true,
+        [new(1, "Mira", 7260, []), new(1, "Sol", 7260, []), new(3, "Echo", 180, []), new(4, "Ada", 60, [])], "");
+    Confirm("The podium preserves server ranks and only uses the unfiltered first page",
+        standings.PodiumEntries(" ", 0).Select(row => row.Rank).SequenceEqual([1, 1, 3])
+        && standings.PodiumEntries("Mira", 0).Count == 0 && standings.PodiumEntries("", 50).Count == 0
+        && (standings with { Available = false }).PodiumEntries("", 0).Count == 0
+        && (standings with { Entries = [standings.Entries[0]] }).PodiumEntries("", 0).Count == 1
+        && (standings with { Entries = [] }).PodiumEntries("", 0).Count == 0,
+        "ties, fewer than three entries, search, later pages, and closed board");
     Confirm("Support offers show the approved independent prices with checkout closed",
         SupportCatalog.Offers.Select(offer => (offer.Id, offer.Price)).SequenceEqual(new[]
         { ("supporter", "US$19.99 once"), ("insider", "US$100 once"), ("donation", "Choose an amount") })
@@ -247,7 +256,7 @@ applyStatuses.Invoke(null, [records, explicitFix.RootElement]);
 Confirm("Only explicit report mappings change resolution", keptPending && records[0].Status == "Fixed"
     && records[0].ResolutionNote == "Resolved in v1.4.0", $"unrelated release kept pending={keptPending}");
 
-Console.WriteLine($"Regression result: {observed}/22 passed"); Environment.ExitCode = observed == 22 ? 0 : 1;
+Console.WriteLine($"Regression result: {observed}/23 passed"); Environment.ExitCode = observed == 23 ? 0 : 1;
 sealed class PurchasePreviewHandler : HttpMessageHandler
 {
     public const string Receipt = "00000000-0000-4000-8000-000000000099";

@@ -8,6 +8,19 @@
 | Terms | [Visual Studio Code license](https://code.visualstudio.com/license) | Separate application terms and the privacy notice, give each document readable headings, show the bundled revision, and keep consent actions below the scroll area. The preview uses the existing documents and acceptance receipt. |
 | Pricing | [GitHub plans and pricing](https://github.com/pricing) and [OBS Project support](https://obsproject.com/contribute) | Align the two lifetime prices and their benefits. Explain what purchases fund, give donations a separate row, and keep stable translation free. |
 
+## Cartoon leaderboard
+
+| Reference | What it informed |
+| --- | --- |
+| [Kahoot’s top-three podium](https://kahoot.com/blog/2016/09/06/kahoot-podium-rewarding-top-3-players/) | A stepped stage with the leading profile in the center, a large place number, and a visible score on each step. |
+| [Reddit profile avatars](https://support.reddithelp.com/hc/en-us/articles/360043035352-How-do-I-customize-and-style-my-avatar) | Put a compact character next to the public nickname. The headset artwork is original to this app. |
+| [Duolingo avatars](https://blog.duolingo.com/avatar-creator/) | Use simple outlines and expressive faces that remain readable at small sizes. |
+| [Duolingo leagues](https://blog.duolingo.com/duolingo-leagues-leaderboards/) | Label the ranking period and keep public participation optional. |
+| [Strava segment results](https://support.strava.com/en-us/articles/15401900-how-do-i-view-my-segment-results-on-strava) | Keep the personal total and the searchable standings separate from the podium. |
+| [Khan Academy points and badges](https://support.khanacademy.org/hc/en-us/articles/202487710-What-are-energy-points-badges-and-avatars) | Label what the score measures and show earned medals separately. |
+
+The first unfiltered page shows up to three opted-in profiles. Tied ranks use the same place label and step height. Audio boards use tracked translation time as the score. The supporter board uses verified contributions. Search and pagination keep the complete ranked table, and closed or empty boards keep their status message.
+
 ## Offers
 
 | Offer | Price | Benefits |

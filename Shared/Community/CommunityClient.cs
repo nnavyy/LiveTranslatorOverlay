@@ -32,12 +32,16 @@ public sealed record CommunityRank(int Rank, string Nickname, long Score, string
 {
     public string ScoreLabel(CommunityBoard board) => board == CommunityBoard.Supporters
         ? "US$" + (Score / 100m).ToString("N2", CultureInfo.InvariantCulture)
-        : GuestAudioUsage.Format(TimeSpan.FromSeconds(Score));
+        : Score < 60 ? $"{Score} s" : GuestAudioUsage.Format(TimeSpan.FromSeconds(Score));
 
     public string MedalLabel => Medals is { Length: > 0 } ? string.Join(", ", Medals) : "—";
 }
 
-public sealed record CommunityPage(bool Available, CommunityRank[] Entries, string Message);
+public sealed record CommunityPage(bool Available, CommunityRank[] Entries, string Message)
+{
+    public IReadOnlyList<CommunityRank> PodiumEntries(string search, int offset) =>
+        Available && offset == 0 && string.IsNullOrWhiteSpace(search) ? Entries.Take(3).ToArray() : [];
+}
 
 /// <summary>Reads the consented public projections. The desktop never needs a service key.</summary>
 public sealed class CommunityClient

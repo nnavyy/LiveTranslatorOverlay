@@ -3,8 +3,11 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 using LiveTranslatorOverlay.Core;
+using ShapePath = Avalonia.Controls.Shapes.Path;
 
 namespace LiveTranslatorMac;
 
@@ -15,7 +18,7 @@ internal sealed class CommunityWindow : Window
     public CommunityWindow(TimeSpan localUsage, bool showSupport)
     {
         Title = "Live Translator Community";
-        Width = 720; Height = 630; MinWidth = 560; MinHeight = 440;
+        Width = 720; Height = 680; MinWidth = 560; MinHeight = 440;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Content = new TabControl
         {
@@ -53,14 +56,26 @@ internal sealed class CommunityWindow : Window
         var refresh = new Button { Content = "Find" };
         var previous = new Button { Content = "Previous" };
         var next = new Button { Content = "Next" };
+        var podium = new ContentControl { IsVisible = false };
+        var standings = new StackPanel
+        {
+            Spacing = 6, Children = { Heading("Full rankings", 16), header, new ScrollViewer { Content = results, MaxHeight = 218 } }
+        };
         var pages = new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { previous, next } };
+        var badge = PodiumAvatar(PodiumBrush(CommunityPodium.StageFill), PodiumBrush(CommunityPodium.StageInk));
+        DockPanel.SetDock(badge, Dock.Right);
+        var intro = new DockPanel { Children =
+        {
+            badge, new StackPanel { Spacing = 4, Children =
+            {
+                Heading("Community rankings", 27), Line($"Your time on this device · {GuestAudioUsage.Format(usage)} · Private")
+            } }
+        } };
         var panel = new StackPanel { Margin = new Thickness(26, 22, 26, 20), Spacing = 10, Children =
         {
-            Heading("Community rankings", 27), Line("Compare opt-in audio translation time or verified contributions."),
-            Surface(new StackPanel { Spacing = 4, Children = { Heading(GuestAudioUsage.Format(usage), 21),
-                Line("Your audio translation time on this device · Private") } }, tinted: true),
+            intro,
             Line("Board and nickname search"), new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { board, search, refresh } },
-            header, new ScrollViewer { Content = results, MaxHeight = 218 }, message, pages
+            podium, standings, message, pages
         } };
         int offset = 0;
         bool busy = false;
@@ -71,22 +86,30 @@ internal sealed class CommunityWindow : Window
             busy = true;
             board.IsEnabled = search.IsEnabled = refresh.IsEnabled = previous.IsEnabled = next.IsEnabled = false;
             var category = (CommunityBoard)board.SelectedIndex;
+            string query = search.Text ?? "";
             scoreTitle.Text = category == CommunityBoard.Supporters ? "Contributed" : "Audio time";
             status.Text = "Loading rankings…";
             message.IsVisible = true;
+            podium.Content = null;
+            podium.IsVisible = false;
+            standings.IsVisible = false;
             pages.IsVisible = false;
             results.ItemsSource = null;
             try
             {
-                var data = await client.ReadAsync(category, search.Text ?? "", page, token);
+                var data = await client.ReadAsync(category, query, page, token);
                 if (token.IsCancellationRequested) return;
                 offset = page;
                 status.Text = data.Message;
                 message.IsVisible = data.Message.Length > 0;
+                var leaders = data.PodiumEntries(query, page);
+                if (leaders.Count > 0) podium.Content = Podium(leaders, category);
+                podium.IsVisible = leaders.Count > 0;
                 results.ItemsSource = data.Entries;
-                pages.IsVisible = data.Available;
+                standings.IsVisible = data.Entries.Length > 0;
                 previous.IsEnabled = data.Available && offset > 0;
                 next.IsEnabled = data.Available && data.Entries.Length == CommunityClient.PageSize;
+                pages.IsVisible = previous.IsEnabled || next.IsEnabled;
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested) { }
             finally { if (!token.IsCancellationRequested) board.IsEnabled = search.IsEnabled = refresh.IsEnabled = true; busy = false; }
@@ -99,6 +122,76 @@ internal sealed class CommunityWindow : Window
         Opened += async (_, _) => await Load(0);
         return new ScrollViewer { Content = panel };
     }
+
+    private Border Podium(IReadOnlyList<CommunityRank> leaders, CommunityBoard category)
+    {
+        bool dark = ActualThemeVariant == ThemeVariant.Dark;
+        var row = new Grid { MaxWidth = leaders.Count * 184, ColumnSpacing = 10 };
+        var stageInk = PodiumBrush(dark ? "#F5EEFF" : CommunityPodium.StageInk);
+        var faceInk = PodiumBrush(CommunityPodium.StageInk);
+        for (int index = 0; index < leaders.Count; index++)
+        {
+            row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            var leader = leaders[index];
+            var (height, fill, ink) = CommunityPodium.Step(leader.Rank);
+            var stepFill = PodiumBrush(fill);
+            var stepInk = PodiumBrush(ink);
+            var avatar = PodiumAvatar(stepFill, faceInk);
+            var name = PodiumText(leader.Nickname, 14, stageInk);
+            name.TextWrapping = TextWrapping.NoWrap;
+            name.TextTrimming = TextTrimming.CharacterEllipsis;
+            ToolTip.SetTip(name, leader.Nickname);
+            var step = new Border
+            {
+                Background = stepFill, CornerRadius = new CornerRadius(12, 12, 4, 4), MinHeight = height,
+                Padding = new Thickness(8, 6), Child = new StackPanel
+                {
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Children = { PodiumText($"#{leader.Rank}", 15, stepInk), PodiumText(leader.ScoreLabel(category), 19, stepInk) }
+                }
+            };
+            var entry = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Spacing = 5, Children = { avatar, name, step } };
+            Grid.SetColumn(entry, CommunityPodium.Column(index, leaders.Count));
+            row.Children.Add(entry);
+        }
+        var heading = Heading("Top 3", 22);
+        heading.Foreground = stageInk;
+        var unit = Line(category == CommunityBoard.Supporters ? "Verified contributions" : "Audio translation time");
+        unit.Foreground = stageInk;
+        return new Border
+        {
+            Background = PodiumBrush(dark ? "#302542" : CommunityPodium.StageFill),
+            BorderBrush = PodiumBrush(dark ? "#554269" : CommunityPodium.StageOutline),
+            BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(16, 12),
+            Child = new StackPanel { Spacing = 4, Children = { heading, unit, row } }
+        };
+    }
+
+    private static Border PodiumAvatar(IBrush fill, IBrush ink)
+    {
+        var face = new Canvas { Width = 44, Height = 44 };
+        face.Children.Add(new ShapePath
+        {
+            Data = Geometry.Parse(CommunityPodium.AvatarFace), Fill = fill, Stroke = ink, StrokeThickness = 2
+        });
+        face.Children.Add(new ShapePath
+        {
+            Data = Geometry.Parse(CommunityPodium.AvatarDetails), Stroke = ink, StrokeThickness = 2.6, StrokeLineCap = PenLineCap.Round
+        });
+        return new Border
+        {
+            Child = face, Background = PodiumBrush(CommunityPodium.AvatarFill), CornerRadius = new CornerRadius(22),
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Top, IsHitTestVisible = false
+        };
+    }
+
+    private static IBrush PodiumBrush(string color) => new SolidColorBrush(Color.Parse(color));
+
+    private static TextBlock PodiumText(string text, double size, IBrush ink) => new()
+    {
+        Text = text, FontSize = size, Foreground = ink, FontWeight = FontWeight.SemiBold,
+        TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap
+    };
 
     private Control Offers()
     {
@@ -188,7 +281,7 @@ internal sealed class CommunityWindow : Window
     }
 
     private static readonly IBrush Outline = new SolidColorBrush(Color.FromArgb(85, 96, 119, 148));
-    private static readonly IBrush Tint = new SolidColorBrush(Color.FromArgb(27, 80, 138, 196));
+    private static readonly IBrush Tint = new SolidColorBrush(Color.FromArgb(27, 133, 96, 197));
 
     private static Border Surface(Control child, bool tinted)
     {
