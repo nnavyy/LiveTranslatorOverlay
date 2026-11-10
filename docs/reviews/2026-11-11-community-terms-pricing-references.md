@@ -28,7 +28,7 @@ The current Windows and macOS builds are direct downloads. Apple’s App Store p
 
 ## Payment provider setup
 
-The developer currently has a wallet in Telegram and plans to set up Stripe later. The wallet is a potential manual receiving method. Confirm the seller country, the exact wallet product, and whether the provider permits license sales in that setup before offering it to buyers.
+The developer currently plans to sell from Indonesia, has a wallet in Telegram, and is considering Stripe in Singapore later. Use Indonesia as the current seller country for planning. Keep the purchase request preview in staging while the receiving method is unresolved.
 
 ### Developer-assisted payments
 
@@ -37,7 +37,7 @@ The developer currently has a wallet in Telegram and plans to set up Stripe late
 3. Reconcile payments against settled receipts in the receiving account. Check the destination, amount, currency or asset, network when applicable, and the link between the receipt and the authenticated buyer’s request. A screenshot or a transaction ID submitted by itself is insufficient. Keep a unique payment reference per provider and network so retries and duplicate claims cannot grant another license.
 4. After the MFA-authenticated owner confirms settlement, record the purchase, grant the matching entitlement, and create the private thank-you task in one database transaction. Keep pending requests visible to the buyer. Handle refunds and corrections as linked records and exercise them in staging before opening sales.
 
-If the seller is based in Indonesia, keep crypto off the license checkout. Bank Indonesia says virtual currencies cannot be used as payment in Indonesia. Determine the local payment method before turning on developer-assisted sales. [Bank Indonesia payment-system guidance](https://www.bi.go.id/en/fungsi-utama/sistem-pembayaran/default.aspx)
+Keep Telegram Wallet off the Indonesia checkout. Bank Indonesia says virtual currencies cannot be used as payment in Indonesia. Determine the local payment method before turning on developer-assisted sales. [Bank Indonesia payment-system guidance](https://www.bi.go.id/en/fungsi-utama/sistem-pembayaran/default.aspx)
 
 ### Stripe hosted checkout
 
@@ -45,6 +45,8 @@ If the seller is based in Indonesia, keep crypto off the license checkout. Bank 
 2. Use a separate Stripe sandbox and a staging backend. For a sandbox that supports USD, configure two one-time test prices for **US$19.99** and **US$100.00**. The backend maps offer IDs to the approved price IDs and binds the checkout to the signed-in account. Keep credentials and webhook signing secrets in the backend’s secret store. [Stripe sandbox testing](https://docs.stripe.com/testing-use-cases)
 3. Verify the webhook signature, checkout session, expected offer and amount, and settled status. Fulfill once per payment even if the browser closes or Stripe retries the event. Test successful, cancelled, delayed, duplicate, and refunded payments. Show the verified status inside the app. [Stripe fulfillment](https://docs.stripe.com/checkout/fulfillment?ui=full-page)
 4. Switch to live price IDs and a live webhook only after seller verification and the app’s account, purchase, and refund flows pass staging. Publish the matching purchase and privacy terms before opening either route.
+
+**Singapore eligibility.** Choose Singapore during Stripe setup when the business selling the licenses has the Singapore registration and payout setup Stripe can verify. For a business account, Stripe checks the registered entity and UEN against ACRA records, verifies the authorized representative, and asks for a local physical address and eligible payout bank account when setting up in another country. If a Singapore setup is established after an Indonesia Stripe account is activated, create a separate account for the Singapore business. Confirm international checkout, the accepted currency, and payout details for that account before choosing live prices. [Singapore account verification](https://support.stripe.com/questions/verification-requirements-for-stripe-accounts-in-singapore) · [Requirements for an account in another country](https://support.stripe.com/questions/requirements-to-open-a-stripe-account-in-another-country) · [Changing account country](https://support.stripe.com/questions/stripe-account-country-can-t-be-changed-after-activation)
 
 ## Release checklist
 
