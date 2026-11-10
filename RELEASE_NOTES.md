@@ -9,6 +9,6 @@ This private candidate prepares the machine-learning release line. Public releas
 - The Windows installer and both applications use the same versioned terms and privacy documents. The Windows installer offers to prepare missing speech models. Valid models are reused, and first audio use can prepare missing files later.
 - Windows shows the installed version in Settings. Developer launches have a visible mode badge and keep the flag when restarting after an update. The updater explains when the public 1.x feed has not launched.
 
-The candidate includes a Mac audio capture bridge and floating captions. Both apps display a private audio usage total on the current device. Native device and permission testing are release gates. Accounts, public rankings, supporter payments, private messaging, and the Insider library are pending.
+The candidate includes a Mac audio capture bridge and floating captions. Both apps display a private audio usage total and the planned Supporter, Insider, and donation offers. Community has all-time, monthly, and supporter boards for a configured staging backend. Public accounts, payments, private messaging, and the Insider library are pending. Native device and permission testing are release gates.
 
 Default speech runs locally. Default text translation uses Google or its online fallback. Advanced offline text translation still requires a separately configured translation model.

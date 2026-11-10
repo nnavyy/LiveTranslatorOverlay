@@ -27,6 +27,7 @@
     <Compile Include="TranslationHistory.cs" />
     <Compile Include="TermsNotice.cs" />
     <Compile Include="GuestAudioUsage.cs" />
+    <Compile Include="Community/*.cs" />
     <EmbeddedResource Include="../APP_LICENSE.md" LogicalName="APP_LICENSE.md" />
     <EmbeddedResource Include="../PRIVACY.md" LogicalName="PRIVACY.md" />
     <EmbeddedResource Include="../TERMS_REVISION.txt" LogicalName="TERMS_REVISION.txt" />

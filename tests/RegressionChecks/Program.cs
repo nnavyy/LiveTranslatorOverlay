@@ -201,6 +201,24 @@ try
         beforeStart == TimeSpan.Zero && afterFirstCheckpoint == TimeSpan.FromSeconds(15)
         && afterSleep == afterFirstCheckpoint && stopped == TimeSpan.FromSeconds(17)
         && usage.Checkpoint() == stopped && reloaded == stopped, $"persisted={reloaded.TotalSeconds}s");
+
+    var communityHandler = new CommunityHandler();
+    using var communityHttp = new HttpClient(communityHandler);
+    var disconnected = await new CommunityClient(releaseFixture, communityHttp).ReadAsync(CommunityBoard.AllTime);
+    File.WriteAllText(Path.Combine(releaseFixture, "community.json"), """
+        {"url":"https://example.test/","publishableKey":"sb_publishable_test"}
+        """);
+    var connected = new CommunityClient(releaseFixture, communityHttp);
+    var closed = await connected.ReadAsync(CommunityBoard.ThisMonth, " Ali ", 50);
+    var open = await connected.ReadAsync(CommunityBoard.ThisMonth, " Ali ", 50);
+    Confirm("Community shows server ranks and stays private when disconnected or closed",
+        !disconnected.Available && !closed.Available && open.Available && open.Entries is [{ Rank: 3, Nickname: "Alice", Score: 3660 }]
+        && communityHandler.Calls == 2 && communityHandler.CorrectRequest,
+        $"network calls={communityHandler.Calls}; entries={open.Entries.Length}");
+    Confirm("Support offers show the approved independent prices with checkout closed",
+        SupportCatalog.Offers.Select(offer => (offer.Id, offer.Price)).SequenceEqual(new[]
+        { ("supporter", "US$19.99 once"), ("insider", "US$100 once"), ("donation", "Choose an amount") })
+        && SupportCatalog.Closed.Contains("closed"), string.Join(", ", SupportCatalog.Offers.Select(offer => offer.Price)));
 }
 finally { Directory.Delete(releaseFixture, recursive: true); }
 
@@ -214,7 +232,27 @@ applyStatuses.Invoke(null, [records, explicitFix.RootElement]);
 Confirm("Only explicit report mappings change resolution", keptPending && records[0].Status == "Fixed"
     && records[0].ResolutionNote == "Resolved in v1.4.0", $"unrelated release kept pending={keptPending}");
 
-Console.WriteLine($"Regression result: {observed}/19 passed"); Environment.ExitCode = observed == 19 ? 0 : 1;
+Console.WriteLine($"Regression result: {observed}/21 passed"); Environment.ExitCode = observed == 21 ? 0 : 1;
+sealed class CommunityHandler : HttpMessageHandler
+{
+    public int Calls { get; private set; }
+    public bool CorrectRequest { get; private set; } = true;
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+    {
+        using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(token));
+        var fields = body.RootElement;
+        CorrectRequest &= request.Method == HttpMethod.Post && request.RequestUri?.AbsolutePath == "/rest/v1/rpc/lt_community_board"
+            && request.Headers.GetValues("apikey").Single() == "sb_publishable_test" && request.Headers.Authorization == null
+            && fields.EnumerateObject().Count() == 3 && fields.GetProperty("p_board").GetString() == "month"
+            && fields.GetProperty("p_search").GetString() == "Ali" && fields.GetProperty("p_offset").GetInt32() == 50;
+        return new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent(++Calls == 1 ? """{"open":false,"entries":[]}"""
+                : """{"open":true,"entries":[{"rank":3,"nickname":"Alice","score":3660,"medals":[]}]}""")
+        };
+    }
+}
 sealed class MissingUpdateFeedHandler : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) =>

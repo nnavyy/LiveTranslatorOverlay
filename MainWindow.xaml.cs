@@ -1446,7 +1446,9 @@ public partial class MainWindow : Window
         }
     }
 
-    private void BtnLicense_Click(object sender, RoutedEventArgs e) => PurchaseReminder.Show(this);
+    private void BtnLicense_Click(object sender, RoutedEventArgs e) => new CommunityWindow(this, _usageClock.Checkpoint(), showSupport: true).ShowDialog();
+
+    private void BtnCommunity_Click(object sender, RoutedEventArgs e) => new CommunityWindow(this, _usageClock.Checkpoint(), showSupport: false).ShowDialog();
 
     private string GetSttMode()
     {

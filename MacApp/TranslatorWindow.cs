@@ -128,6 +128,11 @@ public sealed partial class TranslatorWindow : Window
                 new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8, Children = { _clear, _save } }
             }
         } });
+        var rankings = new Button { Content = "Community rankings" };
+        rankings.Click += async (_, _) => await new CommunityWindow(_usageClock.Checkpoint(), showSupport: false).ShowDialog(this);
+        var support = new Button { Content = "Support development" };
+        support.Click += async (_, _) => await new CommunityWindow(_usageClock.Checkpoint(), showSupport: true).ShowDialog(this);
+        content.Children.Add(new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { rankings, support } });
         var about = new Button { Content = "About & feedback", HorizontalAlignment = HorizontalAlignment.Left };
         var terms = new Button { Content = "Terms and privacy" };
         terms.Click += async (_, _) => await MacApplication.CreateTermsWindow().ShowDialog(this);
