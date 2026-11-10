@@ -26,6 +26,26 @@ The tiers are independent. Public supporter ranking is separate from usage ranki
 
 The current Windows and macOS builds are direct downloads. Apple’s App Store purchase service is available through Mac App Store distribution. [Apple distribution comparison](https://developer.apple.com/macos/distribution#features-and-requirements)
 
+## Payment provider setup
+
+The developer currently has a wallet in Telegram and plans to set up Stripe later. The wallet is a potential manual receiving method. Confirm the seller country, the exact wallet product, and whether the provider permits license sales in that setup before offering it to buyers.
+
+### Developer-assisted payments
+
+1. Keep the in-app request preview in staging while the receiving method is under review. The customer selects a lifetime offer and verifies their email. Their request contains the selected offer and a private request ID.
+2. Once a permitted method and the private inbox are ready, show the buyer the exact amount, currency or asset, payment destination, and expiration in their request. For a supported wallet, also confirm the exact network and any memo requirement in the wallet interface. Walt’s DeFi Account uses TON and routes supported external-network deposits through a separate provider with its own minimums and review. [Walt DeFi Account deposit instructions](https://help.walt.io/article/666-transactions)
+3. Reconcile payments against settled receipts in the receiving account. Check the destination, amount, currency or asset, network when applicable, and the link between the receipt and the authenticated buyer’s request. A screenshot or a transaction ID submitted by itself is insufficient. Keep a unique payment reference per provider and network so retries and duplicate claims cannot grant another license.
+4. After the MFA-authenticated owner confirms settlement, record the purchase, grant the matching entitlement, and create the private thank-you task in one database transaction. Keep pending requests visible to the buyer. Handle refunds and corrections as linked records and exercise them in staging before opening sales.
+
+If the seller is based in Indonesia, keep crypto off the license checkout. Bank Indonesia says virtual currencies cannot be used as payment in Indonesia. Determine the local payment method before turning on developer-assisted sales. [Bank Indonesia payment-system guidance](https://www.bi.go.id/en/fungsi-utama/sistem-pembayaran/default.aspx)
+
+### Stripe hosted checkout
+
+1. Open and verify the account using the actual seller country and business details. Confirm the permitted payment methods, settlement currency, and whether it can serve international buyers before creating live prices. Stripe currently describes its Indonesia program as invite-only and lists domestic IDR bank transfers for Indonesia-based accounts. A USD checkout for international buyers requires an account and setup that explicitly support it. [Stripe account setup](https://docs.stripe.com/get-started/account/set-up) · [Indonesia account requirements](https://support.stripe.com/questions/requirements-to-open-a-stripe-account-in-indonesia) · [Indonesia payment methods and currencies](https://support.stripe.com/questions/supported-payment-methods-currencies-and-businesses-for-stripe-accounts-in-indonesia)
+2. Use a separate Stripe sandbox and a staging backend. For a sandbox that supports USD, configure two one-time test prices for **US$19.99** and **US$100.00**. The backend maps offer IDs to the approved price IDs and binds the checkout to the signed-in account. Keep credentials and webhook signing secrets in the backend’s secret store. [Stripe sandbox testing](https://docs.stripe.com/testing-use-cases)
+3. Verify the webhook signature, checkout session, expected offer and amount, and settled status. Fulfill once per payment even if the browser closes or Stripe retries the event. Test successful, cancelled, delayed, duplicate, and refunded payments. Show the verified status inside the app. [Stripe fulfillment](https://docs.stripe.com/checkout/fulfillment?ui=full-page)
+4. Switch to live price IDs and a live webhook only after seller verification and the app’s account, purchase, and refund flows pass staging. Publish the matching purchase and privacy terms before opening either route.
+
 ## Release checklist
 
 - Select and verify a merchant account. Set up sandbox prices, receipts, a verified webhook, and payment recovery tests before enabling checkout.
