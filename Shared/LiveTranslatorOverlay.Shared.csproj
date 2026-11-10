@@ -7,6 +7,9 @@
     <Version>2.1.2</Version>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.14" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="../Core/Translation/*.cs" Link="Translation/%(Filename)%(Extension)" />
     <Compile Include="../Core/Localization/*.cs" Link="Localization/%(Filename)%(Extension)" />
     <Compile Include="../Core/Japanese/JapaneseScriptConverter.cs" Link="Japanese/JapaneseScriptConverter.cs" />

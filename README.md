@@ -114,7 +114,7 @@ Keys can be configured directly inside the interface:
 1. Open the **Settings** menu on the overlay.
 2. Enter your Deepgram key under **Deepgram API Key** ([console.deepgram.com](https://console.deepgram.com/)).
 3. Enter your Groq key under **API Key (Groq/DeepL)** ([console.groq.com](https://console.groq.com/)) if utilizing Groq LLM or Groq Whisper.
-4. Preferences persist in `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json`. Keys remain plaintext locally; keep the file private.
+4. Preferences persist in `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json`. The v2.1.2 preview encrypts saved keys with Windows account protection. Earlier releases stored keys as plaintext.
 
 ---
 

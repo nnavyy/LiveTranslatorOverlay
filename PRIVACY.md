@@ -50,9 +50,9 @@ The Software allows users to connect to third-party providers for machine transl
 Starting with version 1.4.0, normal operation does not write raw Deepgram or Groq transcripts to debug files. Older versions may have created `deepgram_debug.txt` or `groq_debug.txt` in their working folder. Those existing files are not automatically deleted. Translation history can still be explicitly exported by the user.
 
 **Security of API Keys**:
-All API keys entered in the application are saved exclusively on your local machine in the `appsettings.json` file. They are never sent to the Software's developer or any intermediary server.
+The Windows app masks Groq and Deepgram API keys on screen and encrypts saved keys using Windows Data Protection tied to your Windows account. The app decrypts keys when loading settings so it can authenticate with the selected provider over HTTPS or WSS. The keys are never sent to the developer. If you move to a different Windows account or PC, you may need to enter your keys again.
 
-From v1.5.0, Windows settings use `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json`; existing settings are migrated without deleting the older file. Keys in Windows settings are still plaintext. The Mac developer preview keeps its Groq key only in session memory. Session history holds up to 500 entries and is exported only through an explicit save action.
+The app upgrades older plaintext keys in its active settings file at `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json`. Copies from older installations and backups may still contain plaintext. The Mac developer preview keeps its Groq key only in session memory. Session history holds up to 500 entries and is exported only through an explicit save action.
 
 ---
 

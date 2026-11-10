@@ -26,9 +26,7 @@
     <Compile Remove="tests\**" />
     <Compile Remove="Shared\**;MacApp\**;Core\Translation\**;Core\Localization\**;Core\Feedback\**;Core\Japanese\JapaneseScriptConverter.cs;Core\AppSettings.cs;Core\QuotaTracker.cs;Core\HallucinationDetector.cs;Core\Update\AppVersion.cs;Core\Update\ReleaseNotes.cs" />
     <None Include="AudioDiag\**" />
-    <None Update="appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <None Update="appsettings.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
     <None Update="runtime\speech_worker.py" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="runtime\translation_worker.py" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Update="licenses\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

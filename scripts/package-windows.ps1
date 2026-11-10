@@ -20,5 +20,7 @@ foreach ($required in @('LiveTranslatorOverlay.exe', 'coreclr.dll', 'vcruntime14
     if (!(Test-Path (Join-Path $output $required))) { throw "Missing bundled runtime: $required" }
 }
 $settings = Get-Content (Join-Path $output 'appsettings.json') -Raw | ConvertFrom-Json
-if ($settings.GroqApiKey -or $settings.DeepgramApiKey) { throw 'Release settings contain an API key' }
+if ($settings.GroqApiKey -or $settings.DeepgramApiKey -or $settings.GroqApiKeyProtected -or $settings.DeepgramApiKeyProtected) {
+    throw 'Release settings contain an API credential'
+}
 Write-Output "Verified self-contained Windows package: $output"

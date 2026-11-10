@@ -2,6 +2,7 @@
 
 - Audio translation shows the running speech model. Stop audio to unlock speech model, source language and input device settings, then start the new session.
 - Only the selected cloud providers show key controls. Verifying Groq credentials keeps the selected translation engine. Groq speech and text usage are shown separately. Deepgram usage is available in the provider dashboard.
+- Saved Groq and Deepgram keys use Windows account encryption. The app upgrades the active plaintext settings file when it reads it. Earlier builds cannot read the encrypted keys.
 - Filters the reported Whisper subtitle credit. Speech recognition and translation can still make mistakes.
 - The Windows installer presents the license, terms and privacy policy on first install, then downloads missing speech files. Valid models are reused. Regular app launches skip setup, and the portable app downloads missing models when you start local speech.
 

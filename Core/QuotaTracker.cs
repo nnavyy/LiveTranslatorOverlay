@@ -117,14 +117,14 @@ namespace LiveTranslatorOverlay.Core
 
                     if (RemainingTokens.HasValue && LimitTokens.HasValue)
                     {
-                        return $"{reqStr}  |  {RemainingTokens:N0}/{LimitTokens:N0} tok";
+                        return $"{reqStr}  |  {RemainingTokens:N0}/{LimitTokens:N0} text tokens";
                     }
                     return reqStr;
                 }
 
                 if (RemainingTokens.HasValue && LimitTokens.HasValue)
                 {
-                    return $"{RemainingTokens:N0}/{LimitTokens:N0} tokens";
+                    return $"{RemainingTokens:N0}/{LimitTokens:N0} text tokens";
                 }
 
                 return "Ready (Tracking active)";
