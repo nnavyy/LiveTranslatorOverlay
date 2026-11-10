@@ -36,7 +36,7 @@ internal sealed class CommunityWindow : Window
     {
         var client = new CommunityClient(AppSettings.DataDirectory);
         var board = new ComboBox { ItemsSource = new[] { "All-time usage", "This month (UTC)", "Supporters" }, SelectedIndex = 0, MinWidth = 154 };
-        var search = new TextBox { MaxLength = 24, MinWidth = 132, PlaceholderText = "Nickname" };
+        var search = new TextBox { MaxLength = 24, MinWidth = 132 };
         var status = Line("");
         var message = Surface(status, tinted: false);
         var results = new ItemsControl();
