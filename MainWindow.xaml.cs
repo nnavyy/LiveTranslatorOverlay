@@ -95,8 +95,13 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        if (Environment.GetCommandLineArgs().Contains("--developer", StringComparer.Ordinal))
+        TxtInstalledVersion.Text = $"Installed {AppVersion.DisplayString}";
+        if (App.IsDeveloperMode)
+        {
             BtnDeveloper.Visibility = Visibility.Visible;
+            DeveloperBadge.Visibility = Visibility.Visible;
+            Title = $"Live Translator Overlay {AppVersion.DisplayString} — Developer mode";
+        }
         foreach (var language in AdditionalLanguages.Names)
         {
             CmbSourceLang.Items.Add(new ComboBoxItem { Content = $"{language.Value} ({language.Key})", Tag = language.Key });
@@ -1039,7 +1044,7 @@ public partial class MainWindow : Window
 
     private void SetupAutoUpdater()
     {
-        TxtUpdateStatus.Text = $"v{AppVersion.Current} (Up to date)";
+        TxtUpdateStatus.Text = "Waiting for update check…";
 
         AutoUpdaterService.Instance.StatusChanged += (s, e) =>
         {

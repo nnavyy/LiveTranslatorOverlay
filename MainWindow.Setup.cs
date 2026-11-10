@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using LiveTranslatorOverlay.Core;
+using LiveTranslatorOverlay.Core.Update;
 
 namespace LiveTranslatorOverlay;
 
@@ -65,6 +66,12 @@ public partial class MainWindow
         var panel = new StackPanel { Margin = new Thickness(24) };
         panel.Children.Add(new TextBlock
         {
+            Text = $"Running {AppVersion.DisplayString}\n{Environment.ProcessPath}",
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 12)
+        });
+        panel.Children.Add(new TextBlock
+        {
             Text = "Developer tools use your existing GitHub and Gmail sign-in. Feedback from other users is available in the receiving mailbox when delivery succeeds.",
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 0, 0, 12)
@@ -85,8 +92,8 @@ public partial class MainWindow
         AddLink("Private build releases", "https://github.com/nnavyy/LiveTranslatorOverlay-private/releases");
         AddLink("Received reports and feedback in Gmail", "https://mail.google.com/mail/?authuser=nandazhafran%40gmail.com#search/in%3Aanywhere%20%22Live%20Translator%22");
         AddLink("Report status file", "https://github.com/nnavyy/LiveTranslatorOverlay/blob/main/reports_status.json");
-        var window = CreateInfoWindow("Developer tools", panel);
-        window.Height = 395;
+        var window = CreateInfoWindow("Developer tools", new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
+        window.Height = 450;
         window.ShowDialog();
     }
 }

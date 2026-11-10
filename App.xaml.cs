@@ -12,6 +12,7 @@ namespace LiveTranslatorOverlay;
 /// </summary>
 public partial class App : Application
 {
+    internal static bool IsDeveloperMode { get; } = Environment.GetCommandLineArgs().Contains("--developer", StringComparer.Ordinal);
     private static Mutex? _mutex;
     private const string AppMutexName = @"Local\LiveTranslatorOverlay_SingleInstance_Mutex_v1";
 

@@ -7,6 +7,7 @@ This private candidate prepares the machine-learning release line. Public releas
 - Saved Groq and Deepgram keys use Windows account encryption. The app upgrades the active plaintext settings file when it reads it. Earlier builds cannot read the encrypted keys.
 - Filters the reported Whisper subtitle credit. Speech recognition and translation can still make mistakes.
 - The Windows installer and both applications use the same versioned terms and privacy documents. The Windows installer offers to prepare missing speech models. Valid models are reused, and first audio use can prepare missing files later.
+- Windows shows the installed version in Settings. Developer launches have a visible mode badge and keep the flag when restarting after an update. The updater explains when the public 1.x feed has not launched.
 
 The candidate includes a Mac audio capture bridge and floating captions. Both apps display a private audio usage total on the current device. Native device and permission testing are release gates. Accounts, public rankings, supporter payments, private messaging, and the Insider library are pending.
 

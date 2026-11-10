@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading;
@@ -96,6 +97,12 @@ namespace LiveTranslatorOverlay.Core.Update
                 StatusChanged?.Invoke(this, new UpdateStatusEventArgs("Checking for updates...", 0));
 
                 using var response = await _httpClient.GetAsync(StableRelease.ManifestUrl);
+
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    StatusChanged?.Invoke(this, new UpdateStatusEventArgs("No public 1.x release yet.", 100));
+                    return false;
+                }
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -219,6 +226,8 @@ set ""TARGET_DIR=%~1""
 set ""SOURCE_DIR=%~2""
 set ""TARGET_EXE=%~3""
 set ""OLD_PID=%~4""
+set ""DEVELOPER_ARG=""
+if ""%~5""==""1"" set ""DEVELOPER_ARG=--developer""
 
 echo [%date% %time%] Updater started. Target=%TARGET_DIR% OldPID=%OLD_PID% > ""%~dp0updater.log""
 
@@ -248,7 +257,7 @@ timeout /t 1 /nobreak >nul
 :: Relaunch updated application exactly once
 echo [%date% %time%] Launching updated %TARGET_DIR%\%TARGET_EXE% >> ""%~dp0updater.log""
 cd /d ""%TARGET_DIR%""
-start """" ""%TARGET_DIR%\%TARGET_EXE%""
+start """" ""%TARGET_DIR%\%TARGET_EXE%"" %DEVELOPER_ARG%
 exit /b 0
 ";
             File.WriteAllText(scriptPath, scriptContent);
@@ -278,11 +287,12 @@ exit /b 0
                 string currentDir = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 string exeName = Process.GetCurrentProcess().MainModule?.ModuleName ?? "LiveTranslatorOverlay.exe";
                 int currentPid = Process.GetCurrentProcess().Id;
+                int developer = App.IsDeveloperMode ? 1 : 0;
 
                 var psi = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/c \"\"{scriptPath}\" \"{currentDir}\" \"{StagedDirectory}\" \"{exeName}\" {currentPid}\"",
+                    Arguments = $"/c \"\"{scriptPath}\" \"{currentDir}\" \"{StagedDirectory}\" \"{exeName}\" {currentPid} {developer}\"",
                     CreateNoWindow = true,
                     UseShellExecute = false,
                     WindowStyle = ProcessWindowStyle.Hidden

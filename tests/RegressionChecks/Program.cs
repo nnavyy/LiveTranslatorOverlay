@@ -165,6 +165,17 @@ try
     }
     finally { AppContext.SetData(directoryKey, previousDirectory); }
 
+    var unpublished = new AutoUpdaterService();
+    Get<HttpClient>(unpublished, "_httpClient").Dispose();
+    using var missingFeed = new HttpClient(new MissingUpdateFeedHandler());
+    Set(unpublished, "_httpClient", missingFeed);
+    UpdateStatusEventArgs? lastUpdate = null;
+    unpublished.StatusChanged += (_, status) => lastUpdate = status;
+    bool foundUnpublished = await unpublished.CheckAndDownloadAsync();
+    Confirm("Missing public 1.x feed is explained without advertising an update", !foundUnpublished &&
+        !unpublished.IsUpdateReady && lastUpdate is { IsError: false, StatusMessage: "No public 1.x release yet." },
+        lastUpdate?.StatusMessage ?? "no status");
+
     string receipt = Path.Combine(releaseFixture, "terms-accepted.txt");
     bool newInstall = !TermsNotice.HasAccepted(releaseFixture);
     File.WriteAllLines(receipt, ["1", DateTimeOffset.UtcNow.ToString("O")]);
@@ -203,7 +214,12 @@ applyStatuses.Invoke(null, [records, explicitFix.RootElement]);
 Confirm("Only explicit report mappings change resolution", keptPending && records[0].Status == "Fixed"
     && records[0].ResolutionNote == "Resolved in v1.4.0", $"unrelated release kept pending={keptPending}");
 
-Console.WriteLine($"Regression result: {observed}/18 passed"); Environment.ExitCode = observed == 18 ? 0 : 1;
+Console.WriteLine($"Regression result: {observed}/19 passed"); Environment.ExitCode = observed == 19 ? 0 : 1;
+sealed class MissingUpdateFeedHandler : HttpMessageHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) =>
+        Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+}
 sealed class UpdateHandler(string manifest, byte[] archive) : HttpMessageHandler
 {
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) =>

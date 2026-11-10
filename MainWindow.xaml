@@ -382,6 +382,9 @@
                     </Thumb.Template>
                 </Thumb>
                 <Button x:Name="BtnTogglePanel" Content="Settings" Style="{StaticResource ModernButton}" Click="BtnTogglePanel_Click" Padding="14,6" FontSize="12.5"/>
+                <Border x:Name="DeveloperBadge" Visibility="Collapsed" Background="#E5243651" BorderBrush="#779FC7EF" BorderThickness="1" CornerRadius="8" Padding="9,5" Margin="6,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Developer mode" Foreground="#EDF6FF" FontSize="11" FontWeight="SemiBold"/>
+                </Border>
             </StackPanel>
             
             <!-- Control Panel (Apple Translucent Dark Material) -->
@@ -392,7 +395,8 @@
                 <ScrollViewer x:Name="SettingsScrollViewer" VerticalScrollBarVisibility="Auto" CanContentScroll="False"
                               PanningMode="VerticalOnly" PreviewMouseWheel="SmoothScrollViewer_PreviewMouseWheel">
                     <StackPanel Margin="18,18,16,18">
-                        <TextBlock x:Name="TxtAppTitle" Text="Live Translator" Foreground="#F2F2F7" FontFamily="Segoe UI Variable Display Semibold, Segoe UI Semibold" FontSize="20" Margin="0,0,0,14"/>
+                        <TextBlock x:Name="TxtAppTitle" Text="Live Translator" Foreground="#F2F2F7" FontFamily="Segoe UI Variable Display Semibold, Segoe UI Semibold" FontSize="20" Margin="0,0,0,3"/>
+                        <TextBlock x:Name="TxtInstalledVersion" Foreground="#AEAEB2" FontSize="11" Margin="0,0,0,14"/>
 
                         <!-- Update Banner -->
                         <Border x:Name="BannerUpdateReady" Visibility="Collapsed" Background="#16253B" BorderBrush="#0A84FF" BorderThickness="1" CornerRadius="10" Padding="12,10" Margin="0,0,0,12">
