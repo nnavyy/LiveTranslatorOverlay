@@ -16,12 +16,28 @@ SetCompressor zlib
 !define MUI_ABORTWARNING
 !define MUI_FINISHPAGE_RUN "$INSTDIR\LiveTranslatorOverlay.exe"
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "${APP_LICENSE}"
+!define MUI_PAGE_CUSTOMFUNCTION_PRE SkipAcceptedTerms
+!define MUI_PAGE_CUSTOMFUNCTION_LEAVE AcceptTerms
+!define MUI_LICENSEPAGE_TEXT_TOP "Review the app license, terms of service and privacy policy before installing."
+!insertmacro MUI_PAGE_LICENSE "${SETUP_TERMS}"
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_LANGUAGE "English"
+
+Var TermsAccepted
+
+Function SkipAcceptedTerms
+  ReadRegStr $0 HKCU "Software\LiveTranslatorOverlay" "SetupTermsVersion"
+  ${If} $0 == "1"
+    Abort
+  ${EndIf}
+FunctionEnd
+
+Function AcceptTerms
+  StrCpy $TermsAccepted "1"
+FunctionEnd
 
 Function .onInit
   ${IfNot} ${RunningX64}
@@ -42,6 +58,20 @@ Section "Install"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LiveTranslatorOverlay" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LiveTranslatorOverlay" "NoModify" 1
   WriteRegDWORD HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LiveTranslatorOverlay" "NoRepair" 1
+  ${If} $TermsAccepted == "1"
+    WriteRegStr HKCU "Software\LiveTranslatorOverlay" "SetupTermsVersion" "1"
+  ${EndIf}
+
+  IfSilent done
+  DetailPrint "Checking local speech files..."
+  ClearErrors
+  ExecWait '"$INSTDIR\LiveTranslatorOverlay.exe" --prepare-local-speech' $0
+  ${If} ${Errors}
+    DetailPrint "Local speech files can be set up when you first start audio."
+  ${ElseIf} $0 != 0
+    DetailPrint "Local speech files can be set up when you first start audio."
+  ${EndIf}
+  done:
 SectionEnd
 
 Section "Uninstall"

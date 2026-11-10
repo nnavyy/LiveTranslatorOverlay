@@ -2,7 +2,7 @@
 
 ## Local CPU speech and setup
 
-The default speech engine processes audio on the device. The welcome screen offers to download models from Hugging Face over HTTPS, or you can download them the first time you start local speech. The model service receives normal connection metadata such as your IP address. The app sends no audio with that download. Models are cached in the per-user application data directory. Default text translation sends recognized text to Google or its MyMemory fallback. Users with a separately configured offline translation model can select it to keep text processing on the device.
+The default speech engine processes audio on the device. Windows setup reuses valid local speech files and downloads missing files from Hugging Face over HTTPS. If you skip that download or use the portable app, missing files download when you start local speech. The model service receives normal connection metadata such as your IP address. The app sends no audio with that download. Models are cached in the per-user application data directory. Default text translation sends recognized text to Google or its MyMemory fallback. Users with a separately configured offline translation model can select it to keep text processing on the device.
 
 Last Updated: November 2026
 

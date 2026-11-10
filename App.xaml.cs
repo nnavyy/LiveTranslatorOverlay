@@ -31,6 +31,14 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        if (e.Args is ["--prepare-local-speech"])
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            base.OnStartup(e);
+            PrepareLocalSpeechForInstaller();
+            return;
+        }
+
         bool isNewInstance;
         _mutex = new Mutex(true, AppMutexName, out isNewInstance);
 
@@ -59,6 +67,7 @@ public partial class App : Application
         }
 
         Core.Japanese.JapaneseScriptConverter.NativePhoneticReader = Core.Japanese.WindowsPhoneticReader.Read;
+        StartupUri = new Uri("MainWindow.xaml", UriKind.Relative);
         base.OnStartup(e);
     }
 

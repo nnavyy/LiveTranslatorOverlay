@@ -248,7 +248,7 @@ public partial class MainWindow : Window
         
         SetupApiKeyVerification();
         SetupAutoUpdater();
-        Loaded += (_, _) => ShowFirstRunOrReleaseNotes();
+        Loaded += (_, _) => ShowReleaseNotesIfNew();
     }
     
         private bool _isDraggingCaption = false;
