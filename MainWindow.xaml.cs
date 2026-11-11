@@ -32,7 +32,6 @@ public partial class MainWindow : Window
     private Rect _selectedOcrRegion;
     private bool _isLiveMode = false;
     private CancellationTokenSource? _liveOcrCts;
-    private ScreenOcrService _ocrService;
     private ITranslationProvider _translationProvider;
     private string _lastOcrText = string.Empty;
     private DateTime _lastUserActivity = DateTime.UtcNow;
@@ -107,7 +106,6 @@ public partial class MainWindow : Window
             CmbSourceLang.Items.Add(new ComboBoxItem { Content = $"{language.Value} ({language.Key})", Tag = language.Key });
             CmbTargetLang.Items.Add(new ComboBoxItem { Content = $"{language.Value} ({language.Key})", Tag = language.Key });
         }
-        _ocrService = new ScreenOcrService();
         
         var loadedSettings = LiveTranslatorOverlay.Core.AppSettings.Load();
         loadedSettings.UseAvailableEngines(System.IO.File.Exists(System.IO.Path.Combine(AppSettings.DataDirectory, "local-speech.json")));
@@ -233,23 +231,8 @@ public partial class MainWindow : Window
             _subtitleHideTimer.Stop();
         };
         
-        // Pastikan container tidak meluber ke bawah layar
-        TranslatedTextContainer.SizeChanged += (s, e) =>
-        {
-            if (TranslatedTextContainer.Visibility == Visibility.Visible && _selectedOcrRegion.Height > 0)
-            {
-                double currentTop = Canvas.GetTop(TranslatedTextContainer);
-                double bottomEdge = currentTop + TranslatedTextContainer.ActualHeight;
-                
-                // Jika melewati batas bawah layar (sisakan margin 30px)
-                if (bottomEdge > this.ActualHeight - 30)
-                {
-                    // Pindah ke atas kotak seleksi
-                    double newTop = Math.Max(10, _selectedOcrRegion.Top - TranslatedTextContainer.ActualHeight - 5);
-                    Canvas.SetTop(TranslatedTextContainer, newTop);
-                }
-            }
-        };
+        TranslatedTextContainer.SizeChanged += (_, _) => PositionOcrResult();
+        OverlayCanvas.SizeChanged += (_, _) => PositionOcrResult();
         
         SetupApiKeyVerification();
         SetupAutoUpdater();
@@ -344,6 +327,7 @@ public partial class MainWindow : Window
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         StopUsageClock();
+        _liveOcrCts?.Cancel();
         _audioCts?.Cancel();
         _audioCaptureService?.Stop();
         CaptureExclusion.Shutdown();
@@ -1220,6 +1204,7 @@ public partial class MainWindow : Window
         if (_isLiveMode) return;
         
         _isDrawingMode = true;
+        _selectedOcrRegion = default;
         this.Background = new SolidColorBrush(Color.FromArgb(0x40, 0, 0, 0));
         OverlayCanvas.Background = Brushes.Transparent;
         
@@ -1235,6 +1220,7 @@ public partial class MainWindow : Window
         if (e.OriginalSource is DependencyObject source && IsDescendantOf(ControlPanel, source))
             return;
 
+        if (!OverlayCanvas.CaptureMouse()) return;
         _isDrawing = true;
         _startPoint = e.GetPosition(OverlayCanvas);
 
@@ -1266,6 +1252,7 @@ public partial class MainWindow : Window
         if (!_isDrawing) return;
         _isDrawing = false;
         _isDrawingMode = false;
+        OverlayCanvas.ReleaseMouseCapture();
         
         // Kembalikan layar agar bisa diklik tembus
         this.Background = null;
@@ -1279,20 +1266,63 @@ public partial class MainWindow : Window
 
         if (_selectedOcrRegion.Width > 0 && _selectedOcrRegion.Height > 0)
         {
-            Canvas.SetLeft(TranslatedTextContainer, _selectedOcrRegion.Left);
-            
-            // Taruh di bawah by default
-            Canvas.SetTop(TranslatedTextContainer, _selectedOcrRegion.Bottom + 5);
-            TranslatedTextContainer.MaxHeight = 250; // Batasi tinggi agar tidak menuhi layar
-            
             TranslatedTextContainer.Visibility = Visibility.Visible;
             TranslatedTextBlock.Text = "[Area selected. Click 'Start' for OCR]";
             BtnStartLive.IsEnabled = true;
+            PositionOcrResult();
         }
+        else SelectionRect.Visibility = Visibility.Collapsed;
+    }
+
+    private void PositionOcrResult()
+    {
+        if (TranslatedTextContainer.Visibility != Visibility.Visible || _selectedOcrRegion.IsEmpty) return;
+        const double margin = 8;
+        double width = OverlayCanvas.ActualWidth;
+        double height = OverlayCanvas.ActualHeight;
+        if (width <= margin * 2 || height <= margin * 2) return;
+        TranslatedTextContainer.MaxWidth = Math.Min(800, width - margin * 2);
+        double right = Math.Max(margin, width - TranslatedTextContainer.ActualWidth - margin);
+        double bottom = Math.Max(margin, height - TranslatedTextContainer.ActualHeight - margin);
+        double below = _selectedOcrRegion.Bottom + margin;
+        double top = below <= bottom ? below : _selectedOcrRegion.Top - TranslatedTextContainer.ActualHeight - margin;
+        Canvas.SetLeft(TranslatedTextContainer, Math.Clamp(_selectedOcrRegion.Left, margin, right));
+        Canvas.SetTop(TranslatedTextContainer, Math.Clamp(top, margin, bottom));
+    }
+
+    private void BtnCloseOcr_Click(object sender, RoutedEventArgs e) => DismissOcr();
+
+    private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || (!_isDrawingMode && TranslatedTextContainer.Visibility != Visibility.Visible)) return;
+        if (e.OriginalSource is ComboBox { IsDropDownOpen: true }) return;
+        DismissOcr();
+        e.Handled = true;
+    }
+
+    private void DismissOcr()
+    {
+        _liveOcrCts?.Cancel();
+        _liveOcrCts = null;
+        _isLiveMode = false;
+        _isDrawing = false;
+        _isDrawingMode = false;
+        if (OverlayCanvas.IsMouseCaptured) OverlayCanvas.ReleaseMouseCapture();
+        Background = null;
+        OverlayCanvas.Background = null;
+        SelectionRect.Visibility = Visibility.Collapsed;
+        TranslatedTextContainer.Visibility = Visibility.Collapsed;
+        BtnStartLive.Content = LocalizationManager.Instance.Get("BtnStartOcr");
+        BtnStartLive.ClearValue(Button.BackgroundProperty);
     }
 
     private async void BtnStartLive_Click(object sender, RoutedEventArgs e)
     {
+        if (_isLiveMode)
+        {
+            DismissOcr();
+            return;
+        }
         var loc = LocalizationManager.Instance;
         if (_selectedOcrRegion.Width == 0 || _selectedOcrRegion.Height == 0)
         {
@@ -1300,29 +1330,19 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (!_isLiveMode)
-        {
-            _lastOcrText = string.Empty;
-            _isLiveMode = true;
-            SelectionRect.Stroke = new SolidColorBrush(Colors.Green);
-            SelectionRect.Fill = null;
-            BtnStartLive.Content = loc.Get("BtnStopOcr");
-            BtnStartLive.Background = new SolidColorBrush(Color.FromRgb(255, 165, 0));
-
-            _liveOcrCts = new CancellationTokenSource();
-            _ = RunLiveOcrLoopAsync(_liveOcrCts.Token);
-        }
-        else
-        {
-            _isLiveMode = false;
-            _liveOcrCts?.Cancel();
-
-            SelectionRect.Stroke = new SolidColorBrush(Colors.Red);
-            SelectionRect.Fill = new SolidColorBrush(Color.FromArgb(0x20, 255, 0, 0));
-            TranslatedTextBlock.Text = loc.Get("OcrStopped");
-            BtnStartLive.Content = loc.Get("BtnStartOcr");
-            BtnStartLive.ClearValue(Button.BackgroundProperty);
-        }
+        using var session = new CancellationTokenSource();
+        _liveOcrCts = session;
+        _lastOcrText = string.Empty;
+        _isLiveMode = true;
+        SelectionRect.Stroke = Brushes.LimeGreen;
+        SelectionRect.Fill = null;
+        SelectionRect.Visibility = Visibility.Visible;
+        TranslatedTextContainer.Visibility = Visibility.Visible;
+        PositionOcrResult();
+        BtnStartLive.Content = loc.Get("BtnStopOcr");
+        BtnStartLive.Background = Brushes.DarkOrange;
+        try { await RunLiveOcrLoopAsync(session.Token); }
+        finally { if (_liveOcrCts == session) DismissOcr(); }
     }
 
     private void TxtOcrPackHint_MouseDown(object sender, MouseButtonEventArgs e)
@@ -1339,6 +1359,7 @@ public partial class MainWindow : Window
 
     private async Task RunLiveOcrLoopAsync(CancellationToken token)
     {
+        ScreenOcrService? ocr = null;
         TranslatedTextBlock.Text = LocalizationManager.Instance.Get("OcrStarting");
 
         double dpiScale = GetDpiScale();
@@ -1356,9 +1377,10 @@ public partial class MainWindow : Window
                 string targetLang = GetTargetLanguage();
                 string sourceLang = GetSourceLanguage();
                 
-                _ocrService.ChangeLanguage(sourceLang);
+                ocr ??= new ScreenOcrService();
+                ocr.ChangeLanguage(sourceLang);
                 
-                string text = await Task.Run(() => _ocrService.RecognizeRegionAsync(screenX, screenY, screenW, screenH));
+                string text = await Task.Run(() => ocr.RecognizeRegionAsync(screenX, screenY, screenW, screenH), token);
 
                 if (!token.IsCancellationRequested && !string.IsNullOrWhiteSpace(text))
                 {
@@ -1368,7 +1390,8 @@ public partial class MainWindow : Window
                     // If text is an OCR system warning/error (e.g. language pack missing), display it directly
                     if (cleanText.StartsWith("[OCR") || cleanText.StartsWith("[Error:"))
                     {
-                        Dispatcher.Invoke(() => TranslatedTextBlock.Text = cleanText);
+                        TranslatedTextBlock.Text = cleanText;
+                        await Task.Delay(300, token);
                         continue;
                     }
 
@@ -1385,6 +1408,7 @@ public partial class MainWindow : Window
                         string finalTranslation = "";
                         await _translationProvider.TranslateStreamAsync(cleanText, targetLang, sourceLang, chunk => 
                         {
+                            if (token.IsCancellationRequested) return;
                             finalTranslation = chunk;
                             Dispatcher.Invoke(() =>
                             {
@@ -1398,6 +1422,7 @@ public partial class MainWindow : Window
                             if (JapaneseScriptConverter.IsMultiScriptLanguage(targetLang) && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
                             {
                                 string formatted = await FormatJapaneseTextIfNeededAsync(finalTranslation, targetLang);
+                                if (token.IsCancellationRequested) break;
                                 if (!string.IsNullOrWhiteSpace(formatted) && formatted != finalTranslation)
                                 {
                                     finalTranslation = formatted;
@@ -2004,6 +2029,8 @@ public partial class MainWindow : Window
         if (BtnRefreshModels != null) BtnRefreshModels.Content = loc.Get("BtnRefresh");
 
         if (TxtTitleOcr != null) TxtTitleOcr.Text = loc.Get("TitleOcr");
+        if (TxtOcrResultTitle != null) TxtOcrResultTitle.Text = loc.Get("TitleOcr");
+        if (BtnCloseOcr != null) BtnCloseOcr.Content = loc.Get("FeedbackClose");
         if (BtnDrawArea != null) BtnDrawArea.Content = loc.Get("BtnSelectArea");
         if (BtnStartLive != null) BtnStartLive.Content = _isLiveMode ? loc.Get("BtnStopOcr") : loc.Get("BtnStartOcr");
 

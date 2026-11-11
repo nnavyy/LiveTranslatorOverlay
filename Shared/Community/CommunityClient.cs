@@ -33,8 +33,6 @@ public sealed record CommunityRank(int Rank, string Nickname, long Score, string
     public string ScoreLabel(CommunityBoard board) => board == CommunityBoard.Supporters
         ? "US$" + (Score / 100m).ToString("N2", CultureInfo.InvariantCulture)
         : Score < 60 ? $"{Score} s" : GuestAudioUsage.Format(TimeSpan.FromSeconds(Score));
-
-    public string MedalLabel => Medals is { Length: > 0 } ? string.Join(", ", Medals) : "—";
 }
 
 public sealed record CommunityPage(bool Available, CommunityRank[] Entries, string Message)

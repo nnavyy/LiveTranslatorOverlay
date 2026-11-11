@@ -1,4 +1,6 @@
 using Avalonia;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
@@ -7,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
 using LiveTranslatorOverlay.Core;
+using System.Runtime.InteropServices;
 using ShapePath = Avalonia.Controls.Shapes.Path;
 
 namespace LiveTranslatorMac;
@@ -18,6 +21,7 @@ internal sealed class CommunityWindow : Window
     public CommunityWindow(TimeSpan localUsage, bool showSupport)
     {
         Title = "Live Translator Community";
+        RequestedThemeVariant = ThemeVariant.Dark;
         Width = 720; Height = 680; MinWidth = 560; MinHeight = 440;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         Content = new TabControl
@@ -41,14 +45,26 @@ internal sealed class CommunityWindow : Window
         var message = Surface(status, tinted: false);
         var results = new ItemsControl();
         var scoreTitle = Heading("Audio time", 13);
-        var header = Surface(RankRow(Heading("Rank", 13), Heading("Nickname", 13), scoreTitle, Heading("Medals", 13)), tinted: true);
+        var profile = new ContentControl { IsVisible = false };
+        void OpenProfile(CommunityRank entry, Button origin)
+        {
+            profile.Content = Profile(entry, () =>
+            {
+                profile.Content = null;
+                profile.IsVisible = false;
+                origin.Focus();
+            });
+            profile.IsVisible = true;
+            profile.BringIntoView();
+        }
+        var header = Surface(RankRow(Heading("Rank", 13), Heading("Nickname", 13), scoreTitle), tinted: true);
         results.ItemTemplate = new FuncDataTemplate<CommunityRank>((row, _) => row == null ? null :
             new Border
             {
-                Padding = new Thickness(14, 6),
+                Padding = new Thickness(14, 3),
                 BorderThickness = new Thickness(0, 0, 0, 1), BorderBrush = Outline,
-                Child = RankRow(Line(row.Rank.ToString()), Line(row.Nickname),
-                    Line(row.ScoreLabel((CommunityBoard)board.SelectedIndex)), Line(row.MedalLabel))
+                Child = RankRow(Line(row.Rank.ToString()), ProfileButton(row, OpenProfile),
+                    Line(row.ScoreLabel((CommunityBoard)board.SelectedIndex)))
             });
         AutomationProperties.SetName(board, "Ranking category");
         AutomationProperties.SetName(search, "Search by nickname");
@@ -62,20 +78,20 @@ internal sealed class CommunityWindow : Window
             Spacing = 6, Children = { Heading("Full rankings", 16), header, new ScrollViewer { Content = results, MaxHeight = 218 } }
         };
         var pages = new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { previous, next } };
-        var badge = PodiumAvatar(PodiumBrush(CommunityPodium.StageFill), PodiumBrush(CommunityPodium.StageInk));
+        var badge = PodiumAvatar(PodiumBrush(CommunityPodium.AvatarFill), PodiumBrush(CommunityPodium.AvatarInk));
         DockPanel.SetDock(badge, Dock.Right);
         var intro = new DockPanel { Children =
         {
             badge, new StackPanel { Spacing = 4, Children =
             {
-                Heading("Community rankings", 27), Line($"Your time on this device · {GuestAudioUsage.Format(usage)} · Private")
+                Heading("Community rankings", 27), Line($"Your audio translation time · {GuestAudioUsage.Format(usage)} · Private")
             } }
         } };
         var panel = new StackPanel { Margin = new Thickness(26, 22, 26, 20), Spacing = 10, Children =
         {
             intro,
             Line("Board and nickname search"), new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { board, search, refresh } },
-            podium, standings, message, pages
+            profile, podium, standings, message, pages
         } };
         int offset = 0;
         bool busy = false;
@@ -90,6 +106,8 @@ internal sealed class CommunityWindow : Window
             scoreTitle.Text = category == CommunityBoard.Supporters ? "Contributed" : "Audio time";
             status.Text = "Loading rankings…";
             message.IsVisible = true;
+            profile.Content = null;
+            profile.IsVisible = false;
             podium.Content = null;
             podium.IsVisible = false;
             standings.IsVisible = false;
@@ -103,7 +121,7 @@ internal sealed class CommunityWindow : Window
                 status.Text = data.Message;
                 message.IsVisible = data.Message.Length > 0;
                 var leaders = data.PodiumEntries(query, page);
-                if (leaders.Count > 0) podium.Content = Podium(leaders, category);
+                if (leaders.Count > 0) podium.Content = Podium(leaders, category, OpenProfile);
                 podium.IsVisible = leaders.Count > 0;
                 results.ItemsSource = data.Entries;
                 standings.IsVisible = data.Entries.Length > 0;
@@ -123,12 +141,11 @@ internal sealed class CommunityWindow : Window
         return new ScrollViewer { Content = panel };
     }
 
-    private Border Podium(IReadOnlyList<CommunityRank> leaders, CommunityBoard category)
+    private static Border Podium(IReadOnlyList<CommunityRank> leaders, CommunityBoard category, Action<CommunityRank, Button> openProfile)
     {
-        bool dark = ActualThemeVariant == ThemeVariant.Dark;
         var row = new Grid { MaxWidth = leaders.Count * 184, ColumnSpacing = 10 };
-        var stageInk = PodiumBrush(dark ? "#F5EEFF" : CommunityPodium.StageInk);
-        var faceInk = PodiumBrush(CommunityPodium.StageInk);
+        var stageInk = PodiumBrush(CommunityPodium.StageInk);
+        var faceInk = PodiumBrush(CommunityPodium.AvatarInk);
         for (int index = 0; index < leaders.Count; index++)
         {
             row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
@@ -136,11 +153,9 @@ internal sealed class CommunityWindow : Window
             var (height, fill, ink) = CommunityPodium.Step(leader.Rank);
             var stepFill = PodiumBrush(fill);
             var stepInk = PodiumBrush(ink);
-            var avatar = PodiumAvatar(stepFill, faceInk);
-            var name = PodiumText(leader.Nickname, 14, stageInk);
-            name.TextWrapping = TextWrapping.NoWrap;
-            name.TextTrimming = TextTrimming.CharacterEllipsis;
-            ToolTip.SetTip(name, leader.Nickname);
+            var avatar = PodiumAvatar(stepInk, faceInk);
+            var profile = ProfileButton(leader, openProfile);
+            profile.HorizontalAlignment = HorizontalAlignment.Center;
             var step = new Border
             {
                 Background = stepFill, CornerRadius = new CornerRadius(12, 12, 4, 4), MinHeight = height,
@@ -150,7 +165,7 @@ internal sealed class CommunityWindow : Window
                     Children = { PodiumText($"#{leader.Rank}", 15, stepInk), PodiumText(leader.ScoreLabel(category), 19, stepInk) }
                 }
             };
-            var entry = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Spacing = 5, Children = { avatar, name, step } };
+            var entry = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Spacing = 3, Children = { avatar, profile, step } };
             Grid.SetColumn(entry, CommunityPodium.Column(index, leaders.Count));
             row.Children.Add(entry);
         }
@@ -158,13 +173,73 @@ internal sealed class CommunityWindow : Window
         heading.Foreground = stageInk;
         var unit = Line(category == CommunityBoard.Supporters ? "Verified contributions" : "Audio translation time");
         unit.Foreground = stageInk;
+        if (AnimatePodium())
+        {
+            row.Opacity = 0.75;
+            row.Transitions = new Transitions
+            {
+                new DoubleTransition { Property = OpacityProperty, Duration = TimeSpan.FromMilliseconds(220), Easing = new CubicEaseOut() }
+            };
+            row.Loaded += (_, _) => row.Opacity = 1;
+        }
         return new Border
         {
-            Background = PodiumBrush(dark ? "#302542" : CommunityPodium.StageFill),
-            BorderBrush = PodiumBrush(dark ? "#554269" : CommunityPodium.StageOutline),
+            Background = PodiumBrush(CommunityPodium.StageFill),
+            BorderBrush = PodiumBrush(CommunityPodium.StageOutline),
             BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(16), Padding = new Thickness(16, 12),
             Child = new StackPanel { Spacing = 4, Children = { heading, unit, row } }
         };
+    }
+
+    private static bool AnimatePodium()
+    {
+        if (!OperatingSystem.IsMacOS()) return false;
+        try { return NativeReduceMotion() == 0; }
+        catch (Exception error) when (error is DllNotFoundException or EntryPointNotFoundException) { return false; }
+    }
+
+    [DllImport("libLiveTranslatorAudio.dylib", EntryPoint = "lt_reduce_motion", CallingConvention = CallingConvention.Cdecl)]
+    private static extern int NativeReduceMotion();
+
+    private static Button ProfileButton(CommunityRank entry, Action<CommunityRank, Button> openProfile)
+    {
+        var name = new TextBlock
+        {
+            Text = entry.Nickname, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center
+        };
+        var button = new Button
+        {
+            Content = name, MinHeight = 26, Padding = new Thickness(5, 2),
+            Background = Brushes.Transparent, BorderThickness = new Thickness(0), Foreground = PodiumBrush("#E9DAFF")
+        };
+        AutomationProperties.SetName(button, entry.Nickname);
+        ToolTip.SetTip(button, $"View profile · {entry.Nickname}");
+        button.Click += (_, _) => openProfile(entry, button);
+        return button;
+    }
+
+    private static Border Profile(CommunityRank entry, Action closeProfile)
+    {
+        var close = new Button { Content = "Close profile", VerticalAlignment = VerticalAlignment.Top };
+        close.Click += (_, _) => closeProfile();
+        var avatar = PodiumAvatar(PodiumBrush(CommunityPodium.AvatarFill), PodiumBrush(CommunityPodium.AvatarInk));
+        avatar.Margin = new Thickness(0, 0, 12, 0);
+        DockPanel.SetDock(avatar, Dock.Left);
+        DockPanel.SetDock(close, Dock.Right);
+        var header = new DockPanel { Children = { avatar, close, Heading(entry.Nickname, 22) } };
+        var badges = new WrapPanel { ItemSpacing = 7, LineSpacing = 5 };
+        foreach (var medal in entry.Medals ?? [])
+        {
+            badges.Children.Add(new Border
+            {
+                Child = Heading(medal, 13), Padding = new Thickness(10, 5),
+                Background = PodiumBrush("#453557"), CornerRadius = new CornerRadius(12)
+            });
+        }
+        if (badges.Children.Count == 0) badges.Children.Add(Line("No public badges"));
+        var card = Surface(new StackPanel { Spacing = 6, Children = { header, Heading("Badges", 14), badges } }, tinted: true);
+        card.Loaded += (_, _) => close.Focus();
+        return card;
     }
 
     private static Border PodiumAvatar(IBrush fill, IBrush ink)
@@ -293,10 +368,11 @@ internal sealed class CommunityWindow : Window
 
     private static Grid RankRow(params Control[] cells)
     {
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("48,*,114,132"), ColumnSpacing = 6 };
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("48,*,114"), ColumnSpacing = 6 };
         for (int index = 0; index < cells.Length; index++)
         {
             Grid.SetColumn(cells[index], index);
+            cells[index].VerticalAlignment = VerticalAlignment.Center;
             row.Children.Add(cells[index]);
         }
         return row;
