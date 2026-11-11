@@ -28,11 +28,15 @@ public static class SupportCatalog
 
 public enum CommunityBoard { AllTime, ThisMonth, Supporters }
 
-public sealed record CommunityRank(int Rank, string Nickname, long Score, string[]? Medals)
+public sealed record CommunityRank(int Rank, string Nickname, long Score, string[]? Medals, long? SupportCents = null)
 {
     public string ScoreLabel(CommunityBoard board) => board == CommunityBoard.Supporters
-        ? "US$" + (Score / 100m).ToString("N2", CultureInfo.InvariantCulture)
+        ? FormatSupport(Score)
         : Score < 60 ? $"{Score} s" : GuestAudioUsage.Format(TimeSpan.FromSeconds(Score));
+
+    public string SupportLabel => SupportCents is long cents ? FormatSupport(cents) : "No public total";
+
+    private static string FormatSupport(long cents) => "US$" + (cents / 100m).ToString("N2", CultureInfo.InvariantCulture);
 }
 
 public sealed record CommunityPage(bool Available, CommunityRank[] Entries, string Message)
@@ -92,9 +96,11 @@ public sealed class CommunityClient
             if (!result.Open) return new(false, [], "Public rankings haven’t opened yet.");
             var entries = result.Entries ?? [];
             if (entries.Length > PageSize || entries.Any(row => row == null || row.Rank <= 0 ||
-                row.Nickname is not { Length: > 0 and <= 64 } || row.Score <= 0 ||
+                row.Nickname is not { Length: > 0 and <= 64 } || row.Score <= 0 || row.SupportCents < 0 ||
                 (board != CommunityBoard.Supporters && row.Score >= (long)TimeSpan.MaxValue.TotalSeconds)))
                 return new(false, [], Unavailable);
+            if (board == CommunityBoard.Supporters)
+                entries = entries.Select(row => row with { SupportCents = row.Score }).ToArray();
             return new(true, entries, entries.Length == 0 ? "No matching entries." : "");
         }
         catch (Exception error) when (error is HttpRequestException or JsonException || error is OperationCanceledException && !token.IsCancellationRequested)

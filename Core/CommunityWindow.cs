@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -59,17 +60,20 @@ public sealed class CommunityWindow : Window
         var filters = new WrapPanel { Children = { board, search, refresh } };
         panel.Children.Add(Line("Board and nickname search", bottom: 4));
         panel.Children.Add(filters);
-        var profile = new ContentControl();
+        var profile = new Popup { AllowsTransparency = true, StaysOpen = false, Placement = PlacementMode.Bottom, VerticalOffset = 6 };
         panel.Children.Add(profile);
         void OpenProfile(CommunityRank entry, Button origin)
         {
-            profile.Content = Profile(entry, () =>
+            profile.IsOpen = false;
+            profile.PlacementTarget = origin;
+            profile.Child = Profile(entry, () =>
             {
-                profile.Content = null;
+                profile.IsOpen = false;
                 origin.Focus();
             });
-            profile.BringIntoView();
+            profile.IsOpen = true;
         }
+        profile.Closed += (_, _) => profile.Child = null;
         var podium = new ContentControl();
         panel.Children.Add(podium);
         var previous = ActionButton("Previous");
@@ -122,7 +126,7 @@ public sealed class CommunityWindow : Window
             scoreColumn.Header = category == CommunityBoard.Supporters ? "Contributed" : "Audio time";
             status.Text = "Loading rankings…";
             message.Visibility = Visibility.Visible;
-            profile.Content = null;
+            profile.IsOpen = false;
             podium.Content = null;
             standings.Visibility = Visibility.Collapsed;
             pages.Visibility = Visibility.Collapsed;
@@ -216,6 +220,8 @@ public sealed class CommunityWindow : Window
     private static Border Profile(CommunityRank entry, Action closeProfile)
     {
         var close = ActionButton("Close profile");
+        close.Margin = new Thickness(8, 0, 0, 0);
+        close.VerticalAlignment = VerticalAlignment.Top;
         close.Click += (_, _) => closeProfile();
         var avatar = PodiumAvatar(PodiumBrush(CommunityPodium.AvatarFill, SystemColors.WindowBrush),
             PodiumBrush(CommunityPodium.AvatarInk, SystemColors.WindowTextBrush));
@@ -223,18 +229,43 @@ public sealed class CommunityWindow : Window
         DockPanel.SetDock(avatar, Dock.Left);
         DockPanel.SetDock(close, Dock.Right);
         var header = new DockPanel { Children = { avatar, close, Heading(entry.Nickname, 22) } };
-        var badges = new WrapPanel { Margin = new Thickness(0, 7, 0, 0) };
-        foreach (var medal in entry.Medals ?? [])
+        var badges = new WrapPanel { Margin = new Thickness(0, 4, 0, 0) };
+        var detail = Line("", size: 12, bottom: 0);
+        detail.Visibility = Visibility.Collapsed;
+        foreach (var badge in CommunityBadge.For(entry))
         {
-            badges.Children.Add(new Border
+            var icon = new Canvas { Width = 28, Height = 28 };
+            icon.Children.Add(new ShapePath { Data = Geometry.Parse(badge.Body), Fill = PodiumBrush(badge.Color, SystemColors.HotTrackBrush) });
+            icon.Children.Add(new ShapePath { Data = Geometry.Parse(badge.Detail), Fill = PodiumBrush("#302241", SystemColors.ControlBrush) });
+            var tile = new Button
             {
-                Child = Heading(medal, 13), Padding = new Thickness(10, 5, 10, 0),
-                Background = PodiumBrush("#453557", SystemColors.ControlBrush),
-                CornerRadius = new CornerRadius(12), Margin = new Thickness(0, 0, 7, 5)
-            });
+                Content = icon, Width = 46, Height = 46, Padding = new Thickness(0),
+                Margin = new Thickness(0, 0, 8, 6), ToolTip = badge.Name
+            };
+            System.Windows.Automation.AutomationProperties.SetName(tile, badge.Name);
+            tile.Click += (_, _) =>
+            {
+                detail.Text = badge.Name;
+                detail.Visibility = Visibility.Visible;
+            };
+            badges.Children.Add(tile);
         }
         if (badges.Children.Count == 0) badges.Children.Add(Line("No public badges", bottom: 0));
-        var card = Surface(new StackPanel { Children = { header, Heading("Badges", 14), badges } }, tinted: true);
+        var card = Surface(new StackPanel { Children =
+        {
+            header, Line("Verified contributions", size: 12, bottom: 2),
+            Heading(entry.SupportLabel, 19), Heading("Badges", 14), badges, detail
+        } }, tinted: true);
+        card.Width = 328;
+        card.Margin = new Thickness(0);
+        card.SetValue(System.Windows.Documents.TextElement.ForegroundProperty,
+            PodiumBrush(CommunityPodium.StageInk, SystemColors.WindowTextBrush));
+        card.PreviewKeyDown += (_, args) =>
+        {
+            if (args.Key != System.Windows.Input.Key.Escape) return;
+            closeProfile();
+            args.Handled = true;
+        };
         card.Loaded += (_, _) => close.Focus();
         return card;
     }

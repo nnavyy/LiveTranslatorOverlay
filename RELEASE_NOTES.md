@@ -9,7 +9,7 @@ This private candidate prepares the machine-learning release line. Public releas
 - The Windows installer and both applications use the same versioned terms and privacy documents. The Windows installer offers to prepare missing speech models. Valid models are reused, and first audio use can prepare missing files later.
 - Windows shows the installed version in Settings. Developer launches have a visible mode badge and keep the flag when restarting after an update. The updater explains when the public 1.x feed has not launched.
 - The Community rankings preview adds a cartoon podium for the top three public profiles on each configured board. The podium shows audio translation time or verified contributions, and the full standings remain searchable.
-- Community uses a dark theme and briefly animates the podium when rankings load. Open a nickname to see the player's public badges on their profile.
+- Community uses a dark theme and briefly animates the podium when rankings load. Select a nickname to open a profile popup with illustrated badges and the player's verified contribution total when they share it publicly.
 - Windows Screen OCR closes from the result panel, the Stop OCR button, or Escape. The result panel stays within the screen edges.
 
 The candidate includes a Mac audio capture bridge and floating captions. Both apps display a private audio usage total and the planned Supporter, Insider, and donation offers. Community has all-time, monthly, and supporter boards for a configured staging backend. Public accounts, payments, private messaging, and the Insider library are pending. Native device and permission testing are release gates.

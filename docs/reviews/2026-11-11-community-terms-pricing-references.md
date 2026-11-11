@@ -19,7 +19,7 @@
 | [Strava segment results](https://support.strava.com/en-us/articles/15401900-how-do-i-view-my-segment-results-on-strava) | Keep the personal total and the searchable standings separate from the podium. |
 | [Khan Academy points and badges](https://support.khanacademy.org/hc/en-us/articles/202487710-What-are-energy-points-badges-and-avatars) | Label what the score measures and show earned medals separately. |
 
-The first unfiltered page shows up to three opted-in profiles. Tied ranks use the same place label and step height. Audio boards use tracked translation time as the score. The supporter board uses verified contributions. Select a nickname in the podium or table to see the profile and the badges the player chose to share. The dark palette matches the desktop app, and the podium respects the system's reduced-motion setting. Search and pagination keep the complete ranked table, and closed or empty boards keep their status message.
+The first unfiltered page shows up to three opted-in profiles. Tied ranks use the same place label and step height. Audio boards use tracked translation time as the score. The supporter board uses verified contributions. Select a nickname in the podium or table to open a popup next to it. The popup shows illustrated badges the player chose to share and their verified contributions after refunds if they made that total public. The dark palette matches the desktop app, and the podium respects the system's reduced-motion setting. Search and pagination keep the complete ranked table, and closed or empty boards keep their status message.
 
 ## Offers
 

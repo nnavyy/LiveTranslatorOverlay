@@ -3,6 +3,7 @@ using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -45,18 +46,23 @@ internal sealed class CommunityWindow : Window
         var message = Surface(status, tinted: false);
         var results = new ItemsControl();
         var scoreTitle = Heading("Audio time", 13);
-        var profile = new ContentControl { IsVisible = false };
+        var profile = new Popup { IsLightDismissEnabled = true, Placement = PlacementMode.Bottom, VerticalOffset = 6 };
         void OpenProfile(CommunityRank entry, Button origin)
         {
-            profile.Content = Profile(entry, () =>
+            profile.IsOpen = false;
+            profile.PlacementTarget = origin;
+            profile.Child = new ThemeVariantScope
             {
-                profile.Content = null;
-                profile.IsVisible = false;
-                origin.Focus();
-            });
-            profile.IsVisible = true;
-            profile.BringIntoView();
+                RequestedThemeVariant = ThemeVariant.Dark,
+                Child = Profile(entry, () =>
+                {
+                    profile.IsOpen = false;
+                    origin.Focus();
+                })
+            };
+            profile.IsOpen = true;
         }
+        profile.Closed += (_, _) => profile.Child = null;
         var header = Surface(RankRow(Heading("Rank", 13), Heading("Nickname", 13), scoreTitle), tinted: true);
         results.ItemTemplate = new FuncDataTemplate<CommunityRank>((row, _) => row == null ? null :
             new Border
@@ -91,7 +97,7 @@ internal sealed class CommunityWindow : Window
         {
             intro,
             Line("Board and nickname search"), new WrapPanel { ItemSpacing = 8, LineSpacing = 8, Children = { board, search, refresh } },
-            profile, podium, standings, message, pages
+            new Grid { Children = { profile, podium } }, standings, message, pages
         } };
         int offset = 0;
         bool busy = false;
@@ -106,8 +112,7 @@ internal sealed class CommunityWindow : Window
             scoreTitle.Text = category == CommunityBoard.Supporters ? "Contributed" : "Audio time";
             status.Text = "Loading rankings…";
             message.IsVisible = true;
-            profile.Content = null;
-            profile.IsVisible = false;
+            profile.IsOpen = false;
             podium.Content = null;
             podium.IsVisible = false;
             standings.IsVisible = false;
@@ -228,16 +233,43 @@ internal sealed class CommunityWindow : Window
         DockPanel.SetDock(close, Dock.Right);
         var header = new DockPanel { Children = { avatar, close, Heading(entry.Nickname, 22) } };
         var badges = new WrapPanel { ItemSpacing = 7, LineSpacing = 5 };
-        foreach (var medal in entry.Medals ?? [])
+        var detail = Line("", 12);
+        detail.IsVisible = false;
+        foreach (var badge in CommunityBadge.For(entry))
         {
-            badges.Children.Add(new Border
+            var icon = new Canvas { Width = 28, Height = 28 };
+            icon.Children.Add(new ShapePath { Data = Geometry.Parse(badge.Body), Fill = PodiumBrush(badge.Color) });
+            icon.Children.Add(new ShapePath { Data = Geometry.Parse(badge.Detail), Fill = PodiumBrush("#302241") });
+            var tile = new Button
             {
-                Child = Heading(medal, 13), Padding = new Thickness(10, 5),
-                Background = PodiumBrush("#453557"), CornerRadius = new CornerRadius(12)
-            });
+                Content = icon, Width = 46, Height = 46, Padding = new Thickness(0),
+                HorizontalContentAlignment = HorizontalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center
+            };
+            AutomationProperties.SetName(tile, badge.Name);
+            ToolTip.SetTip(tile, badge.Name);
+            tile.Click += (_, _) =>
+            {
+                detail.Text = badge.Name;
+                detail.IsVisible = true;
+            };
+            badges.Children.Add(tile);
         }
         if (badges.Children.Count == 0) badges.Children.Add(Line("No public badges"));
-        var card = Surface(new StackPanel { Spacing = 6, Children = { header, Heading("Badges", 14), badges } }, tinted: true);
+        var card = Surface(new StackPanel { Spacing = 6, Children =
+        {
+            header, Line("Verified contributions", 12), Heading(entry.SupportLabel, 19),
+            Heading("Badges", 14), badges, detail
+        } }, tinted: true);
+        card.Width = 328;
+        card.Background = PodiumBrush(CommunityPodium.StageFill);
+        card.BorderBrush = PodiumBrush(CommunityPodium.StageOutline);
+        Avalonia.Controls.Documents.TextElement.SetForeground(card, PodiumBrush(CommunityPodium.StageInk));
+        card.KeyDown += (_, args) =>
+        {
+            if (args.Key != Key.Escape) return;
+            closeProfile();
+            args.Handled = true;
+        };
         card.Loaded += (_, _) => close.Focus();
         return card;
     }

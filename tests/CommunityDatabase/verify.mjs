@@ -23,6 +23,7 @@ try {
   `);
   await db.exec(await readFile(new URL('../../supabase/migrations/20261110152000_community_rankings.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(new URL('../../supabase/migrations/20261111100000_manual_purchase_preview.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../../supabase/migrations/20261111210000_public_profile_support.sql', import.meta.url), 'utf8'));
   const board = async (kind, search = '', offset = 0) =>
     (await db.query('select public.lt_community_board($1, $2, $3) as board', [kind, search, offset])).rows[0].board;
 
@@ -77,15 +78,15 @@ try {
 
   await db.exec('set role anon');
   assert.deepEqual((await board('all')).entries, [
-    { rank: 1, nickname: 'Alice', score: 21, medals: ['Insider'] },
-    { rank: 2, nickname: 'Bob', score: 11, medals: [] }
+    { rank: 1, nickname: 'Alice', score: 21, medals: ['Insider'], supportCents: 10000 },
+    { rank: 2, nickname: 'Bob', score: 11, medals: [], supportCents: 10000 }
   ]);
   assert.deepEqual((await board('month')).entries.map(row => [row.rank, row.nickname, row.score]), [[1, 'Alice', 11], [1, 'Bob', 11]]);
   assert.deepEqual((await board('all', 'BO')).entries.map(row => [row.rank, row.nickname]), [[2, 'Bob']]);
   assert.deepEqual((await board('all', '', 1)).entries.map(row => row.nickname), ['Bob']);
   assert.deepEqual((await board('supporters')).entries, [
-    { rank: 1, nickname: 'Alice', score: 10000, medals: ['Insider'] },
-    { rank: 1, nickname: 'Bob', score: 10000, medals: [] }
+    { rank: 1, nickname: 'Alice', score: 10000, medals: ['Insider'], supportCents: 10000 },
+    { rank: 1, nickname: 'Bob', score: 10000, medals: [], supportCents: 10000 }
   ]);
   await assert.rejects(db.query('select * from community_private.verified_support'), { code: '42501' });
   const requestPurchase = async (offer) => (await db.query('select public.lt_request_manual_purchase($1) as id', [offer])).rows[0].id;
@@ -108,6 +109,13 @@ try {
   await assert.rejects(db.query('select * from community_private.manual_purchase_requests'), { code: '42501' });
   await setUser(bob);
   assert.notEqual(await requestPurchase('supporter'), firstRequest);
+  await db.exec('reset role');
+  await setUser(alice);
+  await save('Alice', true, false, true);
+  await db.exec('set role anon');
+  assert.deepEqual((await board('all', 'alice')).entries[0],
+    { rank: 1, nickname: 'Alice', score: 21, medals: ['Insider'], supportCents: null });
+  assert.equal((await board('supporters', 'alice')).entries.length, 0);
   await db.exec('reset role');
   assert.equal((await db.query('select count(*)::integer as count from community_private.manual_purchase_requests')).rows[0].count, 3);
   assert.equal((await db.query('select count(*)::integer as count from community_private.verified_support')).rows[0].count, 4);

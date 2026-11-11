@@ -218,7 +218,11 @@ try
     var closed = await connected.ReadAsync(CommunityBoard.ThisMonth, " Ali ", 50);
     var open = await connected.ReadAsync(CommunityBoard.ThisMonth, " Ali ", 50);
     Confirm("Community shows server ranks and stays private when disconnected or closed",
-        !disconnected.Available && !closed.Available && open.Available && open.Entries is [{ Rank: 3, Nickname: "Alice", Score: 3660 }]
+        !disconnected.Available && !closed.Available && open.Available &&
+        open.Entries is [{ Rank: 3, Nickname: "Alice", Score: 3660, SupportLabel: "US$19.99" }]
+        && CommunityBadge.For(open.Entries[0]).Select(badge => badge.Name).SequenceEqual(["Supporter"])
+        && (open.Entries[0] with { SupportCents = null }).SupportLabel == "No public total"
+        && (open.Entries[0] with { SupportCents = 0 }).SupportLabel == "US$0.00"
         && communityHandler.Calls == 2 && communityHandler.CorrectRequest,
         $"network calls={communityHandler.Calls}; entries={open.Entries.Length}");
     var standings = new CommunityPage(true,
@@ -311,7 +315,7 @@ sealed class CommunityHandler : HttpMessageHandler
         return new HttpResponseMessage(HttpStatusCode.OK)
         {
             Content = new StringContent(++Calls == 1 ? """{"open":false,"entries":[]}"""
-                : """{"open":true,"entries":[{"rank":3,"nickname":"Alice","score":3660,"medals":[]}]}""")
+                : """{"open":true,"entries":[{"rank":3,"nickname":"Alice","score":3660,"medals":["Supporter","unknown"],"supportCents":1999}]}""")
         };
     }
 }
