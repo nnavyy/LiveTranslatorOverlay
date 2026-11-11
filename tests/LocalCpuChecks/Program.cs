@@ -39,6 +39,41 @@ if (args.Contains("--ui"))
             Check(speech.SelectedIndex == 2 && translation.SelectedIndex == 0, "WPF starts with local speech and key-free translation selected");
             Check(((System.Windows.Controls.PasswordBox)window.FindName("TxtApiKey")).Password == "", "Fresh UI requires no API key");
             Check(!((System.Windows.Controls.ComboBoxItem)window.FindName("ItemLocalTranslation")).IsEnabled, "Unconfigured advanced translation cannot be selected");
+            var result = (System.Windows.FrameworkElement)window.FindName("TranslatedTextContainer");
+            var selection = (System.Windows.FrameworkElement)window.FindName("SelectionRect");
+            var closeOcr = window.FindName("BtnCloseOcr") as System.Windows.Controls.Button;
+            Check(closeOcr != null, "The OCR result panel has a Close button");
+            void VerifyDismissal(string action, Action dismiss)
+            {
+                using var session = new CancellationTokenSource();
+                typeof(LiveTranslatorOverlay.MainWindow).GetField("_liveOcrCts", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(window, session);
+                typeof(LiveTranslatorOverlay.MainWindow).GetField("_isLiveMode", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(window, true);
+                result.Visibility = selection.Visibility = System.Windows.Visibility.Visible;
+                dismiss();
+                Check(session.IsCancellationRequested && result.Visibility == System.Windows.Visibility.Collapsed &&
+                    selection.Visibility == System.Windows.Visibility.Collapsed, $"{action} cancels OCR and hides the result and selection");
+            }
+            VerifyDismissal("Close", () => closeOcr!.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)));
+            var stopOcr = (System.Windows.Controls.Button)window.FindName("BtnStartLive");
+            VerifyDismissal("Stop", () => stopOcr.RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Button.ClickEvent)));
+            using var inputSource = new System.Windows.Interop.HwndSource(new System.Windows.Interop.HwndSourceParameters("OCR keyboard test"));
+            VerifyDismissal("Escape", () => window.RaiseEvent(new System.Windows.Input.KeyEventArgs(
+                System.Windows.Input.Keyboard.PrimaryDevice, inputSource, 0, System.Windows.Input.Key.Escape)
+            {
+                RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent
+            }));
+            var canvas = (System.Windows.Controls.Canvas)window.FindName("OverlayCanvas");
+            typeof(LiveTranslatorOverlay.MainWindow).GetField("_selectedOcrRegion", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .SetValue(window, new System.Windows.Rect(370, 275, 30, 25));
+            result.Visibility = System.Windows.Visibility.Visible;
+            canvas.Measure(new System.Windows.Size(400, 300));
+            canvas.Arrange(new System.Windows.Rect(0, 0, 400, 300));
+            typeof(LiveTranslatorOverlay.MainWindow).GetMethod("PositionOcrResult", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .Invoke(window, null);
+            double left = System.Windows.Controls.Canvas.GetLeft(result);
+            double top = System.Windows.Controls.Canvas.GetTop(result);
+            Check(result.ActualWidth > 0 && left >= 0 && top >= 0 && left + result.ActualWidth <= 400 &&
+                top + result.ActualHeight <= 300, "The OCR result stays on-screen after a bottom-right selection");
             window.Close();
             app.Shutdown();
         }

@@ -4,7 +4,7 @@
 
 | Surface | Reference | Applied in Live Translator Overlay |
 | --- | --- | --- |
-| Rankings | [Strava segment results](https://support.strava.com/en-us/articles/15401900-how-do-i-view-my-segment-results-on-strava) | Separate personal activity from the public table. Show rank, nickname, audio time or verified contributions, and medals. Offer all-time usage, this month in UTC, and supporter views. A search preserves the original rank. |
+| Rankings | [Strava segment results](https://support.strava.com/en-us/articles/15401900-how-do-i-view-my-segment-results-on-strava) | Separate personal activity from the public table. Show rank, nickname, and audio time or verified contributions. Offer all-time usage, this month in UTC, and supporter views. A search preserves the original rank. |
 | Terms | [Visual Studio Code license](https://code.visualstudio.com/license) | Separate application terms and the privacy notice, give each document readable headings, show the bundled revision, and keep consent actions below the scroll area. The preview uses the existing documents and acceptance receipt. |
 | Pricing | [GitHub plans and pricing](https://github.com/pricing) and [OBS Project support](https://obsproject.com/contribute) | Align the two lifetime prices and their benefits. Explain what purchases fund, give donations a separate row, and keep stable translation free. |
 
@@ -19,7 +19,7 @@
 | [Strava segment results](https://support.strava.com/en-us/articles/15401900-how-do-i-view-my-segment-results-on-strava) | Keep the personal total and the searchable standings separate from the podium. |
 | [Khan Academy points and badges](https://support.khanacademy.org/hc/en-us/articles/202487710-What-are-energy-points-badges-and-avatars) | Label what the score measures and show earned medals separately. |
 
-The first unfiltered page shows up to three opted-in profiles. Tied ranks use the same place label and step height. Audio boards use tracked translation time as the score. The supporter board uses verified contributions. Search and pagination keep the complete ranked table, and closed or empty boards keep their status message.
+The first unfiltered page shows up to three opted-in profiles. Tied ranks use the same place label and step height. Audio boards use tracked translation time as the score. The supporter board uses verified contributions. Select a nickname in the podium or table to see the profile and the badges the player chose to share. The dark palette matches the desktop app, and the podium respects the system's reduced-motion setting. Search and pagination keep the complete ranked table, and closed or empty boards keep their status message.
 
 ## Offers
 

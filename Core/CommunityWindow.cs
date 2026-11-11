@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using ShapePath = System.Windows.Shapes.Path;
 
 namespace LiveTranslatorOverlay.Core;
@@ -16,9 +17,17 @@ public sealed class CommunityWindow : Window
         Title = "Live Translator Community";
         Width = 720; Height = 680; MinWidth = 560; MinHeight = 440;
         FontSize = 14;
-        Background = SystemColors.WindowBrush;
+        if (!SystemParameters.HighContrast)
+        {
+            Resources.MergedDictionaries.Add(new ResourceDictionary
+            {
+                Source = new Uri("pack://application:,,,/PresentationFramework.Fluent;component/Themes/Fluent.Dark.xaml")
+            });
+        }
+        Background = PodiumBrush("#202124", SystemColors.WindowBrush);
+        Foreground = PodiumBrush("#F2F2F7", SystemColors.WindowTextBrush);
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        var tabs = new TabControl { Background = SystemColors.WindowBrush };
+        var tabs = new TabControl { Background = Background };
         tabs.Items.Add(new TabItem { Header = "Rankings", Padding = new Thickness(14, 7, 14, 7), Content = Rankings(localUsage) });
         tabs.Items.Add(new TabItem { Header = "Support development", Padding = new Thickness(14, 7, 14, 7), Content = Offers() });
         tabs.SelectedIndex = showSupport ? 1 : 0;
@@ -31,44 +40,68 @@ public sealed class CommunityWindow : Window
     {
         var client = new CommunityClient(AppSettings.DataDirectory);
         var panel = new StackPanel { Margin = new Thickness(26, 22, 26, 20) };
-        var badge = PodiumAvatar(PodiumBrush(CommunityPodium.StageFill, SystemColors.WindowBrush),
-            PodiumBrush(CommunityPodium.StageInk, SystemColors.WindowTextBrush));
+        var badge = PodiumAvatar(PodiumBrush(CommunityPodium.AvatarFill, SystemColors.WindowBrush),
+            PodiumBrush(CommunityPodium.AvatarInk, SystemColors.WindowTextBrush));
         DockPanel.SetDock(badge, Dock.Right);
         panel.Children.Add(new DockPanel { Children =
         {
             badge, new StackPanel { Children =
             {
                 Heading("Community rankings", 27),
-                Line($"Your time on this device · {GuestAudioUsage.Format(usage)} · Private")
+                Line($"Your audio translation time · {GuestAudioUsage.Format(usage)} · Private")
             } }
         } });
         var board = new ComboBox { ItemsSource = new[] { "All-time usage", "This month (UTC)", "Supporters" }, SelectedIndex = 0, MinWidth = 154, Padding = new Thickness(7, 4, 7, 4), Margin = new Thickness(0, 0, 8, 8) };
         System.Windows.Automation.AutomationProperties.SetName(board, "Ranking category");
         var search = new TextBox { MaxLength = 24, MinWidth = 132, Padding = new Thickness(6, 4, 6, 4), Margin = new Thickness(0, 0, 8, 8) };
         System.Windows.Automation.AutomationProperties.SetName(search, "Search by nickname");
-        var refresh = Button("Find");
+        var refresh = ActionButton("Find");
         var filters = new WrapPanel { Children = { board, search, refresh } };
         panel.Children.Add(Line("Board and nickname search", bottom: 4));
         panel.Children.Add(filters);
+        var profile = new ContentControl();
+        panel.Children.Add(profile);
+        void OpenProfile(CommunityRank entry, Button origin)
+        {
+            profile.Content = Profile(entry, () =>
+            {
+                profile.Content = null;
+                origin.Focus();
+            });
+            profile.BringIntoView();
+        }
         var podium = new ContentControl();
         panel.Children.Add(podium);
-        var previous = Button("Previous");
-        var next = Button("Next");
+        var previous = ActionButton("Previous");
+        var next = ActionButton("Next");
         var status = Line("", bottom: 0);
         System.Windows.Automation.AutomationProperties.SetLiveSetting(status, System.Windows.Automation.AutomationLiveSetting.Polite);
-        var scoreColumn = Column("Audio time", "Score", 114);
+        var scoreColumn = Column("Audio time", "Score", 128);
         var results = new DataGrid
         {
             AutoGenerateColumns = false, IsReadOnly = true, CanUserAddRows = false,
             CanUserSortColumns = false, CanUserResizeColumns = false, CanUserReorderColumns = false,
             HeadersVisibility = DataGridHeadersVisibility.Column, GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-            HorizontalGridLinesBrush = SystemColors.ControlLightBrush, Background = SystemColors.WindowBrush,
-            MaxHeight = 250, RowHeight = 32, Margin = new Thickness(0, 4, 0, 10)
+            HorizontalGridLinesBrush = PodiumBrush("#383842", SystemColors.ControlLightBrush),
+            Background = Background, Foreground = Foreground,
+            MaxHeight = 250, RowHeight = 36, Margin = new Thickness(0, 4, 0, 10)
         };
-        results.Columns.Add(Column("Rank", "Rank", 48));
-        results.Columns.Add(new DataGridTextColumn { Header = "Nickname", Binding = new Binding("Nickname"), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+        results.Columns.Add(Column("Rank", "Rank", 66));
+        var nickname = new FrameworkElementFactory(typeof(Button));
+        nickname.SetBinding(Button.ContentProperty, new Binding("Nickname"));
+        nickname.SetBinding(Button.TagProperty, new Binding("Entry"));
+        nickname.SetValue(Button.StyleProperty, ProfileButtonStyle());
+        nickname.SetValue(Button.HorizontalContentAlignmentProperty, HorizontalAlignment.Left);
+        nickname.AddHandler(Button.ClickEvent, new RoutedEventHandler((sender, _) =>
+        {
+            if (sender is Button { Tag: CommunityRank entry } button) OpenProfile(entry, button);
+        }));
+        results.Columns.Add(new DataGridTemplateColumn
+        {
+            Header = "Nickname", CellTemplate = new DataTemplate { VisualTree = nickname },
+            Width = new DataGridLength(1, DataGridLengthUnitType.Star)
+        });
         results.Columns.Add(scoreColumn);
-        results.Columns.Add(Column("Medals", "Medals", 132));
         System.Windows.Automation.AutomationProperties.SetName(results, "Ranking results");
         var standings = new StackPanel { Children = { Heading("Full rankings", 16), results } };
         panel.Children.Add(standings);
@@ -89,6 +122,7 @@ public sealed class CommunityWindow : Window
             scoreColumn.Header = category == CommunityBoard.Supporters ? "Contributed" : "Audio time";
             status.Text = "Loading rankings…";
             message.Visibility = Visibility.Visible;
+            profile.Content = null;
             podium.Content = null;
             standings.Visibility = Visibility.Collapsed;
             pages.Visibility = Visibility.Collapsed;
@@ -101,8 +135,8 @@ public sealed class CommunityWindow : Window
                 status.Text = data.Message;
                 message.Visibility = data.Message.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
                 var leaders = data.PodiumEntries(query, page);
-                if (leaders.Count > 0) podium.Content = Podium(leaders, category);
-                results.ItemsSource = data.Entries.Select(row => new { row.Rank, row.Nickname, Score = row.ScoreLabel(category), Medals = row.MedalLabel }).ToArray();
+                if (leaders.Count > 0) podium.Content = Podium(leaders, category, OpenProfile);
+                results.ItemsSource = data.Entries.Select(entry => new { entry.Rank, entry.Nickname, Score = entry.ScoreLabel(category), Entry = entry }).ToArray();
                 standings.Visibility = data.Entries.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
                 previous.IsEnabled = data.Available && offset > 0;
                 next.IsEnabled = data.Available && data.Entries.Length == CommunityClient.PageSize;
@@ -120,10 +154,11 @@ public sealed class CommunityWindow : Window
         return new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
     }
 
-    private static Border Podium(IReadOnlyList<CommunityRank> leaders, CommunityBoard category)
+    private static Border Podium(IReadOnlyList<CommunityRank> leaders, CommunityBoard category, Action<CommunityRank, Button> openProfile)
     {
         var row = new Grid { MaxWidth = leaders.Count * 184 };
         var stageInk = PodiumBrush(CommunityPodium.StageInk, SystemColors.WindowTextBrush);
+        var avatarInk = PodiumBrush(CommunityPodium.AvatarInk, SystemColors.WindowTextBrush);
         for (int index = 0; index < leaders.Count; index++)
         {
             row.ColumnDefinitions.Add(new ColumnDefinition());
@@ -131,12 +166,13 @@ public sealed class CommunityWindow : Window
             var (height, fill, ink) = CommunityPodium.Step(leader.Rank);
             var stepFill = PodiumBrush(fill, SystemColors.ControlBrush);
             var stepInk = PodiumBrush(ink, SystemColors.ControlTextBrush);
-            var avatar = PodiumAvatar(stepFill, stageInk);
+            var avatar = PodiumAvatar(stepInk, avatarInk);
             var name = PodiumText(leader.Nickname, 14, stageInk);
             name.TextWrapping = TextWrapping.NoWrap;
             name.TextTrimming = TextTrimming.CharacterEllipsis;
-            name.ToolTip = leader.Nickname;
-            name.Margin = new Thickness(0, 0, 0, 8);
+            var profile = new Button { Content = name, Style = ProfileButtonStyle() };
+            System.Windows.Automation.AutomationProperties.SetName(profile, leader.Nickname);
+            profile.Click += (_, _) => openProfile(leader, profile);
             var step = new Border
             {
                 Background = stepFill, BorderBrush = stepInk, BorderThickness = SystemParameters.HighContrast ? new Thickness(1) : new Thickness(0),
@@ -147,7 +183,7 @@ public sealed class CommunityWindow : Window
                     Children = { PodiumText($"#{leader.Rank}", 15, stepInk), PodiumText(leader.ScoreLabel(category), 19, stepInk) }
                 }
             };
-            var entry = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(5, 0, 5, 0), Children = { avatar, name, step } };
+            var entry = new StackPanel { VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(5, 0, 5, 0), Children = { avatar, profile, step } };
             Grid.SetColumn(entry, CommunityPodium.Column(index, leaders.Count));
             row.Children.Add(entry);
         }
@@ -155,7 +191,7 @@ public sealed class CommunityWindow : Window
         heading.Foreground = stageInk;
         var unit = Line(category == CommunityBoard.Supporters ? "Verified contributions" : "Audio translation time", bottom: 1);
         unit.Foreground = stageInk;
-        return new Border
+        var stage = new Border
         {
             Background = PodiumBrush(CommunityPodium.StageFill, SystemColors.WindowBrush),
             BorderBrush = PodiumBrush(CommunityPodium.StageOutline, SystemColors.WindowTextBrush),
@@ -163,6 +199,55 @@ public sealed class CommunityWindow : Window
             Padding = new Thickness(16, 12, 16, 12), Margin = new Thickness(0, 4, 0, 15),
             Child = new StackPanel { Children = { heading, unit, row } }
         };
+        if (SystemParameters.ClientAreaAnimation && !SystemParameters.HighContrast)
+        {
+            var shift = new TranslateTransform();
+            row.RenderTransform = shift;
+            var duration = TimeSpan.FromMilliseconds(220);
+            shift.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(8, 0, duration)
+            {
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop
+            });
+            row.BeginAnimation(OpacityProperty, new DoubleAnimation(0.75, 1, duration) { FillBehavior = FillBehavior.Stop });
+        }
+        return stage;
+    }
+
+    private static Border Profile(CommunityRank entry, Action closeProfile)
+    {
+        var close = ActionButton("Close profile");
+        close.Click += (_, _) => closeProfile();
+        var avatar = PodiumAvatar(PodiumBrush(CommunityPodium.AvatarFill, SystemColors.WindowBrush),
+            PodiumBrush(CommunityPodium.AvatarInk, SystemColors.WindowTextBrush));
+        avatar.Margin = new Thickness(0, 0, 12, 0);
+        DockPanel.SetDock(avatar, Dock.Left);
+        DockPanel.SetDock(close, Dock.Right);
+        var header = new DockPanel { Children = { avatar, close, Heading(entry.Nickname, 22) } };
+        var badges = new WrapPanel { Margin = new Thickness(0, 7, 0, 0) };
+        foreach (var medal in entry.Medals ?? [])
+        {
+            badges.Children.Add(new Border
+            {
+                Child = Heading(medal, 13), Padding = new Thickness(10, 5, 10, 0),
+                Background = PodiumBrush("#453557", SystemColors.ControlBrush),
+                CornerRadius = new CornerRadius(12), Margin = new Thickness(0, 0, 7, 5)
+            });
+        }
+        if (badges.Children.Count == 0) badges.Children.Add(Line("No public badges", bottom: 0));
+        var card = Surface(new StackPanel { Children = { header, Heading("Badges", 14), badges } }, tinted: true);
+        card.Loaded += (_, _) => close.Focus();
+        return card;
+    }
+
+    private static Style ProfileButtonStyle()
+    {
+        var style = new Style(typeof(Button));
+        style.Setters.Add(new Setter(BackgroundProperty, Brushes.Transparent));
+        style.Setters.Add(new Setter(ForegroundProperty, PodiumBrush("#E9DAFF", SystemColors.HotTrackBrush)));
+        style.Setters.Add(new Setter(BorderThicknessProperty, new Thickness(0)));
+        style.Setters.Add(new Setter(PaddingProperty, new Thickness(6, 2, 6, 2)));
+        style.Setters.Add(new Setter(ToolTipProperty, "View profile"));
+        return style;
     }
 
     private static Border PodiumAvatar(Brush fill, Brush ink)
@@ -236,9 +321,9 @@ public sealed class CommunityWindow : Window
         }
         panel.Children.Add(Surface(purchase, tinted: true));
         var actions = new WrapPanel();
-        var terms = Button("Terms and privacy");
+        var terms = ActionButton("Terms and privacy");
         terms.Click += (_, _) => App.ShowTerms(this);
-        var close = Button("Close");
+        var close = ActionButton("Close");
         close.IsCancel = true;
         close.Click += (_, _) => Close();
         actions.Children.Add(terms); actions.Children.Add(close);
@@ -255,8 +340,8 @@ public sealed class CommunityWindow : Window
         System.Windows.Automation.AutomationProperties.SetName(offer, "Lifetime offer");
         System.Windows.Automation.AutomationProperties.SetName(email, "Staging account email");
         System.Windows.Automation.AutomationProperties.SetName(code, "Six-digit email code");
-        var send = Button("Send code");
-        var submit = Button("Submit private request");
+        var send = ActionButton("Send code");
+        var submit = ActionButton("Submit private request");
         var status = Line("", bottom: 0);
         System.Windows.Automation.AutomationProperties.SetLiveSetting(status, System.Windows.Automation.AutomationLiveSetting.Polite);
         async Task Run(Func<CancellationToken, Task<string>> action)
@@ -284,15 +369,20 @@ public sealed class CommunityWindow : Window
         } };
     }
 
-    private static DataGridTextColumn Column(string title, string path, double width) =>
-        new() { Header = title, Binding = new Binding(path), Width = width };
+    private static DataGridTextColumn Column(string title, string path, double width)
+    {
+        var text = new Style(typeof(TextBlock));
+        text.Setters.Add(new Setter(VerticalAlignmentProperty, VerticalAlignment.Center));
+        text.Setters.Add(new Setter(MarginProperty, new Thickness(4, 0, 0, 0)));
+        return new DataGridTextColumn { Header = title, Binding = new Binding(path), Width = width, ElementStyle = text };
+    }
 
     private static Border Surface(UIElement child, bool tinted) => new()
     {
         Child = child, Padding = new Thickness(14, 11, 14, 11), Margin = new Thickness(0, 0, 0, 10),
         CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(1),
-        Background = tinted ? PodiumBrush(CommunityPodium.StageFill, SystemColors.WindowBrush) : SystemColors.WindowBrush,
-        BorderBrush = SystemParameters.HighContrast ? SystemColors.WindowTextBrush : new SolidColorBrush(Color.FromRgb(207, 220, 232))
+        Background = PodiumBrush(tinted ? CommunityPodium.StageFill : "#28282E", SystemColors.WindowBrush),
+        BorderBrush = PodiumBrush(tinted ? CommunityPodium.StageOutline : "#41414A", SystemColors.WindowTextBrush)
     };
 
     private static TextBlock Heading(string text, double size)
@@ -307,5 +397,5 @@ public sealed class CommunityWindow : Window
         Text = text, FontSize = size, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, bottom)
     };
 
-    private static Button Button(string text) => new() { Content = text, Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 8, 8) };
+    private static Button ActionButton(string text) => new() { Content = text, Padding = new Thickness(10, 5, 10, 5), Margin = new Thickness(0, 0, 8, 8) };
 }

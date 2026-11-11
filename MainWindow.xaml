@@ -7,6 +7,7 @@
         AllowsTransparency="True" 
         Background="{x:Null}" 
         Topmost="True" 
+        PreviewKeyDown="MainWindow_PreviewKeyDown"
         ShowInTaskbar="True">
     <Window.Resources>
         <!-- Apple-Style Slim Pill ScrollBar -->
@@ -337,13 +338,21 @@
         <Rectangle x:Name="SelectionRect" Stroke="#30D158" StrokeThickness="2" StrokeDashArray="3,2" Fill="#1E30D158" RadiusX="4" RadiusY="4" Visibility="Collapsed"/>
         
         <!-- Translated Text Box (OCR) -->
-        <Border x:Name="TranslatedTextContainer" MaxWidth="800" MaxHeight="600" Background="#D8101014" BorderBrush="#2EFFFFFF" BorderThickness="1" CornerRadius="14" Visibility="Collapsed" Padding="16,14">
+        <Border x:Name="TranslatedTextContainer" MaxWidth="800" MaxHeight="250" MinWidth="210" Background="#D8101014" BorderBrush="#2EFFFFFF" BorderThickness="1" CornerRadius="14" Visibility="Collapsed" Padding="16,12">
             <Border.Effect>
                 <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="6" Opacity="0.6"/>
             </Border.Effect>
-            <ScrollViewer x:Name="OcrScrollViewer" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="SmoothScrollViewer_PreviewMouseWheel">
-                <TextBlock x:Name="TranslatedTextBlock" Foreground="#F2F2F7" FontSize="16" FontFamily="Segoe UI Variable Text, Segoe UI" LineHeight="24" TextWrapping="Wrap" Text="[Translation will appear here]"/>
-            </ScrollViewer>
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                    <Button x:Name="BtnCloseOcr" DockPanel.Dock="Right" Content="Close" Click="BtnCloseOcr_Click"
+                            AutomationProperties.Name="Close OCR result" Style="{StaticResource ModernButton}" Padding="9,4" Margin="8,0,0,0"/>
+                    <TextBlock x:Name="TxtOcrResultTitle" Text="Screen OCR" Foreground="#AEAEB2"
+                               FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                </DockPanel>
+                <ScrollViewer x:Name="OcrScrollViewer" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="SmoothScrollViewer_PreviewMouseWheel">
+                    <TextBlock x:Name="TranslatedTextBlock" Foreground="#F2F2F7" FontSize="16" FontFamily="Segoe UI Variable Text, Segoe UI" LineHeight="24" TextWrapping="Wrap" Text="[Translation will appear here]"/>
+                </ScrollViewer>
+            </DockPanel>
         </Border>
 
         <!-- Audio Caption Bar (bottom center, Apple Glass Pill) -->

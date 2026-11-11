@@ -9,6 +9,11 @@ public typealias StatusCallback = @convention(c) (Int64, Int32, UnsafePointer<CC
 
 @MainActor private var activeCapture: AudioCapture?
 
+@_cdecl("lt_reduce_motion")
+@MainActor public func reduceMotion() -> Int32 {
+    NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? 1 : 0
+}
+
 @_cdecl("lt_start_audio")
 public func startAudio(_ id: Int64, _ microphone: Int32, _ samples: @escaping SamplesCallback, _ status: @escaping StatusCallback) {
     Task { @MainActor in
