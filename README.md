@@ -12,6 +12,10 @@
   Translate live system audio, microphone speech, and on-screen text with zero telemetry and full MIT-licensed source code.
 </p>
 
+<p align="center">
+  <img src="docs/media/screen-translation.gif" alt="Animated example: selecting a Russian sentence and showing its English translation" />
+</p>
+
 ---
 
 ## Overview
