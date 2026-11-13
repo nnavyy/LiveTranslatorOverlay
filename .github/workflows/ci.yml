@@ -1,0 +1,67 @@
+name: Cross-Platform & Hygiene CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/ml-1.0'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  shared-and-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check no local secret or config files are tracked
+        run: |
+          forbidden=$(git ls-files appsettings.json community.json local-speech.json .env '.env.*' '*.pfx' '*.p12' '*.key' '*.pem')
+          if [ -n "$forbidden" ]; then
+            echo "Forbidden tracked files found:"
+            echo "$forbidden"
+            exit 1
+          fi
+
+      - name: Build Shared, MacApp, and cross-platform tools
+        run: |
+          dotnet build Shared/LiveTranslatorOverlay.Shared.csproj -c Release --nologo
+          dotnet build MacApp/LiveTranslatorMac.csproj -c Release --nologo
+          dotnet build tests/AccuracySmoke/AccuracySmoke.csproj -c Release --nologo
+          dotnet build tests/LocalSpeechProbe/LocalSpeechProbe.csproj -c Release --nologo
+
+      - name: Run offline Supabase migration checks
+        run: |
+          mkdir -p "$RUNNER_TEMP/pglite"
+          npm install --prefix "$RUNNER_TEMP/pglite" --no-save @electric-sql/pglite
+          node tests/CommunityDatabase/verify.mjs "$RUNNER_TEMP/pglite"
+
+  windows-auxiliary-builds:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build auxiliary Windows tools and probes
+        run: |
+          dotnet build AudioDiag/AudioDiag.csproj -c Release --nologo
+          dotnet build tests/LocalSpeechIntegration/LocalSpeechIntegration.csproj -c Release --nologo
+          dotnet build tests/SpeechGateProbe/SpeechGateProbe.csproj -c Release --nologo

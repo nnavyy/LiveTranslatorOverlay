@@ -103,31 +103,34 @@ public partial class App : Application
     internal static bool ShowTerms(Window? owner = null)
     {
         bool review = owner != null;
+        var styles = TermsStyles;
         var dialog = new Window
         {
             Owner = owner,
             Title = "Live Translator Overlay — Terms and privacy",
             Width = 740, Height = 620, MinWidth = 400, MinHeight = 365,
-            Background = SystemColors.WindowBrush,
+            Background = TermsBrush(0x1C, 0x1C, 0x22), Foreground = TermsBrush(0xF2, 0xF2, 0xF7),
+            FontFamily = new System.Windows.Media.FontFamily("Segoe UI Variable Text, Segoe UI"),
             WindowStartupLocation = review ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen
         };
-        var layout = new DockPanel { Margin = new Thickness(24, 20, 24, 18), Background = SystemColors.WindowBrush };
-        var header = new StackPanel { Margin = new Thickness(0, 0, 0, 14) };
-        header.Children.Add(new TextBlock { Text = "Terms and privacy", FontSize = 27, FontWeight = FontWeights.SemiBold });
+        var layout = new DockPanel { Margin = new Thickness(24, 20, 24, 18) };
+        var header = new StackPanel { Margin = new Thickness(0, 0, 0, 12) };
+        header.Children.Add(new TextBlock { Text = "Terms and privacy", FontSize = 27, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
         header.Children.Add(new TextBlock
         {
             Text = $"Live Translator Overlay  ·  Revision {Core.TermsNotice.Revision}",
-            Margin = new Thickness(0, 5, 0, 0), FontSize = 13
+            Margin = new Thickness(0, 5, 0, 0), FontSize = 13, TextWrapping = TextWrapping.Wrap,
+            Foreground = TermsBrush(0xA1, 0xA1, 0xAA)
         });
         DockPanel.SetDock(header, Dock.Top);
         layout.Children.Add(header);
-        var actions = new System.Windows.Controls.StackPanel
+        var actions = new StackPanel
         {
-            Orientation = System.Windows.Controls.Orientation.Horizontal,
-            HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0)
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0)
         };
-        var accept = new System.Windows.Controls.Button { Content = "Accept terms", Padding = new Thickness(14, 6, 14, 6) };
-        var decline = new System.Windows.Controls.Button { Content = review ? "Close" : "Exit", IsCancel = true, Margin = new Thickness(8, 0, 0, 0), Padding = accept.Padding };
+        var accept = new Button { Content = "Accept terms", Style = (Style)styles["TermsPrimaryButton"], Margin = new Thickness(8, 0, 0, 0) };
+        var decline = new Button { Content = review ? "Close" : "Exit", IsCancel = true, Style = (Style)styles["TermsButton"] };
         accept.Click += (_, _) =>
         {
             try
@@ -141,42 +144,227 @@ public partial class App : Application
             }
         };
         actions.Children.Add(decline);
-        if (!review)
-        {
-            accept.Margin = new Thickness(8, 0, 0, 0);
-            actions.Children.Add(accept);
-        }
-        System.Windows.Controls.DockPanel.SetDock(actions, System.Windows.Controls.Dock.Bottom);
+        if (!review) actions.Children.Add(accept);
+        DockPanel.SetDock(actions, Dock.Bottom);
         layout.Children.Add(actions);
-        var terms = new TabControl { Background = SystemColors.WindowBrush };
-        terms.Items.Add(TermsTab("Terms of Service", Core.TermsNotice.LicenseText));
-        terms.Items.Add(TermsTab("Privacy notice", Core.TermsNotice.PrivacyText));
-        layout.Children.Add(terms);
+        layout.Children.Add(CreateTermsView());
         dialog.Content = layout;
         return dialog.ShowDialog() == true;
     }
 
-    private static TabItem TermsTab(string label, string markdown)
+    /// <summary>
+    /// The one place that displays the bundled Terms of Service and Privacy Policy on Windows.
+    /// A tab strip switches between two read-only, selectable, wrapping documents rendered from
+    /// <see cref="Core.TermsNotice.Blocks"/>, so Markdown markup is never shown.
+    /// </summary>
+    public static FrameworkElement CreateTermsView(int selectedTab = 0)
     {
-        var document = new FlowDocument { PagePadding = new Thickness(20, 14, 20, 18), FontSize = 14 };
-        foreach (var section in Core.TermsNotice.Sections(markdown))
+        var styles = TermsStyles;
+        var root = new Grid();
+        root.Resources.MergedDictionaries.Add(styles);
+        root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        var strip = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+        var body = new Border
         {
-            if (section.Heading.Length > 0)
-                document.Blocks.Add(new Paragraph(new Run(section.Heading))
-                {
-                    FontSize = 17, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 10, 0, 5)
-                });
-            if (section.Body.Length > 0)
-                document.Blocks.Add(new Paragraph(new Run(section.Body)) { LineHeight = 21, Margin = new Thickness(0, 0, 0, 9) });
+            Background = TermsBrush(0x22, 0x22, 0x2A), BorderBrush = TermsBrush(0x33, 0x33, 0x3C),
+            BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(10), Padding = new Thickness(4)
+        };
+        Grid.SetRow(body, 1);
+        var pages = new Grid();
+        body.Child = pages;
+        var documents = new (string Label, string Markdown)[]
+        {
+            ("Terms of Service", Core.TermsNotice.LicenseText),
+            ("Privacy Policy", Core.TermsNotice.PrivacyText)
+        };
+        for (int i = 0; i < documents.Length; i++)
+        {
+            var reader = CreateTermsReader(documents[i].Markdown, documents[i].Label);
+            reader.Visibility = i == selectedTab ? Visibility.Visible : Visibility.Collapsed;
+            pages.Children.Add(reader);
+            var tab = new RadioButton
+            {
+                Content = documents[i].Label, GroupName = "TermsTabs" + root.GetHashCode(), IsChecked = i == selectedTab,
+                Style = (Style)styles["TermsTab"]
+            };
+            tab.Checked += (_, _) => { foreach (UIElement page in pages.Children) page.Visibility = page == reader ? Visibility.Visible : Visibility.Collapsed; };
+            System.Windows.Automation.AutomationProperties.SetName(tab, documents[i].Label);
+            strip.Children.Add(tab);
+        }
+        root.Children.Add(strip);
+        root.Children.Add(body);
+        return root;
+    }
+
+    public static RichTextBox CreateTermsReader(string markdown, string automationName)
+    {
+        var text = TermsBrush(0xD8, 0xD8, 0xDF);
+        var strong = TermsBrush(0xFF, 0xFF, 0xFF);
+        var document = new FlowDocument
+        {
+            PagePadding = new Thickness(14, 10, 14, 16), FontSize = 14, Foreground = text,
+            FontFamily = new System.Windows.Media.FontFamily("Segoe UI Variable Text, Segoe UI"),
+            TextAlignment = TextAlignment.Left
+        };
+        List? bullets = null;
+        foreach (var block in Core.TermsNotice.Blocks(markdown))
+        {
+            if (block.Kind != Core.TermsBlockKind.Bullet) bullets = null;
+            switch (block.Kind)
+            {
+                case Core.TermsBlockKind.Title:
+                    document.Blocks.Add(new Paragraph(new Run(block.Text))
+                    {
+                        FontSize = 22, FontWeight = FontWeights.SemiBold, Foreground = strong,
+                        Margin = new Thickness(0, 0, 0, 8), KeepWithNext = true
+                    });
+                    break;
+                case Core.TermsBlockKind.Heading:
+                    document.Blocks.Add(new Paragraph(new Run(block.Text))
+                    {
+                        FontSize = 16, FontWeight = FontWeights.SemiBold, Foreground = strong,
+                        Margin = new Thickness(0, 18, 0, 6), KeepWithNext = true
+                    });
+                    break;
+                case Core.TermsBlockKind.Bullet:
+                    bullets ??= AddBulletList(document);
+                    bullets.ListItems.Add(new ListItem(new Paragraph(new Run(block.Text)) { LineHeight = 22, Margin = new Thickness(0, 0, 0, 4) }));
+                    break;
+                default:
+                    document.Blocks.Add(new Paragraph(new Run(block.Text)) { LineHeight = 22, Margin = new Thickness(0, 0, 0, 10) });
+                    break;
+            }
         }
         var reader = new RichTextBox(document)
         {
-            IsReadOnly = true, IsDocumentEnabled = true, BorderThickness = new Thickness(0),
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+            IsReadOnly = true, IsReadOnlyCaretVisible = true, IsDocumentEnabled = false,
+            Background = System.Windows.Media.Brushes.Transparent, Foreground = text,
+            BorderThickness = new Thickness(0), Padding = new Thickness(0),
+            SelectionBrush = TermsBrush(0x0A, 0x84, 0xFF), SelectionOpacity = 0.55,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
-        System.Windows.Automation.AutomationProperties.SetName(reader, label);
-        return new TabItem { Header = label, Content = reader, Padding = new Thickness(12, 7, 12, 7) };
+        System.Windows.Automation.AutomationProperties.SetName(reader, automationName);
+        return reader;
     }
+
+    private static List AddBulletList(FlowDocument document)
+    {
+        var list = new List
+        {
+            MarkerStyle = TextMarkerStyle.Disc, MarkerOffset = 8, Padding = new Thickness(26, 0, 0, 0),
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        document.Blocks.Add(list);
+        return list;
+    }
+
+    private static System.Windows.Media.SolidColorBrush TermsBrush(byte r, byte g, byte b)
+    {
+        var brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(r, g, b));
+        brush.Freeze();
+        return brush;
+    }
+
+    private static ResourceDictionary? _termsStyles;
+    private static ResourceDictionary TermsStyles => _termsStyles ??= (ResourceDictionary)System.Windows.Markup.XamlReader.Parse("""
+        <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+          <Style x:Key="TermsButton" TargetType="Button">
+            <Setter Property="Background" Value="#2C2C31"/>
+            <Setter Property="Foreground" Value="#F2F2F7"/>
+            <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="18,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+              <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                  <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                          BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                    <Grid>
+                      <Border x:Name="Shade" CornerRadius="7" Background="White" Opacity="0"/>
+                      <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                  </Border>
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Shade" Property="Opacity" Value="0.10"/></Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Shade" Property="Opacity" Value="0.04"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#FF8FC4FF"/></Trigger>
+                    <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </Setter.Value>
+            </Setter>
+          </Style>
+          <Style x:Key="TermsPrimaryButton" TargetType="Button" BasedOn="{StaticResource TermsButton}">
+            <Setter Property="Background" Value="#0A84FF"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#0A84FF"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+          </Style>
+          <Style x:Key="TermsTab" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="#A1A1AA"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="4,6"/>
+            <Setter Property="Margin" Value="0,0,18,0"/>
+            <Setter Property="Template">
+              <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                  <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent" BorderThickness="0,0,0,2" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                  </Border>
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="#F2F2F7"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Bd" Property="Background" Value="#18FFFFFF"/></Trigger>
+                    <Trigger Property="IsChecked" Value="True">
+                      <Setter Property="Foreground" Value="White"/>
+                      <Setter TargetName="Bd" Property="BorderBrush" Value="#0A84FF"/>
+                    </Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </Setter.Value>
+            </Setter>
+          </Style>
+          <Style x:Key="TermsScrollThumb" TargetType="Thumb">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Template">
+              <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                  <Border x:Name="ThumbBorder" Background="#45FFFFFF" CornerRadius="3" Margin="2,0"/>
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ThumbBorder" Property="Background" Value="#75FFFFFF"/></Trigger>
+                    <Trigger Property="IsDragging" Value="True"><Setter TargetName="ThumbBorder" Property="Background" Value="#99FFFFFF"/></Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </Setter.Value>
+            </Setter>
+          </Style>
+          <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Style.Triggers>
+              <Trigger Property="Orientation" Value="Vertical">
+                <Setter Property="Width" Value="9"/>
+                <Setter Property="MinWidth" Value="9"/>
+                <Setter Property="Margin" Value="2,6,4,6"/>
+                <Setter Property="Template">
+                  <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                      <Grid Background="Transparent">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                          <Track.Thumb><Thumb Style="{StaticResource TermsScrollThumb}"/></Track.Thumb>
+                        </Track>
+                      </Grid>
+                    </ControlTemplate>
+                  </Setter.Value>
+                </Setter>
+              </Trigger>
+            </Style.Triggers>
+          </Style>
+        </ResourceDictionary>
+        """);
 
     protected override void OnExit(ExitEventArgs e)
     {

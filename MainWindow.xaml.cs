@@ -53,28 +53,28 @@ public partial class MainWindow : Window
     private HistoryWindow? _historyWindow;
     private readonly TranslationHistory _historyBuffer = new();
 
-    public void ClearHistoryBuffer()
+    // Returns the history version at the time of clearing so an open window can drop in-flight entries.
+    public long ClearHistoryBuffer()
     {
         lock (_historyBuffer)
         {
             _historyBuffer.Clear();
+            return _historyBuffer.Version;
         }
     }
 
     private void AppendToHistory(string sourceText, string translatedText)
     {
         if (string.IsNullOrWhiteSpace(translatedText)) return;
+        string? entry;
+        long version;
         lock (_historyBuffer)
         {
-            _historyBuffer.Add(sourceText, translatedText);
+            entry = _historyBuffer.Add(sourceText, translatedText, out version);
         }
-        Dispatcher.Invoke(() =>
-        {
-            if (_historyWindow != null && _historyWindow.IsVisible)
-            {
-                lock (_historyBuffer) _historyWindow.SetHistory(_historyBuffer.ToString());
-            }
-        });
+        if (entry == null) return;
+        // Append just the new entry; never replace the whole text (that resets the reader's scroll position).
+        Dispatcher.Invoke(() => _historyWindow?.AppendEntry(entry, version));
     }
 
     // UI Animations & Timers
@@ -2151,11 +2151,13 @@ public partial class MainWindow : Window
         if (_historyWindow == null)
         {
             string initial;
+            long initialVersion;
             lock (_historyBuffer)
             {
                 initial = _historyBuffer.ToString();
+                initialVersion = _historyBuffer.Version;
             }
-            _historyWindow = new HistoryWindow(initial);
+            _historyWindow = new HistoryWindow(initial, initialVersion);
             _historyWindow.Closed += (s, args) => _historyWindow = null;
         }
         _historyWindow.Show();

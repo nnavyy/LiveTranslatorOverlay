@@ -16,13 +16,15 @@ public sealed record SupportOffer(string Id, string Title, int? Cents, string De
 
 public static class SupportCatalog
 {
-    public const string Intro = "Every contribution helps fund development, testing, and releases. The developer personally thanks each buyer. Stable translation remains free.";
+    public const string Intro = "Live Translator Overlay is free and open source under the MIT License. All stable features remain free — optional support never unlocks the software or source code.";
     public const string Closed = "Purchases and donations are currently closed.";
+    public const string IndependenceNote = "Supporter and Insider are independent tiers — choosing both is US$119.99 total.";
+    public const string AvailabilityNote = "Purchasing is currently preview-only; no payment links or checkout are active in this version.";
     public static IReadOnlyList<SupportOffer> Offers { get; } = Array.AsReadOnly(new SupportOffer[]
     {
-        new("supporter", "Lifetime Supporter", 1999, "Supporter medal and a personal thank-you."),
-        new("insider", "Lifetime Insider", 10000, "Insider medal, release archive, beta and approved internal builds, compatible experimental models, and priority support."),
-        new("donation", "Donate", null, "Support development with any positive amount. Donations do not unlock a paid tier.")
+        new("supporter", "Lifetime Supporter", 1999, "Voluntary lifetime support. Includes a Supporter medal and a personal thank-you."),
+        new("insider", "Lifetime Insider", 10000, "Voluntary lifetime support. Includes an Insider medal, early-access and beta builds, compatible experimental models, priority support, and a personal thank-you."),
+        new("donation", "Donate", null, "Voluntary contribution of any positive amount. Donations do not add a Supporter or Insider tier.")
     });
 }
 

@@ -196,9 +196,32 @@ public sealed partial class TranslatorWindow : Window
     private void AddToHistory(string source, string translated)
     {
         _history.Add(source, translated);
+        // Replacing Text resets the TextBox scroll offset and selection, so capture and restore them:
+        // follow the newest entry only if the reader was already at the bottom.
+        var scroll = FindHistoryScrollViewer();
+        bool follow = scroll == null || HistoryScrollPolicy.ShouldFollowTail(scroll.Offset.Y, scroll.Viewport.Height, scroll.Extent.Height);
+        double offsetY = scroll?.Offset.Y ?? 0;
+        int selStart = _historyText.SelectionStart, selEnd = _historyText.SelectionEnd;
         _historyText.Text = _history.ToString();
+        int length = _historyText.Text?.Length ?? 0;
+        if (selStart != selEnd && Math.Max(selStart, selEnd) <= length)
+        {
+            _historyText.SelectionStart = selStart;
+            _historyText.SelectionEnd = selEnd;
+        }
+        if (scroll != null)
+        {
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (follow) scroll.ScrollToEnd();
+                else scroll.Offset = new Vector(scroll.Offset.X, offsetY);
+            }, Avalonia.Threading.DispatcherPriority.Loaded);
+        }
         _clear.IsEnabled = _save.IsEnabled = !string.IsNullOrEmpty(_historyText.Text);
     }
+
+    private ScrollViewer? FindHistoryScrollViewer() =>
+        Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(_historyText).OfType<ScrollViewer>().FirstOrDefault();
 
     private async Task TranslateAsync()
     {

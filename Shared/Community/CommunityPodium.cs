@@ -14,8 +14,8 @@ public static class CommunityPodium
 
     public static (int Height, string Fill, string Ink) Step(int rank) => rank switch
     {
-        1 => (87, "#4F391F", "#FFE1A3"),
-        2 => (73, "#453557", "#E9DAFF"),
-        _ => (59, "#4A3039", "#FFCEC1")
+        1 => (80, "#4F391F", "#FFE1A3"),
+        2 => (68, "#453557", "#E9DAFF"),
+        _ => (56, "#4A3039", "#FFCEC1")
     };
 }

@@ -1,55 +1,46 @@
-# Mac developer preview — v1.5.2
+# Mac release notes — v1.0.0
 
-## A simpler translation workspace
+## What's included on macOS
 
-- Read the original and translated text side by side, with clearly labeled language selectors.
-- Keep provider settings and session history collapsed until needed.
-- Follow your system's light or dark appearance, with quieter colors, consistent spacing, and rounded controls.
-- Copy a translation in one click or translate with Command-Return.
-- Find version information, preview limitations, and issue reporting under **About & feedback**.
+- **Local CPU audio translation & floating captions**: Capture **System audio** (`ScreenCaptureKit`) or **Microphone** (`AVAudioEngine`) on macOS 14+ and transcribe locally on CPU with Whisper (`Balanced` 148 MB or `Larger model` 488 MB) and Silero VAD. Audio stays on your Mac; the selected translation provider receives only recognized text.
+- **Manual text translation workspace**: Side-by-side original and translated text across the 100-language catalog using Google Translate (with MyMemory fallback) or an optional session-only Groq API key.
+- **Session history**: Up to 500 entries with clear/export and preserved scroll position when new translations arrive while scrolling back.
+- **Community & voluntary Support**: Private on-device audio usage counter, Community rankings view (active when `community.json` is configured), and Support development tab. Live Translator Overlay is free and open source under the [MIT License](../LICENSE); purchases are currently closed.
 
-Groq API keys remain masked and session-only. History can still be cleared or exported. This update does not add audio, OCR, or overlay captions.
+**Not yet included on macOS:** Screen OCR and an automatic in-app updater (available on Windows).
 
-## Mac downloads — developer preview
+## Mac downloads (`macOS 14+`)
 
-Requires **macOS 14 or newer**. Choose the ZIP matching your Mac's chip, then extract it to find `LiveTranslator.app`:
+Choose the archive matching your Mac's architecture from [GitHub Releases](https://github.com/nnavyy/LiveTranslatorOverlay/releases):
 
-| Your Mac | Download |
+| Your Mac | Archive |
 | --- | --- |
-| Apple Silicon — M-series chip | [LiveTranslatorOverlay-Mac-preview-osx-arm64.zip](https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.5.2-mac-preview/LiveTranslatorOverlay-Mac-preview-osx-arm64.zip) |
-| Intel processor | [LiveTranslatorOverlay-Mac-preview-osx-x64.zip](https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.5.2-mac-preview/LiveTranslatorOverlay-Mac-preview-osx-x64.zip) |
+| Apple Silicon (M-series chip) | `LiveTranslatorOverlay-Mac-preview-osx-arm64.zip` |
+| Intel processor | `LiveTranslatorOverlay-Mac-preview-osx-x64.zip` |
 
 Check **Apple menu > About This Mac**: a **Chip** entry naming an M-series chip means Apple Silicon; an **Intel Processor** entry means Intel.
 
-**This is a limited developer preview, not the full Windows overlay.** It currently supports manual text translation and session history. Audio translation, OCR, and overlay captions are not available yet. These downloads are not notarized; see the signing notes below before downloading.
+## Opening ad-hoc signed downloads
 
-**Using Windows?** Get the [stable Windows x64 release](https://github.com/nnavyy/LiveTranslatorOverlay/releases/tag/v1.5.1). GitHub's **Source code** archives are for developers, not app installers.
+**Known limitation: prebuilt Mac downloads are ad-hoc signed, not Developer ID signed or notarized by Apple.** macOS Gatekeeper may display **“Apple could not verify ‘LiveTranslator’ is free of malware”**.
 
-## If macOS says “LiveTranslator” Not Opened
-
-**Known limitation: these preview downloads are not notarized by Apple.** The message **“Apple could not verify ‘LiveTranslator’ is free of malware”** is expected for this distribution. It does not prove Apple has checked the file or that the app is malware-free.
-
-If you downloaded the app from this official release and choose to trust it:
+If you downloaded the archive from the official GitHub Releases page and choose to trust it:
 
 1. Extract the ZIP and move `LiveTranslator.app` to **Applications**.
-2. Try opening it. On the blocked-app dialog, choose **Done**.
-3. Open **System Settings > Privacy & Security**. Under **Security**, find LiveTranslator and choose **Open Anyway**.
-4. Authenticate on your Mac and confirm opening if prompted.
+2. Try opening it, then click **Done** on the blocked-app dialog.
+3. Open **System Settings > Privacy & Security**, find LiveTranslator under **Security**, and click **Open Anyway**.
+4. Authenticate and confirm opening.
 
-The exception is available for about an hour after an opening attempt; try opening the app again if the button is missing. This allows that app to open; it does not notarize it. See the [Mac installation guide](https://github.com/nnavyy/LiveTranslatorOverlay/blob/main/MacApp/INSTALL.md) and [Apple's instructions](https://support.apple.com/en-us/102445).
+See [MacApp/INSTALL.md](INSTALL.md) and [Apple's support guide](https://support.apple.com/en-us/102445) for full details.
 
-Removing this warning for everyone requires Developer ID signing and Apple notarization. No Apple Developer membership or signing credentials are configured yet, and no new binary claiming to resolve it has been published.
+## Building from source
 
-This starts the macOS port for both Apple Silicon (`osx-arm64`) and Intel (`osx-x64`). It is a developer preview, separate from the stable Windows updater.
-
-Included: manual text translation through Google or Groq, the 34-language catalog, session-only history with a 500-entry cap, clear/export, and an issue-report link. Groq keys stay in memory for the session. The interface is currently English.
-
-Not included: system/microphone audio capture, screen OCR, overlay/caption mode, protection from other apps' screen captures, the Windows feedback mailbox flow, or an automatic Mac updater. Those features require further native macOS implementation and testing.
-
-The `.app` bundles are self-contained and ad-hoc signed. They are **not Developer ID signed or notarized**; macOS Gatekeeper may block downloaded bundles. Trusted public distribution requires Apple signing credentials and notarization. For development, build from source with the .NET 10 SDK:
+Requires **.NET 10 SDK** and Xcode Command Line Tools (`swiftc`) on macOS 14+:
 
 ```sh
 dotnet run --project MacApp/LiveTranslatorMac.csproj -c Release
+# Or build and smoke-test a self-contained .app bundle:
+bash MacApp/package-macos.sh osx-arm64 ./out
 ```
 
-Baseline: macOS 14 or newer. CI packages and smoke-tests each native architecture; this does not replace real-device permission, usability, Retina/multi-monitor, or provider-quality testing.
+CI packages and smoke-tests `osx-arm64` and `osx-x64` bundles, which does not replace real-device macOS permission, Retina/multi-monitor, or audio-device testing.

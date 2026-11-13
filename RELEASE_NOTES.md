@@ -1,17 +1,13 @@
-# Live Translator Overlay 1.0.0 development candidate
+# Live Translator Overlay 1.0.0
 
-This private candidate prepares the machine-learning release line. Public releases through 2.1.2 belong to the legacy alpha series. The candidate uses a separate stable update feed and validates downloaded packages before staging. Publish the feed and legacy compatibility ZIP only after both platforms pass the joint release checklist.
+Open-source (MIT) release candidate for the 1.x machine-learning release line. Earlier GitHub releases through v2.1.2 belong to the legacy alpha series. This line uses the `ml-stable` update feed and validates downloaded update packages before staging.
 
-- Audio translation shows the running speech model. Stop audio to unlock speech model, source language and input device settings, then start the new session.
-- Only the selected cloud providers show key controls. Verifying Groq credentials keeps the selected translation engine. Groq speech and text usage are shown separately. Deepgram usage is available in the provider dashboard.
-- Saved Groq and Deepgram keys use Windows account encryption. The app upgrades the active plaintext settings file when it reads it. Earlier builds cannot read the encrypted keys.
-- Filters the reported Whisper subtitle credit. Speech recognition and translation can still make mistakes.
-- The Windows installer and both applications use the same versioned terms and privacy documents. The Windows installer offers to prepare missing speech models. Valid models are reused, and first audio use can prepare missing files later.
-- Windows shows the installed version in Settings. Developer launches have a visible mode badge and keep the flag when restarting after an update. The updater explains when the public 1.x feed has not launched.
-- The Community rankings preview adds a cartoon podium for the top three public profiles on each configured board. The podium shows audio translation time or verified contributions, and the full standings remain searchable.
-- Community uses a dark theme and briefly animates the podium when rankings load. Select a nickname to open a profile popup with illustrated badges and the player's verified contribution total when they share it publicly.
-- Windows Screen OCR closes from the result panel, the Stop OCR button, or Escape. The result panel stays within the screen edges.
+- **Local CPU speech on Windows and macOS**: Runs multilingual Whisper (`base` 148 MB default, `small` 488 MB optional) + Silero VAD on the CPU with SHA-256 checksum verification, plus a `NoAvx` CPU fallback on Windows. Stop audio to unlock speech model, source language, and input device settings before starting a new session.
+- **Key-free translation and optional cloud providers**: Uses Google Translate (with MyMemory fallback) by default without a key, or optional user-supplied keys for Groq AI and Deepgram streaming. Only the selected cloud providers show key controls, and Groq speech/text usage are displayed separately.
+- **Windows DPAPI key encryption**: Saved Groq and Deepgram keys are encrypted using Windows Data Protection tied to the current Windows user account. Earlier plaintext settings are upgraded automatically on load.
+- **Windows installer and versioned terms**: Both Windows and macOS share the versioned `ml-2` terms and privacy notice (`APP_LICENSE.md`, `PRIVACY.md`, `TERMS_REVISION.txt`), rendered without raw Markdown syntax. The Windows installer offers to prepare missing local speech files and reuses valid cached models.
+- **Community rankings & voluntary Support development**: Both apps show a private on-device audio translation total, optional online rankings (when configured via `community.json`), top-three podium, searchable standings, profile popups with badges, and voluntary Support development offers (Supporter US$19.99, Insider US$100, Donate). All features are free under MIT; purchases and donations are currently closed.
+- **Windows Screen OCR & History**: Screen OCR closes cleanly from the result panel, Stop OCR button, or Escape while staying within screen edges. Session history (Windows and Mac) keeps scroll position when new entries arrive while scrolled up.
+- **Developer mode & updater**: Windows shows the installed version in Settings, keeps `--developer` mode badges across update restarts, and reports clearly when no public 1.x release is published yet.
 
-The candidate includes a Mac audio capture bridge and floating captions. Both apps display a private audio usage total and the planned Supporter, Insider, and donation offers. Community has all-time, monthly, and supporter boards for a configured staging backend. Public accounts, payments, private messaging, and the Insider library are pending. Native device and permission testing are release gates.
-
-Default speech runs locally. Default text translation uses Google or its online fallback. Advanced offline text translation still requires a separately configured translation model.
+Default speech recognition runs locally. Recognition and translation remain approximate and can make mistakes. Advanced offline text translation requires separately prepared models (`runtime/translation_worker.py`).

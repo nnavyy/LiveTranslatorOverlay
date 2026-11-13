@@ -266,7 +266,9 @@ applyStatuses.Invoke(null, [records, explicitFix.RootElement]);
 Confirm("Only explicit report mappings change resolution", keptPending && records[0].Status == "Fixed"
     && records[0].ResolutionNote == "Resolved in v1.4.0", $"unrelated release kept pending={keptPending}");
 
-Console.WriteLine($"Regression result: {observed}/23 passed"); Environment.ExitCode = observed == 23 ? 0 : 1;
+int historyFailures = HistoryChecks.Run();
+int termsFailures = TermsChecks.Run();
+Console.WriteLine($"Regression result: {observed}/23 passed"); Environment.ExitCode = observed == 23 && historyFailures == 0 && termsFailures == 0 ? 0 : 1;
 sealed class PurchasePreviewHandler : HttpMessageHandler
 {
     public const string Receipt = "00000000-0000-4000-8000-000000000099";

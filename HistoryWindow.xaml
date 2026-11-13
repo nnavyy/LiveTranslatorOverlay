@@ -13,6 +13,10 @@
                  TextWrapping="Wrap" AcceptsReturn="True" 
                  VerticalScrollBarVisibility="Auto" 
                  Margin="10" FontFamily="Consolas" FontSize="14" IsReadOnly="True" />
+
+        <Button x:Name="BtnJumpLatest" Grid.Row="0" Content="&#x2193;" Width="28" Height="28" Padding="0"
+                HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,28,20" Visibility="Collapsed"
+                ToolTip="Jump to latest" AutomationProperties.Name="Jump to latest" Click="BtnJumpLatest_Click"/>
                  
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
             <Button x:Name="BtnSummarize" Content="AI Summary" Background="#8A2BE2" Foreground="White" Padding="12,0" FontWeight="Bold" Margin="0,0,10,0" Click="BtnSummarize_Click"/>

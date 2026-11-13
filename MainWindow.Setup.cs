@@ -42,23 +42,11 @@ public partial class MainWindow
 
     private void ShowPrivacy(Window owner)
     {
-        try
-        {
-            string Read(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, name));
-            var text = new TextBox
-            {
-                Text = Read("PRIVACY.md") + "\n\n" + Read("APP_LICENSE.md"),
-                IsReadOnly = true,
-                TextWrapping = TextWrapping.Wrap,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                Background = new SolidColorBrush(Color.FromRgb(28, 28, 34)),
-                Foreground = Brushes.White,
-                Padding = new Thickness(20)
-            };
-            CreateInfoWindow("Privacy, terms and license", text, owner).ShowDialog();
-        }
-        catch (IOException) { MessageBox.Show(owner, "The bundled privacy and license files could not be opened."); }
-        catch (UnauthorizedAccessException) { MessageBox.Show(owner, "Windows denied access to the bundled privacy and license files."); }
+        var window = CreateInfoWindow("Privacy, terms and license", App.CreateTermsView(selectedTab: 1), owner);
+        if (window.Content is FrameworkElement view) view.Margin = new Thickness(20, 16, 20, 16);
+        window.Width = 700;
+        window.Height = 600;
+        window.ShowDialog();
     }
 
     private void BtnDeveloper_Click(object sender, RoutedEventArgs e)

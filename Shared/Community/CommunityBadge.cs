@@ -12,6 +12,13 @@ public sealed record CommunityBadge(string Name, string Color, string Body, stri
         "M14,1 L25,7 L27,18 L21,24 L14,27 L7,24 L1,18 L3,7 Z",
         "M14,5 L16.8,11.2 L23,14 L16.8,16.8 L14,23 L11.2,16.8 L5,14 L11.2,11.2 Z");
 
+    public static CommunityBadge? ForOffer(string offerId) => offerId switch
+    {
+        "supporter" => Supporter,
+        "insider" => Insider,
+        _ => null
+    };
+
     public static IEnumerable<CommunityBadge> For(CommunityRank entry)
     {
         if (entry.Medals?.Contains(Supporter.Name) == true) yield return Supporter;

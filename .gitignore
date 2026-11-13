@@ -4,20 +4,44 @@ obj/
 *.bin
 PublishOutput/
 publish-release/
+publish/
+publish-verify/
 *.zip
 *.user
 *.suo
+.vs/
+TestResults/
+node_modules/
 
-# Local user configurations & secrets (keeps user API keys private)
+# Local user configurations, runtime state, & secrets
 appsettings.json
+community.json
+local-speech.json
+feedback_history.json
+device_id.txt
+last_seen_release.txt
+terms-accepted.txt
+audio_usage.json
+.env
+.env.*
+!.env.example
 
-# Debug logs and local scratch files
+# Certificates, private keys, and logs
+*.pfx
+*.p12
+*.pem
+*.key
+*.snk
+*.keystore
+*.jks
+*.log
+.DS_Store
+
+# Downloaded models and local scratch files
+models/
 *_debug.txt
 check_audio.ps1
 TestTranslation.cs
-
-publish/
-publish-verify/
 
 # Local ML experiments: only curated manifests, metrics, and reports belong in Git.
 __pycache__/

@@ -113,7 +113,7 @@ public sealed class MacApplication : Application
             Margin = new Thickness(24, 20, 24, 18),
             Children = { header, footer, new TabControl
             {
-                ItemsSource = new[] { TermsTab("Terms of Service", TermsNotice.LicenseText), TermsTab("Privacy notice", TermsNotice.PrivacyText) }
+                ItemsSource = new[] { TermsTab("Terms of Service", TermsNotice.LicenseText), TermsTab("Privacy Policy", TermsNotice.PrivacyText) }
             } }
         };
         decline.Click += (_, _) => window.Close();
@@ -133,21 +133,50 @@ public sealed class MacApplication : Application
 
     private static TabItem TermsTab(string label, string markdown)
     {
-        var document = new StackPanel { Margin = new Thickness(14, 14, 14, 18), Spacing = 12 };
-        foreach (var section in TermsNotice.Sections(markdown))
+        var document = new StackPanel { Margin = new Thickness(14, 12, 18, 18), Spacing = 10 };
+        foreach (var block in TermsNotice.Blocks(markdown))
         {
-            if (section.Heading.Length > 0)
-                document.Children.Add(new TextBlock
-                {
-                    Text = section.Heading, FontSize = 17, FontWeight = Avalonia.Media.FontWeight.SemiBold,
-                    TextWrapping = Avalonia.Media.TextWrapping.Wrap
-                });
-            if (section.Body.Length > 0)
-                document.Children.Add(new SelectableTextBlock
-                {
-                    Text = section.Body, FontSize = 14, LineHeight = 21, TextWrapping = Avalonia.Media.TextWrapping.Wrap
-                });
+            switch (block.Kind)
+            {
+                case TermsBlockKind.Title:
+                    document.Children.Add(new SelectableTextBlock
+                    {
+                        Text = block.Text, FontSize = 22, FontWeight = Avalonia.Media.FontWeight.SemiBold,
+                        TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                    });
+                    break;
+                case TermsBlockKind.Heading:
+                    document.Children.Add(new SelectableTextBlock
+                    {
+                        Text = block.Text, FontSize = 16, FontWeight = Avalonia.Media.FontWeight.SemiBold,
+                        Margin = new Thickness(0, 10, 0, 0), TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                    });
+                    break;
+                case TermsBlockKind.Bullet:
+                    var row = new Grid { ColumnDefinitions = new ColumnDefinitions("22,*"), Margin = new Thickness(6, 0, 0, 0) };
+                    row.Children.Add(new TextBlock { Text = "\u2022", FontSize = 14, LineHeight = 22, HorizontalAlignment = HorizontalAlignment.Left });
+                    var item = new SelectableTextBlock
+                    {
+                        Text = block.Text, FontSize = 14, LineHeight = 22, TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                    };
+                    Grid.SetColumn(item, 1);
+                    row.Children.Add(item);
+                    document.Children.Add(row);
+                    break;
+                default:
+                    document.Children.Add(new SelectableTextBlock
+                    {
+                        Text = block.Text, FontSize = 14, LineHeight = 22, TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                    });
+                    break;
+            }
         }
-        return new TabItem { Header = label, Content = new ScrollViewer { Content = document } };
+        var viewer = new ScrollViewer
+        {
+            Content = document, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+        };
+        Avalonia.Automation.AutomationProperties.SetName(viewer, label);
+        return new TabItem { Header = label, Content = viewer };
     }
 }

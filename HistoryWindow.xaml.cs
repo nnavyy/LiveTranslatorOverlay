@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using LiveTranslatorOverlay.Core;
 using LiveTranslatorOverlay.Core.Localization;
 
 namespace LiveTranslatorOverlay
@@ -8,23 +10,27 @@ namespace LiveTranslatorOverlay
     public partial class HistoryWindow : Window
     {
         private System.Threading.CancellationTokenSource? _summaryCts;
+        private bool _following = true;
+        private long _lastVersion;
         public HistoryWindow()
         {
             InitializeComponent();
             ApplyLocalization();
+            TxtHistory.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler(OnHistoryScrollChanged));
             EventHandler onLanguageChanged = (s, e) => Dispatcher.Invoke(ApplyLocalization);
             LocalizationManager.Instance.LanguageChanged += onLanguageChanged;
             Closed += (_, _) => LocalizationManager.Instance.LanguageChanged -= onLanguageChanged;
             Closing += (_, _) => _summaryCts?.Cancel();
         }
 
-        public HistoryWindow(string initialHistory) : this()
+        public HistoryWindow(string initialHistory, long version = 0) : this()
         {
             if (!string.IsNullOrEmpty(initialHistory))
             {
                 TxtHistory.Text = initialHistory;
-                TxtHistory.ScrollToEnd();
             }
+            _lastVersion = version;
+            // _following stays true: the first layout pass scrolls to the newest entry once.
         }
 
         public void ApplyLocalization()
@@ -36,28 +42,54 @@ namespace LiveTranslatorOverlay
             if (BtnSave != null) BtnSave.Content = loc.Get("BtnSave");
         }
 
-        public void SetHistory(string text)
+        // Appends one entry in place (never replaces the text, so selection/caret/scroll survive).
+        // version de-duplicates entries already included in the initial snapshot.
+        public void AppendEntry(string entry, long version)
         {
-            TxtHistory.Text = text;
-            TxtHistory.ScrollToEnd();
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(() => AppendEntry(entry, version));
+                return;
+            }
+            if (version <= _lastVersion || string.IsNullOrEmpty(entry)) return;
+            _lastVersion = version;
+            // The ScrollChanged handler keeps the view on the tail only while _following is true.
+            TxtHistory.AppendText(entry);
         }
 
-        public void AppendText(string sourceText, string translatedText)
+        private void OnHistoryScrollChanged(object sender, ScrollChangedEventArgs e)
         {
-            Dispatcher.Invoke(() =>
+            if (e.ExtentHeightChange == 0 && e.ViewportHeightChange == 0)
             {
-                string entry = $"[{DateTime.Now:HH:mm:ss}]\r\nOriginal: {sourceText}\r\nTranslated: {translatedText}\r\n----------------------------------------\r\n\r\n";
-                TxtHistory.AppendText(entry);
+                // Offset changed by the user (wheel, bar, keyboard): remember whether they are at the bottom.
+                SetFollowing(HistoryScrollPolicy.ShouldFollowTail(e.VerticalOffset, e.ViewportHeight, e.ExtentHeight));
+            }
+            else if (_following)
+            {
+                // Content grew or the window was resized while the reader was at the tail.
                 TxtHistory.ScrollToEnd();
-            });
+            }
+        }
+
+        private void SetFollowing(bool following)
+        {
+            _following = following;
+            BtnJumpLatest.Visibility = following ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        private void BtnJumpLatest_Click(object sender, RoutedEventArgs e)
+        {
+            SetFollowing(true);
+            TxtHistory.ScrollToEnd();
         }
 
         private void BtnClear_Click(object sender, RoutedEventArgs e)
         {
             TxtHistory.Clear();
+            SetFollowing(true);
             if (Application.Current?.MainWindow is MainWindow mainWin)
             {
-                mainWin.ClearHistoryBuffer();
+                _lastVersion = Math.Max(_lastVersion, mainWin.ClearHistoryBuffer());
             }
         }
 
