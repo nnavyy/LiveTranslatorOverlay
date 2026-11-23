@@ -1,0 +1,32 @@
+project_id = "livetranslator"
+
+[auth]
+enabled = true
+site_url = "https://livetranslator.app"
+additional_redirect_urls = ["https://livetranslator.app/auth/callback", "http://127.0.0.1:54321"]
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = true
+otp_length = 6
+otp_expiry = 600
+max_frequency = "60s"
+
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "noreply@livetranslator.app"
+sender_name = "Live Translator Overlay"
+
+[auth.email.template.confirmation]
+subject = "Your Live Translator verification code"
+content_path = "./email/templates/otp-login.html"
+
+[auth.email.template.magic_link]
+subject = "Your Live Translator 6-digit login code"
+content_path = "./email/templates/otp-login.html"

@@ -47,13 +47,15 @@ static class TermsChecks
                 && !markdown.Contains("US$13", StringComparison.OrdinalIgnoreCase)
                 && markdown.Contains("MIT", StringComparison.Ordinal), "MIT, no private/proprietary/Anthropic wording");
         }
-        Check("Terms revision was bumped", TermsNotice.Revision == "ml-2", TermsNotice.Revision);
+        Check("Terms revision was bumped", TermsNotice.Revision == "ml-3", TermsNotice.Revision);
         string receiptDir = Path.Combine(Path.GetTempPath(), "LiveTranslatorTermsRev-" + Guid.NewGuid().ToString("N"));
         try
         {
             Directory.CreateDirectory(receiptDir);
             File.WriteAllLines(Path.Combine(receiptDir, "terms-accepted.txt"), ["ml-1", DateTimeOffset.UtcNow.ToString("O")]);
-            Check("Previous revision ml-1 requires re-acceptance", !TermsNotice.HasAccepted(receiptDir), "ml-1 rejected for ml-2");
+            Check("Previous revision ml-1 requires re-acceptance", !TermsNotice.HasAccepted(receiptDir), "ml-1 rejected for ml-3");
+            File.WriteAllLines(Path.Combine(receiptDir, "terms-accepted.txt"), ["ml-2", DateTimeOffset.UtcNow.ToString("O")]);
+            Check("Previous revision ml-2 requires re-acceptance", !TermsNotice.HasAccepted(receiptDir), "ml-2 rejected for ml-3");
         }
         finally { if (Directory.Exists(receiptDir)) Directory.Delete(receiptDir, true); }
 

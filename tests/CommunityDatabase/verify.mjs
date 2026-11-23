@@ -25,6 +25,7 @@ try {
   await db.exec(await readFile(new URL('../../supabase/migrations/20261111100000_manual_purchase_preview.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(new URL('../../supabase/migrations/20261111210000_public_profile_support.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(new URL('../../supabase/migrations/20261123120000_account_login_donations_and_tiers.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../../supabase/migrations/20261123180000_guest_donations_hwid_and_antiabuse.sql', import.meta.url), 'utf8'));
   const board = async (kind, search = '', offset = 0) =>
     (await db.query('select public.lt_community_board($1, $2, $3) as board', [kind, search, offset])).rows[0].board;
 
@@ -149,6 +150,49 @@ try {
   assert(aliceSummary.history.length >= 2);
   await db.exec('reset role');
 
+  // Guest donations (no login required -> User#XXXXX) & HWID anti-abuse checks
+  const hwidHighBit = 'deadbeef' + '0'.repeat(56); // >= 0x80000000 unsigned parity check: 0xdeadbeef % 90000 + 10000 = 85999 + 10000 = 95999 -> Wait let Node verify exact uint32!
+  const expectedTag = 'User#' + String(((parseInt(hwidHighBit.slice(0, 8), 16) >>> 0) % 90000) + 10000).padStart(5, '0');
+  await db.exec('set role anon');
+  for (let i = 0; i < 5; i++) {
+    const g = (await db.query('select public.lt_submit_guest_donation($1, $2, $3) as res', [500, hwidHighBit, 'anon coffee'])).rows[0].res;
+    assert.equal(g.guestTag, expectedTag);
+    assert.equal(g.cents, 500);
+    assert.equal(g.status, 'pending');
+  }
+  await assert.rejects(db.query("select public.lt_submit_guest_donation(500, $1, 'spam')", [hwidHighBit]), { code: '42501' });
+  await assert.rejects(db.query("select * from community_private.guest_donation_requests"), { code: '42501' });
+  await db.exec('reset role');
+
+  // Verify guest donation in verified_support renders anonymously as User#XXXXX on supporters board
+  await db.query(`insert into community_private.verified_support (receipt_id, user_id, offer, cents, guest_tag, hardware_fingerprint_hash) values
+    ('00000000-0000-4000-8000-000000000091', null, 'donation', 5000, $1, $2)`, [expectedTag, hwidHighBit]);
+  await db.exec('set role anon');
+  const fullSupporters = (await board('supporters', '')).entries;
+  assert.deepEqual(fullSupporters.map((e) => [e.rank, e.nickname, e.supportCents]), [
+    [1, 'Bob', 10000],
+    [2, expectedTag, 5000]
+  ]);
+  const guestBoard = (await board('supporters', 'user#')).entries;
+  assert.equal(guestBoard.length, 1);
+  assert.deepEqual(guestBoard[0], { rank: 2, nickname: expectedTag, score: 5000, medals: [], supportCents: 5000 });
+  await db.exec('reset role');
+
+  // Verify HWID Sybil protection blocks overlapping usage segments across distinct accounts
+  const hwid2 = 'cafebabe' + '1'.repeat(56);
+  const segT0 = new Date(Date.now() - 60000).toISOString();
+  const segT1 = new Date(Date.now() - 50000).toISOString();
+  await setUser(alice);
+  await db.query('select community_private.submit_usage_with_device($1, $2, $3, $4)',
+    ['00000000-0000-4000-8000-000000000051', segT0, segT1, hwid2]);
+  await setUser(bob);
+  await assert.rejects(
+    db.query('select community_private.submit_usage_with_device($1, $2, $3, $4)',
+      ['00000000-0000-4000-8000-000000000052', segT0, segT1, hwid2]),
+    { code: '42501' });
+
   console.log('Community SQL passed: consent, closed defaults, overlap, UTC boundaries, ties, pagination, refunds, and private access.');
   console.log('Manual purchase preview & account tracking passed: verified accounts, tier/donation validation, private ledger, and summary projection.');
+  console.log('Guest donations & HWID anti-abuse passed: User#XXXXX parity, 5/24h anon rate limit, supporter rank ordering, and cross-account Sybil guard.');
+  console.log('Guest User#XXXXX donations, unsigned HWID tag parity, per-device rate limit, and Sybil usage blocking passed.');
 } finally { await db.close(); }

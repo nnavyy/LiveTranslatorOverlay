@@ -26,3 +26,17 @@ Without a config file, the app makes no community requests. Keep the staging con
 ## Offline verification
 
 For an offline migration check, install `@electric-sql/pglite` in a scratch directory, then run `node tests/CommunityDatabase/verify.mjs <scratch-directory>` from the repo root. The test uses an ephemeral Postgres database and a small stand-in for Supabase Auth. It does not contact a real Supabase project.
+
+## `v1.1.1`: `livetranslator.app` Email Automation & Anti-Abuse Migration
+
+1. **Migration (`20261123180000_guest_donations_hwid_and_antiabuse.sql`)**:
+   - Adds salted HWID columns (`hardware_fingerprint_hash`), `community_private.guest_donation_requests`, and `community_private.guest_tag_from_hwid()` (unsigned 32-bit parity with `HardwareFingerprint.DeriveGuestDisplayTag`).
+   - Exposes `public.lt_submit_guest_donation(p_cents, p_hwid_hash, p_note)` to `anon, authenticated` with a 5-requests-per-24-hours per-device rate limit (`42501`).
+   - Adds `community_private.submit_usage_with_device(...)` enforcing overlapping-interval and 86,400 s/day per-HWID Sybil protection across accounts, and updates `lt_community_board('supporters')` to include verified guest donations as `User#XXXXX`.
+2. **Email Domain (`livetranslator.app`) Automation (`supabase/email/`)**:
+   - Import DNS records from `supabase/email/dns-records-livetranslator.app.json` or `supabase/email/livetranslator.app.zone` (Resend SPF/DKIM/DMARC).
+   - Dry-run SMTP & auth configuration:
+     ```powershell
+     powershell -NoProfile -ExecutionPolicy Bypass -File .\supabase\email\configure-supabase-smtp.ps1 -DryRun
+     ```
+   - Apply to your live Supabase project by setting `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, and `RESEND_API_KEY` environment variables, then re-running without `-DryRun` (configured templates live in `supabase/email/templates/`).

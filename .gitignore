@@ -18,9 +18,11 @@ appsettings.json
 community.json
 local-speech.json
 account-session.dat
+guest-donations.dat
 channel.json
 feedback_history.json
 device_id.txt
+device_hwid_salt.txt
 last_seen_release.txt
 terms-accepted.txt
 audio_usage.json

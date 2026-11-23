@@ -4,7 +4,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.14" />
@@ -29,6 +29,7 @@
     <Compile Include="GuestAudioUsage.cs" />
     <Compile Include="StreamingAgreement.cs" />
     <Compile Include="Community/*.cs" />
+    <Compile Include="Security/*.cs" />
     <EmbeddedResource Include="../APP_LICENSE.md" LogicalName="APP_LICENSE.md" />
     <EmbeddedResource Include="../PRIVACY.md" LogicalName="PRIVACY.md" />
     <EmbeddedResource Include="../TERMS_REVISION.txt" LogicalName="TERMS_REVISION.txt" />

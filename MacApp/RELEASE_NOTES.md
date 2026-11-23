@@ -1,4 +1,9 @@
-# Mac release notes — v1.1.0
+# Mac release notes — v1.1.1
+
+## What's new in v1.1.1
+
+- **Login-Optional Donations (`User#XXXXX`) & Rankings Gate**: Custom donations and all core Mac translation features work without sign-in (anonymous `User#10000`–`User#99999` handles stored locally in `guest-donations.dat` with `0600` permissions); email OTP sign-in unlocks Community Rankings and Supporter (`US$19.99`) / Insider (`US$100`) badges.
+- **HardwareID Salted Hashing & ECDSA P-256 Provenance (`ml-3`)**: Uses macOS `IOPlatformUUID` (`ioreg -rd1 -c IOPlatformExpertDevice`, hashed one-way with salt — raw UUID never leaves the Mac) and displays salted device hash + running binary SHA-256 alongside `livetranslator.app` OTP messaging and `ml-3` privacy/terms updates.
 
 ## What's new in v1.1.0
 

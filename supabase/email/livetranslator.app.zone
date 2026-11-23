@@ -1,0 +1,16 @@
+$ORIGIN livetranslator.app.
+$TTL 3600
+
+; Outbound SMTP (Resend) + Inbound Email Routing (Cloudflare)
+@       IN  TXT "v=spf1 include:_spf.resend.com include:_spf.mx.cloudflare.net ~all"
+send    IN  MX  10 feedback-smtp.us-east-1.amazonses.com.
+send    IN  TXT "v=spf1 include:amazonses.com ~all"
+
+; Replace <RESEND_DKIM_KEY> from Resend dashboard before import
+resend._domainkey IN TXT "<RESEND_DKIM_KEY>"
+
+; Strict DMARC alignment against phishing/spoofing
+_dmarc  IN  TXT "v=DMARC1; p=quarantine; adkim=s; aspf=s; rua=mailto:dmarc@livetranslator.app; pct=100"
+
+; Inbound Cloudflare Email Routing (add route2/route3 per Cloudflare wizard)
+@       IN  MX  47 route1.mx.cloudflare.net.

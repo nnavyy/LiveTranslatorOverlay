@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Live Translator Overlay, revision ml-2. Last updated: November 2026.
+Live Translator Overlay, revision ml-3. Last updated: November 2026.
 
 This policy explains what the app does with your audio, text, files and network connections. The application source code is open source under the MIT License, so you can check these statements in the code.
 
@@ -11,7 +11,7 @@ This policy explains what the app does with your audio, text, files and network 
 - Nothing is sent to the developer unless you choose to send feedback.
 - Audio, captions and screenshots are not recorded to disk. They are not uploaded to the developer.
 - Audio or text leaves your device only for the speech or translation provider you select. Default text translation sends recognized text to Google.
-- Accounts are optional. This version does not create accounts and does not upload your usage.
+- Accounts are optional. Normal app usage and voluntary donations work without login. Community Rankings and Supporter or Insider badges require email login.
 
 ## 2. Local speech and model downloads
 
@@ -76,17 +76,17 @@ If you send a report, it contains:
 
 Delivery:
 
-- Reports are sent over HTTPS to the developer mailbox through the FormSubmit service, or through your default email program if you choose that route.
+- Reports are sent over HTTPS to the developer mailbox through the FormSubmit service, or through your default email program if you choose that route. Production support and receipt mail uses support@livetranslator.app and automated login messages use noreply@livetranslator.app.
 - Reports you sent are also kept on your device in %LOCALAPPDATA%\LiveTranslatorOverlay\feedback_history.json.
 
-## 9. Community, accounts and support
+## 9. Community, accounts, hardware ID hashing and support
 
-- Your personal audio total stays on your device and is shown to you privately.
-- The Community window can read online rankings only when a community server is configured in a local community.json file. Without that file, the app makes no community requests.
-- The request sends the board name, your search text and the page position. Rankings list only people who have opted in to be listed.
-- This version does not upload your usage, does not create accounts and does not accept payments.
-- The developer-assisted purchase request is a preview for a staging server only. It signs in an existing test account with a one-time email code and records the account ID, the chosen offer and the time. It takes no payment.
-- If online accounts, rankings or payments become available in a later version, this policy will be updated and the app will ask you to accept the new revision.
+- Your personal audio total stays on your device in audio_usage.json and is shown to you privately.
+- Normal translation, OCR, and voluntary Donate submissions require no account sign-in. Community Rankings and Supporter or Insider license badges require signing in with an email address.
+- To limit abuse and assign anonymous guest donor handles (User#10000 to User#99999), the app derives a one-way salted SHA-256 device hash (prefix livetranslator.app:hwid:v1:) from local OS installation identifiers (Windows MachineGuid and system volume serial, macOS IOPlatformUUID, or a random fallback salt stored locally in device_hwid_salt.txt). Raw serial numbers, MAC addresses, and OS UUIDs are never transmitted or stored remotely.
+- When connecting to a configured community server, board queries send the board name, search text, and page position (listing opted-in profiles and verified User#XXXXX guest donations), and the salted device hash is used only for anti-abuse checks: 5-requests-per-24-hours limits per device on guest donations, cross-account overlapping-interval checks against Sybil time farming, and binding signed ECDSA P-256 entitlements to the device.
+- Without a community.json configuration file, the app makes no community requests and stores guest donations only locally in guest-donations.dat (protected with Windows DPAPI CurrentUser or POSIX 0600 permissions) alongside account-session.dat. Production email login codes use noreply@livetranslator.app and receipts use support@livetranslator.app.
+- Real payments remain disabled in this build while checkout is staged. If payment processing opens in a later version, this policy will update its revision and ask you to accept it again.
 
 ## 10. Screen capture exclusion
 
@@ -105,6 +105,6 @@ When this policy changes in a way that matters, the revision changes and the app
 
 ## 13. Contact
 
-For privacy questions, open an issue on the official GitHub repository: https://github.com/nnavyy/LiveTranslatorOverlay
+For privacy questions, contact support@livetranslator.app or open an issue on the official GitHub repository: https://github.com/nnavyy/LiveTranslatorOverlay
 
-To report a security problem, use private vulnerability reporting in the Security tab of that repository instead of a public issue.
+To report a security problem, email security@livetranslator.app or use private vulnerability reporting in the Security tab of that repository instead of a public issue.

@@ -155,27 +155,71 @@ Check("Auto model tier selects LargeTurbo when GPU is available and Base on CPU"
     && SpeechModelDownload.ResolveEffectiveTier(LocalSpeechModelTier.Small, gpuAvailable: true) == LocalSpeechModelTier.Small,
     "auto tiering verified");
 
-// Local staging account login + selectable license & donation ledger tracking
+// Project domain, salted HWID fingerprint, ECDSA P-256 entitlements & login-optional policy
+Check("ProjectDomainConfig defaults cleanly to livetranslator.app addresses",
+    ProjectDomainConfig.DefaultDomain == "livetranslator.app"
+    && ProjectDomainConfig.NoReplyAddress == "noreply@livetranslator.app"
+    && ProjectDomainConfig.SupportAddress == "support@livetranslator.app",
+    $"domain={ProjectDomainConfig.Domain}; noreply={ProjectDomainConfig.NoReplyAddress}");
+
+object? prevHwSeed = AppContext.GetData("LiveTranslatorOverlay.HardwareSeed");
 string acctRoot = Path.Combine(Path.GetTempPath(), "TranslatorAccountAudit-" + Guid.NewGuid().ToString("N"));
 Directory.CreateDirectory(acctRoot);
 try
 {
+    AppContext.SetData("LiveTranslatorOverlay.HardwareSeed", "audit-device-seed-A");
+    var hwA1 = LiveTranslatorOverlay.Core.Security.HardwareFingerprint.GetCurrent(acctRoot);
+    var hwA2 = LiveTranslatorOverlay.Core.Security.HardwareFingerprint.GetCurrent(acctRoot);
+    AppContext.SetData("LiveTranslatorOverlay.HardwareSeed", "audit-device-seed-B");
+    var hwB = LiveTranslatorOverlay.Core.Security.HardwareFingerprint.GetCurrent(acctRoot);
+    Check("Salted HardwareFingerprint produces deterministic 64-hex SHA-256 and User#XXXXX tag",
+        hwA1.FingerprintHash.Length == 64 && hwA1.FingerprintHash == hwA2.FingerprintHash
+        && hwA1.GuestDisplayTag.StartsWith("User#", StringComparison.Ordinal) && hwA1.GuestDisplayTag.Length == 10
+        && hwA1.FingerprintHash != hwB.FingerprintHash,
+        $"tagA={hwA1.GuestDisplayTag}; tagB={hwB.GuestDisplayTag}");
+
+    var (pubPem, privPem) = LiveTranslatorOverlay.Core.Security.EntitlementSignature.GenerateKeyPairPem();
+    var now = DateTimeOffset.UtcNow;
+    var signed = LiveTranslatorOverlay.Core.Security.EntitlementSignature.SignEntitlement(
+        "donor@example.test", "insider", 10000, true, hwA1.FingerprintHash, now, now.AddDays(30), privPem);
+    var tampered = signed with { ActiveTier = "supporter" };
+    Check("ECDSA P-256 signed entitlement verifies device binding and rejects tampering, wrong HWID, and expiry",
+        LiveTranslatorOverlay.Core.Security.EntitlementSignature.VerifyEntitlement(signed, pubPem, hwA1.FingerprintHash, now)
+        && !LiveTranslatorOverlay.Core.Security.EntitlementSignature.VerifyEntitlement(signed, pubPem, hwB.FingerprintHash, now)
+        && !LiveTranslatorOverlay.Core.Security.EntitlementSignature.VerifyEntitlement(signed, pubPem, hwA1.FingerprintHash, now.AddDays(31))
+        && !LiveTranslatorOverlay.Core.Security.EntitlementSignature.VerifyEntitlement(tampered, pubPem, hwA1.FingerprintHash, now),
+        "p256 verified");
+
+    AppContext.SetData("LiveTranslatorOverlay.HardwareSeed", "audit-device-seed-A");
     var communityClient = new CommunityClient(acctRoot);
+    var guestSupporterBlocked = await communityClient.SubmitSupportChoiceAsync("supporter", 0, "", CancellationToken.None);
+    var guestInsiderBlocked = await communityClient.SubmitSupportChoiceAsync("insider", 0, "", CancellationToken.None);
+    var guestDonateOk = await communityClient.SubmitSupportChoiceAsync("donation", 500, "Guest support", CancellationToken.None);
+    var guestLedger = communityClient.GetGuestDonations();
+    Check("License badges require login while Donate works without login as User#XXXXX",
+        !guestSupporterBlocked.Success && guestSupporterBlocked.Message.Contains("Login required", StringComparison.OrdinalIgnoreCase)
+        && !guestInsiderBlocked.Success && guestInsiderBlocked.Message.Contains("Login required", StringComparison.OrdinalIgnoreCase)
+        && guestDonateOk.Success && guestDonateOk.Message.Contains(hwA1.GuestDisplayTag, StringComparison.Ordinal)
+        && guestLedger != null && guestLedger.TotalDonatedCents == 500 && guestLedger.GuestTag == hwA1.GuestDisplayTag,
+        $"guestTag={guestLedger?.GuestTag}; guestCents={guestLedger?.TotalDonatedCents}");
+
     var otpRes = await communityClient.SendLoginOtpAsync("donor@example.test", CancellationToken.None);
     var loginRes = await communityClient.VerifyLoginOtpAsync("donor@example.test", "123456", CancellationToken.None);
     var donateRes = await communityClient.SubmitSupportChoiceAsync("donation", 1500, "Indonesian pack", CancellationToken.None);
     var insiderRes = await communityClient.SubmitSupportChoiceAsync("insider", 0, "Beta tester", CancellationToken.None);
     var reloaded = AccountSessionStore.Load(acctRoot);
-    Check("Account login, custom donation, and $100 Insider beta unlock persist with solo-dev message",
+    Check("Account login, custom donation, and $100 Insider beta unlock persist with solo-dev message & HWID",
         otpRes.Success && loginRes.Success && donateRes.Success && insiderRes.Success
         && donateRes.Message.Contains("solo developer", StringComparison.OrdinalIgnoreCase)
         && reloaded != null && reloaded.TotalDonatedCents == 11500
         && reloaded.BetaAccessUnlocked && reloaded.ActiveTier == "insider"
+        && reloaded.HardwareFingerprintHash == hwA1.FingerprintHash
         && reloaded.History.Length == 2,
         $"tier={reloaded?.ActiveTier}; total={reloaded?.TotalDonatedCents}; history={reloaded?.History.Length}");
 }
 finally
 {
+    AppContext.SetData("LiveTranslatorOverlay.HardwareSeed", prevHwSeed);
     if (Directory.Exists(acctRoot)) Directory.Delete(acctRoot, recursive: true);
 }
 

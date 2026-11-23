@@ -1,0 +1,7 @@
+Live Translator Overlay (livetranslator.app)
+Your 6-digit verification code: {{ .Token }}
+
+Enter this code in the Live Translator desktop app within 10 minutes to sign in for Community Rankings or license badges.
+Normal app usage and anonymous donations do not require login.
+
+Support: support@livetranslator.app

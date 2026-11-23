@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using LiveTranslatorOverlay.Core.Security;
 
 namespace LiveTranslatorOverlay.Core;
 
@@ -26,7 +27,9 @@ public sealed record AccountSessionState(
     bool BetaAccessUnlocked,
     bool IsLocalStaging,
     DateTimeOffset SignedInUtc,
-    SupportLedgerEntry[] History)
+    SupportLedgerEntry[] History,
+    string HardwareFingerprintHash = "",
+    SignedEntitlement? Entitlement = null)
 {
     public string TierDisplayName => ActiveTier switch
     {
@@ -35,6 +38,12 @@ public sealed record AccountSessionState(
         _ => "Free (MIT Open Source)"
     };
 }
+
+public sealed record GuestDonationLedgerState(
+    string GuestTag,
+    string HardwareFingerprintHash,
+    long TotalDonatedCents,
+    SupportLedgerEntry[] History);
 
 /// <summary>Persists signed-in account state and tracked licenses/donations locally under DPAPI (Windows) or 0600 permissions.</summary>
 public static class AccountSessionStore
@@ -49,60 +58,11 @@ public static class AccountSessionStore
     private static string GetSessionPath(string dataDirectory) =>
         Path.Combine(dataDirectory, "account-session.dat");
 
-    public static AccountSessionState? Load(string dataDirectory)
-    {
-        lock (StoreLock)
-        {
-            string path = GetSessionPath(dataDirectory);
-            if (!File.Exists(path)) return null;
-            try
-            {
-                string raw = File.ReadAllText(path, Encoding.UTF8);
-                string json = raw.StartsWith(ProtectedPrefix, StringComparison.Ordinal)
-                    ? Unprotect(raw[ProtectedPrefix.Length..])
-                    : raw;
-                return string.IsNullOrWhiteSpace(json)
-                    ? null
-                    : JsonSerializer.Deserialize<AccountSessionState>(json, JsonOptions);
-            }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or CryptographicException or FormatException)
-            {
-                return null;
-            }
-        }
-    }
+    public static AccountSessionState? Load(string dataDirectory) =>
+        LoadProtectedJson<AccountSessionState>(GetSessionPath(dataDirectory));
 
-    public static void Save(string dataDirectory, AccountSessionState state)
-    {
-        lock (StoreLock)
-        {
-            Directory.CreateDirectory(dataDirectory);
-            string path = GetSessionPath(dataDirectory);
-            string json = JsonSerializer.Serialize(state, JsonOptions);
-            string payload = OperatingSystem.IsWindows()
-                ? ProtectedPrefix + Protect(json)
-                : json;
-
-            string temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            try
-            {
-                File.WriteAllText(temp, payload, Encoding.UTF8);
-                if (!OperatingSystem.IsWindows())
-                {
-                    try { File.SetUnixFileMode(temp, UnixFileMode.UserRead | UnixFileMode.UserWrite); }
-                    catch { }
-                }
-                File.Move(temp, path, overwrite: true);
-            }
-            finally
-            {
-                if (File.Exists(temp))
-                {
-                    try { File.Delete(temp); } catch { }
-                }
-            }
-        }
-    }
+    public static void Save(string dataDirectory, AccountSessionState state) =>
+        SaveProtectedJson(GetSessionPath(dataDirectory), state);
 
     public static void Clear(string dataDirectory)
     {
@@ -161,6 +121,59 @@ public static class AccountSessionStore
         return updated;
     }
 
+    internal static T? LoadProtectedJson<T>(string path) where T : class
+    {
+        lock (StoreLock)
+        {
+            if (!File.Exists(path)) return null;
+            try
+            {
+                string raw = File.ReadAllText(path, Encoding.UTF8);
+                string json = raw.StartsWith(ProtectedPrefix, StringComparison.Ordinal)
+                    ? Unprotect(raw[ProtectedPrefix.Length..])
+                    : raw;
+                return string.IsNullOrWhiteSpace(json)
+                    ? null
+                    : JsonSerializer.Deserialize<T>(json, JsonOptions);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or CryptographicException or FormatException)
+            {
+                return null;
+            }
+        }
+    }
+
+    internal static void SaveProtectedJson<T>(string path, T value)
+    {
+        lock (StoreLock)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            string json = JsonSerializer.Serialize(value, JsonOptions);
+            string payload = OperatingSystem.IsWindows()
+                ? ProtectedPrefix + Protect(json)
+                : json;
+
+            string temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                File.WriteAllText(temp, payload, Encoding.UTF8);
+                if (!OperatingSystem.IsWindows())
+                {
+                    try { File.SetUnixFileMode(temp, UnixFileMode.UserRead | UnixFileMode.UserWrite); }
+                    catch { }
+                }
+                File.Move(temp, path, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(temp))
+                {
+                    try { File.Delete(temp); } catch { }
+                }
+            }
+        }
+    }
+
     private static string Protect(string plaintext)
     {
         if (!OperatingSystem.IsWindows()) return plaintext;
@@ -189,5 +202,34 @@ public static class AccountSessionStore
         {
             CryptographicOperations.ZeroMemory(plaintext);
         }
+    }
+}
+
+/// <summary>Stores login-optional guest donations keyed to this device's anonymous User#XXXXX handle.</summary>
+public static class GuestDonationLedgerStore
+{
+    private static string GetLedgerPath(string dataDirectory) =>
+        Path.Combine(dataDirectory, "guest-donations.dat");
+
+    public static GuestDonationLedgerState? Load(string dataDirectory) =>
+        AccountSessionStore.LoadProtectedJson<GuestDonationLedgerState>(GetLedgerPath(dataDirectory));
+
+    public static GuestDonationLedgerState RecordDonation(
+        string dataDirectory,
+        HardwareIdentity identity,
+        string entryId,
+        long cents,
+        string mode,
+        string status)
+    {
+        var existing = Load(dataDirectory);
+        var entries = new List<SupportLedgerEntry>(existing?.History ?? [])
+        {
+            new(entryId, "donation", $"Donate ({identity.GuestDisplayTag})", cents, mode, status, DateTimeOffset.UtcNow)
+        };
+        long nextTotal = Math.Max(0, existing?.TotalDonatedCents ?? 0) + Math.Max(0, cents);
+        var updated = new GuestDonationLedgerState(identity.GuestDisplayTag, identity.FingerprintHash, nextTotal, entries.ToArray());
+        AccountSessionStore.SaveProtectedJson(GetLedgerPath(dataDirectory), updated);
+        return updated;
     }
 }

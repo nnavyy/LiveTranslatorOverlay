@@ -11,6 +11,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
 using LiveTranslatorOverlay.Core;
+using LiveTranslatorOverlay.Core.Security;
 using System.Runtime.InteropServices;
 using ShapePath = Avalonia.Controls.Shapes.Path;
 
@@ -119,13 +120,14 @@ internal sealed class CommunityWindow : Window
         var subtitle = MutedLine($"Your audio translation time · {GuestAudioUsage.Format(usage)} · Private to this device", size: 13, bottom: 0);
         panel.Children.Add(new DockPanel
         {
-            Margin = new Thickness(0, 0, 0, 12),
+            Margin = new Thickness(0, 0, 0, 6),
             Children =
             {
                 badge,
                 new StackPanel { Children = { Heading("Community rankings", 24, bottom: 2), subtitle } }
             }
         });
+        panel.Children.Add(MutedLine("Login is required for Community Rankings or Supporter/Insider badges · Custom donations require no login (guest donors appear anonymously as User#XXXXX).", size: 12, bottom: 10));
 
         panel.Children.Add(MutedLine("Board and nickname search", size: 12, bottom: 6, semiBold: true));
         var board = new ComboBox
@@ -846,7 +848,14 @@ internal sealed class CommunityWindow : Window
 
     private Border AccountAndChannelSection(CommunityClient client)
     {
-        var summaryHeading = Heading("Account login & release channel", 15.5, bottom: 4);
+        var hw = client.GetDeviceIdentity();
+        var provenance = EntitlementSignature.GetRunningBinaryProvenance();
+        string binShort = provenance.Sha256.Length >= 12 ? provenance.Sha256[..12] : "dev";
+
+        var summaryHeading = Heading("Optional login, device identity & release channel", 15.5, bottom: 4);
+        var deviceIdentityText = MutedLine(
+            $"Guest handle: {hw.GuestDisplayTag} · Salted HWID: {HardwareFingerprint.FormatShortHash(hw.FingerprintHash)} · Binary SHA-256: {binShort}",
+            size: 11.5, bottom: 6);
         var accountSummaryText = MutedLine("", size: 13, bottom: 8);
         accountSummaryText.Foreground = SolidBrush("#E5E5F0");
         var historyList = new StackPanel { Spacing = 2, Margin = new Thickness(0, 4, 0, 8) };
@@ -885,16 +894,29 @@ internal sealed class CommunityWindow : Window
             if (session == null)
             {
                 accountSummaryText.Text = client.HasOnlineAccountService
-                    ? "Not signed in. Enter your email for a 6-digit OTP code."
-                    : "Not signed in (local staging ledger ready). Enter your email and any 6 digits (e.g. 123456) to track support locally.";
+                    ? $"Not signed in. Login is optional for translation & guest donations (shown as {hw.GuestDisplayTag}), and required for Community Rankings or badges. OTP emails send from {ProjectDomainConfig.NoReplyAddress}."
+                    : $"Not signed in (local staging ready). Login is optional for guest donations ({hw.GuestDisplayTag}); enter email + any 6 digits (e.g. 123456) to sign in for rankings & badges.";
                 emailBox.IsVisible = codeBox.IsVisible = sendCodeBtn.IsVisible = verifyBtn.IsVisible = true;
                 signOutBtn.IsVisible = false;
                 historyList.Children.Clear();
+                var guestLedger = client.GetGuestDonations();
+                if (guestLedger?.History is { Length: > 0 })
+                {
+                    historyList.Children.Add(MutedLine($"Guest donations recorded for {guestLedger.GuestTag} ({AccountSessionStore.FormatUsd(guestLedger.TotalDonatedCents)} total):", size: 12, bottom: 4, semiBold: true));
+                    foreach (var entry in guestLedger.History.Reverse().Take(6))
+                    {
+                        historyList.Children.Add(MutedLine($"• {entry.CreatedUtc:yyyy-MM-dd} · {entry.AmountLabel} · {guestLedger.GuestTag} ({entry.Status})", size: 12, bottom: 2));
+                    }
+                }
             }
             else
             {
                 string modeLabel = session.IsLocalStaging ? "Local staging" : "Synced";
-                accountSummaryText.Text = $"Signed in: {session.Email} ({modeLabel})\nActive tier: {session.TierDisplayName}\nTracked donations & support: {AccountSessionStore.FormatUsd(session.TotalDonatedCents)}";
+                string hwidLabel = !string.IsNullOrWhiteSpace(session.HardwareFingerprintHash)
+                    ? HardwareFingerprint.FormatShortHash(session.HardwareFingerprintHash)
+                    : HardwareFingerprint.FormatShortHash(hw.FingerprintHash);
+                string entitlementSuffix = session.Entitlement != null ? " · ECDSA signed" : "";
+                accountSummaryText.Text = $"Signed in: {session.Email} ({modeLabel}{entitlementSuffix})\nActive tier: {session.TierDisplayName}\nTracked donations & support: {AccountSessionStore.FormatUsd(session.TotalDonatedCents)} · Device: {hwidLabel}";
                 emailBox.IsVisible = codeBox.IsVisible = sendCodeBtn.IsVisible = verifyBtn.IsVisible = false;
                 signOutBtn.IsVisible = true;
                 historyList.Children.Clear();
@@ -975,6 +997,7 @@ internal sealed class CommunityWindow : Window
             Children =
             {
                 summaryHeading,
+                deviceIdentityText,
                 accountSummaryText,
                 emailBox,
                 codeBox,
@@ -1060,7 +1083,7 @@ internal sealed class CommunityWindow : Window
             Children =
             {
                 Heading("Choose a license or donation to track", 15, bottom: 6),
-                MutedLine("Every license purchase or donation helps this solo developer expand support for more languages.", size: 12.5, bottom: 8),
+                MutedLine("Sign in required for US$19.99 Supporter / US$100 Insider badges · No login needed for Donate (appears anonymously as User#XXXXX). Every contribution helps this solo developer expand language support.", size: 12.5, bottom: 8),
                 offerSelect,
                 customAmountPanel,
                 MutedLine("Optional message or requested language (max 200 chars)", size: 12, bottom: 4),

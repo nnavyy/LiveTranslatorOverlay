@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11%20%7C%20macOS%2014%2B-0078D6?style=for-the-badge" alt="Windows and macOS" />
   <img src="https://img.shields.io/badge/GPU-Vulkan%20%7C%20Metal%20%7C%20CPU-blueviolet?style=for-the-badge" alt="Vulkan Metal CPU" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License" />
-  <img src="https://img.shields.io/badge/Version-1.1.0-brightgreen?style=for-the-badge" alt="v1.1.0" />
+  <img src="https://img.shields.io/badge/Version-1.1.1-brightgreen?style=for-the-badge" alt="v1.1.1" />
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
 
 Live Translator Overlay is an open-source project licensed under the [MIT License](LICENSE). All core translation, OCR, and speech recognition features are free under MIT.
 
-With **v1.1.0**, local speech recognition automatically adapts to your device:
+With **v1.1.1**, local speech recognition automatically adapts to your device while adding optional login rules, `livetranslator.app` email identity, and hardware-bound anti-abuse protections:
 - **Universal Cross-Vendor GPU Acceleration (No CUDA / Python Needed)**: Uses `Whisper.net.Runtime.Vulkan` on Windows (works across NVIDIA, AMD, and Intel GPUs) and `Whisper.net.Runtime.Metal` on Apple Silicon macOS to run **Whisper `large-v3-turbo` (`Q5_0`, `574 MB`)** with automatic fallback to CPU (`ggml-base.bin` `148 MB` or `NoAvx` x64 CPU) on machines without a compatible GPU.
 - **Word-by-Word Local Agreement-2 Streaming (`300 ms` Sliding Windows)**: Select **Local multilingual — live word-by-word (Auto GPU/CPU)** to display words incrementally as they stabilize (both space-delimited languages and CJK ideographs/kana) without waiting for 4–12 second pauses.
 - **Persistent Warm Local Translation (`--daemon`)**: Optionally run offline M2M-100 (`418M` `int8`) via `runtime/translation_worker.py --daemon` with a kernel-guarded process tree and zero cold Python restarts per caption (alongside default key-free Google Translate and optional Groq/Deepgram cloud engines).
@@ -44,7 +44,8 @@ With **v1.1.0**, local speech recognition automatically adapts to your device:
 - **Privacy-First Floating Overlay**: Draggable always-on-top captions with `WDA_EXCLUDEFROMCAPTURE` capture exclusion for OBS/Discord/Zoom.
 - **Japanese & Multi-Script Rendering + 4 UI Languages**: Standard, Hiragana, Furigana, Romaji, or Katakana output across a 100-language catalog, localized in English, Indonesian, Russian, and Spanish.
 - **3-Channel Auto-Updater (`main` / `beta` / `dev`)**: Verifies SHA-256 package hashes before staging across `updates/ml-stable.json` (`main`), `updates/ml-beta.json` (`beta`), and local `channel.json` (`dev`).
-- **Account Login, Selectable Tiers & Donation Tracking**: Built-in **Community & Account** dialog supporting email OTP sign-in (Supabase Auth when `community.json` is configured, or encrypted local staging ledger offline), tracked donation/license history, selectable **Lifetime Supporter (`US$19.99`)**, **Lifetime Insider (`US$100` Beta access)**, or custom donation tiers, and solo-developer gratitude messages.
+- **Login-Optional Donations (`User#XXXXX`), Salted HWID & ECDSA Provenance (`ml-3`)**: Core translation and custom donations work **without login** (appearing deterministically as `User#10000`–`User#99999` on Supporters, protected locally in `guest-donations.dat`). Joining **Community Rankings** or claiming **Lifetime Supporter (`US$19.99`)** / **Lifetime Insider (`US$100`)** badges requires email OTP sign-in (`noreply@livetranslator.app`). Anti-spoofing and device rate limits use a one-way salted SHA-256 hardware fingerprint (`HardwareFingerprint`), ECDSA P-256 entitlements (`EntitlementSignature`), and Supabase RLS (`20261123180000_guest_donations_hwid_and_antiabuse.sql`) without ever transmitting raw serial numbers.
+- **Account Login, Selectable Tiers & Donation Tracking**: Built-in **Community & Account** dialog supporting email OTP sign-in (`livetranslator.app` via Supabase Auth when `community.json` is configured, or encrypted local staging ledger offline), guest & signed-in donation history, selectable **Lifetime Supporter (`US$19.99`)**, **Lifetime Insider (`US$100` Beta access)**, or custom `User#XXXXX` donations, and solo-developer gratitude messages. Core MIT functionality remains free and public checkout remains staged (`SupportCatalog.Closed`).
 
 ### macOS (`MacApp`, `macOS 14+`)
 - **Metal GPU / CPU Local Speech & Floating Captions**: Captures **System audio** (`ScreenCaptureKit`) or **Microphone** (`AVAudioEngine`) via `MacApp/NativeAudio.swift` with selectable `Balanced (CPU)`, `Larger model (CPU)`, `Auto (Metal GPU / CPU)`, and `Large-v3-turbo (Metal GPU)` speech options.
@@ -116,13 +117,13 @@ Optional keys persist under `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.js
 
 **All core features remain free under the [MIT License](LICENSE). Voluntary support funds ongoing solo development across additional languages and Windows/macOS builds.**
 
-| Tier | Amount | Benefits & Notes |
-|---|---|---|
-| **Lifetime Supporter** | `US$19.99` once | Supporter badge & personal thank-you, helping sustain solo multi-language development. |
-| **Lifetime Insider** | `US$100` once | Insider badge, `beta` channel early-access builds, priority support & experimental features. |
-| **Custom Donate** | Any positive USD | Tracked cumulative contribution in your signed-in ledger (`account-session.dat` / Supabase RPC). |
+| Tier | Login Required? | Amount | Benefits & Notes |
+|---|---|---|---|
+| **Lifetime Supporter** | **Yes (Email OTP)** | `US$19.99` once | Supporter medal on Community Rankings, signed entitlement & personal thank-you, helping sustain solo multi-language development. |
+| **Lifetime Insider** | **Yes (Email OTP)** | `US$100` once | Insider medal, `beta` channel early-access builds, priority support & experimental features. |
+| **Custom Donate** | **No (Optional)** | Any positive USD | Appears anonymously as deterministic `User#XXXXX` from your salted HWID on the Supporters board, or links to your signed-in ledger. |
 
-*Note: Real payment gateway links remain disabled (`SupportCatalog.Closed`) while checkout integration is staged; sign-in & selection operate via local staging tracking or configured Supabase preview instances.*
+*Note: Real payment gateway links remain disabled (`SupportCatalog.Closed`) while checkout integration is staged; sign-in, `livetranslator.app` SMTP templates (`supabase/email/`), and selection operate via local staging tracking or configured Supabase preview instances.*
 
 ---
 

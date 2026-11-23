@@ -1,3 +1,21 @@
+# Live Translator Overlay 1.1.1
+
+Open-source (MIT) security, `livetranslator.app` email identity, and login-optional guest donation update on the 1.x machine-learning line.
+
+## Highlights in v1.1.1
+
+- **Login-Optional App & Guest Donations (`User#XXXXX`)**:
+  - Core audio/screen translation and custom **Donate** contributions work **without signing in**. Guest donors appear deterministically on the `supporters` leaderboard as `User#10000`–`User#99999` (`guest-donations.dat`, DPAPI/0600 encrypted).
+  - **Email OTP sign-in** is required only when participating in named **Community Rankings** or claiming **Lifetime Supporter (`US$19.99`)** / **Lifetime Insider (`US$100`)** badges.
+- **Anti-Abuse Salted HardwareID & ECDSA P-256 Provenance**:
+  - Computes a one-way salted SHA-256 device hash (`livetranslator.app:hwid:v1:`) without sending raw serials, enforced in Supabase migration `20261123180000_guest_donations_hwid_and_antiabuse.sql` (5 guest donations/24h per device, cross-account overlapping-interval Sybil usage rejection, and `guest_tag_from_hwid()`).
+  - Added `EntitlementSignature` (ECDSA NIST P-256 SHA-256 entitlement tokens bound to HWID/tier/expiry + SHA-256 running binary provenance).
+  - Bumped Terms & Privacy Policy to revision **`ml-3`** (`TERMS_REVISION.txt`, `PRIVACY.md`, `APP_LICENSE.md`) clarifying salted HWID disclosure and MIT vs. official brand provenance boundaries.
+- **Automated `livetranslator.app` Email & DNS Automation Kit**:
+  - Added `ProjectDomainConfig` (`noreply@livetranslator.app`, `support@livetranslator.app`, `security@livetranslator.app`), Cloudflare/Resend DNS JSON & BIND zone records, branded OTP & receipt HTML/text templates, and `supabase/email/configure-supabase-smtp.ps1` (`-DryRun`).
+
+---
+
 # Live Translator Overlay 1.1.0
 
 Open-source (MIT) cross-vendor GPU streaming and multi-channel release on the 1.x machine-learning line.

@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using LiveTranslatorOverlay.Core.Security;
 
 namespace LiveTranslatorOverlay.Core;
 
@@ -16,17 +17,17 @@ public sealed record SupportOffer(string Id, string Title, int? Cents, string De
 
 public static class SupportCatalog
 {
-    public const string Intro = "Live Translator Overlay is free and open source under the MIT License. All stable features remain free — optional support never unlocks the software or source code.";
+    public const string Intro = "Live Translator Overlay is free and open source under the MIT License. All stable features remain free — login is optional for app usage and guest donations, while Community Rankings and Supporter/Insider badges require login.";
     public const string Closed = "Purchases and donations are currently closed.";
-    public const string IndependenceNote = "Supporter and Insider are independent tiers — choosing both is US$119.99 total.";
+    public const string IndependenceNote = "Supporter and Insider are independent tiers (login required to receive badges) — choosing both is US$119.99 total.";
     public const string AvailabilityNote = "Purchasing is currently preview-only; no payment links or checkout are active in this version.";
     public const string SoloDeveloperNote = "Every license purchase or donation directly helps this solo developer continue developing support for even more languages and cross-platform updates on Windows & macOS.";
 
     public static IReadOnlyList<SupportOffer> Offers { get; } = Array.AsReadOnly(new SupportOffer[]
     {
-        new("supporter", "Lifetime Supporter", 1999, "Voluntary lifetime support. Includes a Supporter medal and a personal thank-you."),
-        new("insider", "Lifetime Insider", 10000, "Voluntary lifetime support. Includes an Insider medal, early-access beta builds, compatible experimental models, priority support, and a personal thank-you."),
-        new("donation", "Donate", null, "Voluntary contribution of any positive amount. Tracked in your account ledger. Donations help fund new language packs.")
+        new("supporter", "Lifetime Supporter", 1999, "Voluntary lifetime support (login required). Includes a Supporter medal on Community Rankings and a personal thank-you."),
+        new("insider", "Lifetime Insider", 10000, "Voluntary lifetime support (login required). Includes an Insider medal, early-access beta builds, compatible experimental models, priority support, and a personal thank-you."),
+        new("donation", "Donate", null, "Voluntary contribution of any positive amount. No login required — guest donors appear anonymously as User#XXXXX on the Supporters board.")
     });
 }
 
@@ -51,7 +52,7 @@ public sealed record CommunityPage(bool Available, CommunityRank[] Entries, stri
 
 public sealed record AccountActionResult(bool Success, string Message, AccountSessionState? Session = null);
 
-/// <summary>Reads consented public projections and manages email OTP login, licenses, and tracked donations.</summary>
+/// <summary>Reads consented public projections and manages email OTP login, licenses, and login-optional User#XXXXX donations.</summary>
 public sealed class CommunityClient
 {
     public const int PageSize = 50;
@@ -89,7 +90,11 @@ public sealed class CommunityClient
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { }
     }
 
+    public HardwareIdentity GetDeviceIdentity() => HardwareFingerprint.GetCurrent(_dataDirectory);
+
     public AccountSessionState? GetCachedSession() => AccountSessionStore.Load(_dataDirectory);
+
+    public GuestDonationLedgerState? GetGuestDonations() => GuestDonationLedgerStore.Load(_dataDirectory);
 
     public void SignOut() => AccountSessionStore.Clear(_dataDirectory);
 
@@ -101,12 +106,12 @@ public sealed class CommunityClient
 
         if (_authBase == null)
         {
-            return new(true, "Local staging login active (online community.json not present). Enter any 6 digits (e.g. 123456) to sign in and track support locally.");
+            return new(true, $"Local staging login active (production OTPs send from {ProjectDomainConfig.NoReplyAddress}). Enter any 6 digits (e.g. 123456) to sign in for Community Rankings and license badges.");
         }
 
         using var response = await PostPurchaseAsync(new Uri(_authBase, "otp"), new { email, create_user = true }, null, token).ConfigureAwait(false);
         return response?.IsSuccessStatusCode == true
-            ? new(true, "A six-digit sign-in code was sent to your email.")
+            ? new(true, $"A six-digit sign-in code was sent from {ProjectDomainConfig.NoReplyAddress} to {email}.")
             : new(false, "Could not send a sign-in code. Check the address and try again shortly.");
     }
 
@@ -121,15 +126,16 @@ public sealed class CommunityClient
 
         string displayName = email.Split('@')[0];
         if (string.IsNullOrWhiteSpace(displayName)) displayName = "Member";
+        var hw = GetDeviceIdentity();
 
         if (_authBase == null || _rpcBase == null)
         {
             var existing = AccountSessionStore.Load(_dataDirectory);
             var localSession = existing != null && string.Equals(existing.Email, email, StringComparison.OrdinalIgnoreCase)
-                ? existing with { AccessToken = "local-staging-session", IsLocalStaging = true, SignedInUtc = DateTimeOffset.UtcNow }
-                : new AccountSessionState(email, displayName, "local-staging-session", "free", 0, false, true, DateTimeOffset.UtcNow, []);
+                ? existing with { AccessToken = "local-staging-session", IsLocalStaging = true, SignedInUtc = DateTimeOffset.UtcNow, HardwareFingerprintHash = hw.FingerprintHash }
+                : new AccountSessionState(email, displayName, "local-staging-session", "free", 0, false, true, DateTimeOffset.UtcNow, [], hw.FingerprintHash);
             AccountSessionStore.Save(_dataDirectory, localSession);
-            return new(true, $"Signed in as {email} (local staging ledger active).", localSession);
+            return new(true, $"Signed in as {email} (device {hw.GuestDisplayTag} bound).", localSession);
         }
 
         try
@@ -143,7 +149,7 @@ public sealed class CommunityClient
                 !session.AccessToken.All(character => char.IsAsciiLetterOrDigit(character) || character is '.' or '_' or '-'))
                 return new(false, "Could not verify your code.");
 
-            var remoteState = await FetchRemoteAccountStateAsync(email, displayName, session.AccessToken, token).ConfigureAwait(false);
+            var remoteState = await FetchRemoteAccountStateAsync(email, displayName, session.AccessToken, hw.FingerprintHash, token).ConfigureAwait(false);
             AccountSessionStore.Save(_dataDirectory, remoteState);
             return new(true, $"Signed in as {email}.", remoteState);
         }
@@ -156,24 +162,34 @@ public sealed class CommunityClient
 
     public async Task<AccountActionResult> SubmitSupportChoiceAsync(string offerId, long customDonationCents, string note, CancellationToken token)
     {
-        var session = AccountSessionStore.Load(_dataDirectory);
-        if (session == null)
-            return new(false, "Sign in with your email first so your license and donations can be tracked to your account.");
-
         var offer = SupportCatalog.Offers.FirstOrDefault(o => o.Id == offerId);
         if (offer == null)
             return new(false, "Choose Lifetime Supporter (US$19.99), Lifetime Insider (US$100), or Donate.");
 
+        var session = AccountSessionStore.Load(_dataDirectory);
+        // License tiers & badges ALWAYS require signed-in account; custom donations are login-optional (User#XXXXX).
+        if (session == null && offer.Id != "donation")
+        {
+            return new(false, $"Login required for {offer.Title}. Sign in with your email first to claim your license badge (donations work without login as User#XXXXX).");
+        }
+
         long cents = offer.Cents ?? customDonationCents;
         if (cents <= 0 || cents > 10_000_000)
             return new(false, "Enter a positive support amount up to US$100,000.");
+
+        var hw = GetDeviceIdentity();
+
+        if (session == null)
+        {
+            return await SubmitGuestDonationAsync(cents, note, hw, token).ConfigureAwait(false);
+        }
 
         if (!HasOnlineAccountService || session.IsLocalStaging)
         {
             string entryId = $"loc-{Guid.NewGuid():N}"[..16];
             var updated = AccountSessionStore.RecordSupport(
                 _dataDirectory,
-                session,
+                session with { HardwareFingerprintHash = hw.FingerprintHash },
                 entryId,
                 offer.Id,
                 offer.Title,
@@ -201,7 +217,7 @@ public sealed class CommunityClient
                 var summary = await response.Content.ReadFromJsonAsync<SupportRequestRpcResponse>(Json, token).ConfigureAwait(false);
                 var updated = AccountSessionStore.RecordSupport(
                     _dataDirectory,
-                    session,
+                    session with { HardwareFingerprintHash = hw.FingerprintHash },
                     summary?.RequestId ?? Guid.NewGuid().ToString("D"),
                     offer.Id,
                     offer.Title,
@@ -222,7 +238,43 @@ public sealed class CommunityClient
         return new(false, "Could not submit your support request. Sign in again if your code session expired.");
     }
 
-    private async Task<AccountSessionState> FetchRemoteAccountStateAsync(string email, string displayName, string accessToken, CancellationToken token)
+    private async Task<AccountActionResult> SubmitGuestDonationAsync(long cents, string note, HardwareIdentity hw, CancellationToken token)
+    {
+        if (_rpcBase != null)
+        {
+            try
+            {
+                using var response = await PostPurchaseAsync(
+                    new Uri(_rpcBase, "lt_submit_guest_donation"),
+                    new { p_cents = (int)cents, p_hwid_hash = hw.FingerprintHash, p_note = (note ?? "").Trim() },
+                    null,
+                    token).ConfigureAwait(false);
+
+                if (response?.IsSuccessStatusCode == true)
+                {
+                    var summary = await response.Content.ReadFromJsonAsync<GuestDonationRpcResponse>(Json, token).ConfigureAwait(false);
+                    string reqId = summary?.RequestId ?? Guid.NewGuid().ToString("D");
+                    string tag = string.IsNullOrWhiteSpace(summary?.GuestTag) ? hw.GuestDisplayTag : summary.GuestTag;
+                    GuestDonationLedgerStore.RecordDonation(_dataDirectory, hw, reqId, cents, "supabase-guest", summary?.Status ?? "pending");
+                    return new(
+                        true,
+                        $"Guest donation recorded ({AccountSessionStore.FormatUsd(cents)}) · Request {reqId} · Anonymous leaderboard handle: {tag}. No login required. {SupportCatalog.SoloDeveloperNote}");
+                }
+            }
+            catch (Exception error) when (error is HttpRequestException or IOException or JsonException ||
+                                          error is OperationCanceledException && !token.IsCancellationRequested) { }
+
+            return new(false, "Could not submit guest donation right now (check connection or daily device limit).");
+        }
+
+        string localId = $"gst-{Guid.NewGuid():N}"[..16];
+        GuestDonationLedgerStore.RecordDonation(_dataDirectory, hw, localId, cents, "local-staging", "guest-tracked");
+        return new(
+            true,
+            $"Guest donation recorded ({AccountSessionStore.FormatUsd(cents)}) as {hw.GuestDisplayTag} [{localId}]. No login required · no real payment charged. {SupportCatalog.SoloDeveloperNote}");
+    }
+
+    private async Task<AccountSessionState> FetchRemoteAccountStateAsync(string email, string displayName, string accessToken, string hwHash, CancellationToken token)
     {
         try
         {
@@ -250,13 +302,14 @@ public sealed class CommunityClient
                         remote.BetaAccessUnlocked,
                         false,
                         DateTimeOffset.UtcNow,
-                        history);
+                        history,
+                        hwHash);
                 }
             }
         }
         catch { }
 
-        return new AccountSessionState(email, displayName, accessToken, "free", 0, false, false, DateTimeOffset.UtcNow, []);
+        return new AccountSessionState(email, displayName, accessToken, "free", 0, false, false, DateTimeOffset.UtcNow, [], hwHash);
     }
 
     public async Task<CommunityPage> ReadAsync(CommunityBoard board, string search = "", int offset = 0, CancellationToken token = default)
@@ -346,6 +399,10 @@ public sealed class CommunityClient
     private sealed record EmailSession([property: JsonPropertyName("access_token")] string AccessToken);
     private sealed record BoardResponse([property: JsonPropertyName("open")] bool Open, CommunityRank[]? Entries);
     private sealed record SupportRequestRpcResponse([property: JsonPropertyName("requestId")] string RequestId, [property: JsonPropertyName("status")] string Status);
+    private sealed record GuestDonationRpcResponse(
+        [property: JsonPropertyName("requestId")] string RequestId,
+        [property: JsonPropertyName("guestTag")] string GuestTag,
+        [property: JsonPropertyName("status")] string Status);
     private sealed record RemoteHistoryRow(
         [property: JsonPropertyName("id")] string? Id,
         [property: JsonPropertyName("offer")] string? Offer,
