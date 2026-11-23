@@ -1,6 +1,8 @@
 # Local speech-translation research manuscript
 
-**Status: completed exploratory pilot report; larger study proposed.** The adapter failed to improve test WER and is rejected for release. The neural speech gate is promising on a tiny synthetic-control pilot, but no production fix, 95% accuracy result, completed translation experiment or validated new algorithm is claimed.
+> **New (v1.1.0 Systems & Architecture Manuscript):** See **[PAPER_NOVELTY_AND_RESEARCH_GAP.md](PAPER_NOVELTY_AND_RESEARCH_GAP.md)** and its companion benchmark data ([streaming-benchmark-results.json](streaming-benchmark-results.json)) for the full analysis of the Whisper `small` fine-tuning gap across our 2026-11-18/19/20 experiments alongside the cross-vendor Vulkan/Metal quantized word-by-word streaming architecture (`5.00%` RU WER, `4.92%` JA CER, `0.186x` final RTF).
+
+**Pilot Status (2 Nov 2026):** completed exploratory pilot report; larger study proposed. The adapter failed to improve test WER and is rejected for release. The neural speech gate is promising on a tiny synthetic-control pilot, but no production fix, 95% accuracy result, completed translation experiment or validated new algorithm is claimed.
 
 Start with the [13-page PDF](output/pdf/local-speech-translation-pilot.pdf) or [editable manuscript with references](manuscript-with-references.md). The research questions prioritize detection and translation accuracy, mixed language, overlapping speakers, speech retention and local latency. C# remains the application/probe stack; Python performs training and statistical analysis.
 

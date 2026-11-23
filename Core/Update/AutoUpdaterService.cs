@@ -96,25 +96,42 @@ namespace LiveTranslatorOverlay.Core.Update
                 if (IsUpdateReady) return true;
                 StatusChanged?.Invoke(this, new UpdateStatusEventArgs("Checking for updates...", 0));
 
-                using var response = await _httpClient.GetAsync(StableRelease.ManifestUrl);
-
-                if (response.StatusCode == HttpStatusCode.NotFound)
+                var (channel, manifestUri) = ResolveChannelAndManifest();
+                string manifestJson;
+                if (manifestUri.IsFile)
                 {
-                    StatusChanged?.Invoke(this, new UpdateStatusEventArgs("No public 1.x release yet.", 100));
-                    return false;
+                    if (!File.Exists(manifestUri.LocalPath))
+                    {
+                        StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"No local {channel} feed manifest found yet.", 100));
+                        return false;
+                    }
+                    manifestJson = await File.ReadAllTextAsync(manifestUri.LocalPath);
+                }
+                else
+                {
+                    using var response = await _httpClient.GetAsync(manifestUri);
+
+                    if (response.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        string notFoundMsg = channel == "stable" ? "No public 1.x release yet." : $"No {channel} 1.x release yet.";
+                        StatusChanged?.Invoke(this, new UpdateStatusEventArgs(notFoundMsg, 100));
+                        return false;
+                    }
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        string msg = $"Server check returned {response.StatusCode}";
+                        StatusChanged?.Invoke(this, new UpdateStatusEventArgs(msg, 0, isError: true));
+                        return false;
+                    }
+
+                    manifestJson = await response.Content.ReadAsStringAsync();
                 }
 
-                if (!response.IsSuccessStatusCode)
-                {
-                    string msg = $"Server check returned {response.StatusCode}";
-                    StatusChanged?.Invoke(this, new UpdateStatusEventArgs(msg, 0, isError: true));
-                    return false;
-                }
-
-                var release = StableRelease.Read(await response.Content.ReadAsStringAsync(), "win-x64");
+                var release = StableRelease.Read(manifestJson, "win-x64", channel);
                 if (release == null || release.Version <= AppVersion.Current)
                 {
-                    StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Up to date ({AppVersion.DisplayString})", 100));
+                    StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Up to date ({AppVersion.DisplayString} · {channel})", 100));
                     return false;
                 }
 
@@ -122,7 +139,7 @@ namespace LiveTranslatorOverlay.Core.Update
                 string tagName = $"v{release.Version}";
                 string localAppData = AppSettings.DataDirectory;
                 string updateTempDir = Path.Combine(localAppData, "UpdateTemp");
-                string updateStagedDir = Path.Combine(localAppData, $"Staged_ml_{tagName}");
+                string updateStagedDir = Path.Combine(localAppData, $"Staged_ml_{channel}_{tagName}");
 
                 Directory.CreateDirectory(updateTempDir);
                 if (Directory.Exists(updateStagedDir))
@@ -131,41 +148,50 @@ namespace LiveTranslatorOverlay.Core.Update
                 }
                 Directory.CreateDirectory(updateStagedDir);
 
-                zipFilePath = Path.Combine(updateTempDir, $"update_ml_{tagName}.zip");
+                zipFilePath = Path.Combine(updateTempDir, $"update_ml_{channel}_{tagName}.zip");
 
-                // Download ZIP with progress
-                StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Downloading update {tagName}...", 5, newVersion: tagName));
+                // Download ZIP with progress (or copy from local dev feed)
+                StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Downloading {channel} update {tagName}...", 5, newVersion: tagName));
 
                 using var downloadTimeout = new CancellationTokenSource(TimeSpan.FromMinutes(10));
                 var token = downloadTimeout.Token;
-                using (var downloadResponse = await _httpClient.GetAsync(release.DownloadUri, HttpCompletionOption.ResponseHeadersRead, token))
+                if (release.DownloadUri.IsFile)
                 {
-                    downloadResponse.EnsureSuccessStatusCode();
-                    long totalBytes = release.Size;
-                    if (downloadResponse.Content.Headers.ContentLength is long size && size != totalBytes)
-                        throw new InvalidDataException("The update response does not match the published size.");
-
-                    using (var contentStream = await downloadResponse.Content.ReadAsStreamAsync(token))
-                    using (var fileStream = new FileStream(zipFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite, 81920, true))
+                    await using var sourceStream = File.OpenRead(release.DownloadUri.LocalPath);
+                    await using var destStream = new FileStream(zipFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite, 81920, true);
+                    await sourceStream.CopyToAsync(destStream, token);
+                }
+                else
+                {
+                    using (var downloadResponse = await _httpClient.GetAsync(release.DownloadUri, HttpCompletionOption.ResponseHeadersRead, token))
                     {
-                        var buffer = new byte[81920];
-                        long totalRead = 0;
-                        int bytesRead;
-                        int lastReportedPercent = 5;
+                        downloadResponse.EnsureSuccessStatusCode();
+                        long totalBytes = release.Size;
+                        if (downloadResponse.Content.Headers.ContentLength is long size && size != totalBytes)
+                            throw new InvalidDataException("The update response does not match the published size.");
 
-                        while ((bytesRead = await contentStream.ReadAsync(buffer.AsMemory(), token)) > 0)
+                        using (var contentStream = await downloadResponse.Content.ReadAsStreamAsync(token))
+                        using (var fileStream = new FileStream(zipFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite, 81920, true))
                         {
-                            totalRead += bytesRead;
-                            if (totalRead > totalBytes) throw new InvalidDataException("The update download exceeded the published size.");
-                            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), token);
+                            var buffer = new byte[81920];
+                            long totalRead = 0;
+                            int bytesRead;
+                            int lastReportedPercent = 5;
 
-                            if (totalBytes > 0)
+                            while ((bytesRead = await contentStream.ReadAsync(buffer.AsMemory(), token)) > 0)
                             {
-                                int percent = (int)((totalRead * 85) / totalBytes) + 5; // Scale 5% - 90%
-                                if (percent >= lastReportedPercent + 5)
+                                totalRead += bytesRead;
+                                if (totalRead > totalBytes) throw new InvalidDataException("The update download exceeded the published size.");
+                                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), token);
+
+                                if (totalBytes > 0)
                                 {
-                                    lastReportedPercent = percent;
-                                    StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Downloading update {tagName} ({percent}%)...", percent, newVersion: tagName));
+                                    int percent = (int)((totalRead * 85) / totalBytes) + 5; // Scale 5% - 90%
+                                    if (percent >= lastReportedPercent + 5)
+                                    {
+                                        lastReportedPercent = percent;
+                                        StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"Downloading update {tagName} ({percent}%)...", percent, newVersion: tagName));
+                                    }
                                 }
                             }
                         }
@@ -307,6 +333,40 @@ exit /b 0
                 _isApplyingUpdate = false;
                 MessageBox.Show($"Failed to apply update: {ex.Message}", "Update Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private static (string Channel, Uri ManifestUri) ResolveChannelAndManifest()
+        {
+            string localAppData = AppSettings.DataDirectory;
+            string overridePath = Path.Combine(localAppData, "channel.json");
+            if (File.Exists(overridePath))
+            {
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(overridePath));
+                    string channel = doc.RootElement.TryGetProperty("channel", out var chEl)
+                        ? (chEl.GetString() ?? "stable").Trim().ToLowerInvariant()
+                        : "stable";
+                    if (doc.RootElement.TryGetProperty("manifestUrl", out var urlEl) &&
+                        Uri.TryCreate(urlEl.GetString(), UriKind.Absolute, out var customUri) &&
+                        (customUri.IsFile || customUri.Scheme == Uri.UriSchemeHttps || (customUri.Scheme == Uri.UriSchemeHttp && customUri.IsLoopback)))
+                    {
+                        return (channel, customUri);
+                    }
+                    return (channel, new Uri(StableRelease.GetManifestUrl(channel)));
+                }
+                catch { }
+            }
+
+            string settingsChannel = (AppSettings.Load().UpdateChannel ?? "stable").Trim().ToLowerInvariant();
+            if (settingsChannel == "dev")
+            {
+                string defaultDevManifest = Path.Combine(localAppData, "DevFeed", "ml-dev.json");
+                return ("dev", new Uri(defaultDevManifest));
+            }
+            if (settingsChannel == "beta")
+                return ("beta", new Uri(StableRelease.BetaManifestUrl));
+            return ("stable", new Uri(StableRelease.ManifestUrl));
         }
     }
 }

@@ -330,6 +330,7 @@ public partial class MainWindow : Window
         _liveOcrCts?.Cancel();
         _audioCts?.Cancel();
         _audioCaptureService?.Stop();
+        (_translationProvider as IDisposable)?.Dispose();
         CaptureExclusion.Shutdown();
         SaveCurrentSettings();
         QuotaTracker.Instance.Flush();
@@ -871,7 +872,11 @@ public partial class MainWindow : Window
         
         if ((CmbEngine.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "local")
         {
-            _translationProvider = new LocalTranslateProvider();
+            if (_translationProvider is not LocalTranslateProvider)
+            {
+                (_translationProvider as IDisposable)?.Dispose();
+                _translationProvider = new LocalTranslateProvider();
+            }
             return;
         }
         string selectedModel = "";
@@ -893,6 +898,7 @@ public partial class MainWindow : Window
                 newGroq.JapaneseStyle = GetSelectedJapaneseScriptStyle();
                 if (!string.IsNullOrEmpty(selectedModel))
                     newGroq.SetModel(selectedModel);
+                (_translationProvider as IDisposable)?.Dispose();
                 _translationProvider = newGroq;
             }
         }
@@ -908,6 +914,7 @@ public partial class MainWindow : Window
                 {
                     ScriptStyle = GetSelectedJapaneseScriptStyle()
                 };
+                (_translationProvider as IDisposable)?.Dispose();
                 _translationProvider = newGoogle;
             }
         }
@@ -1109,16 +1116,19 @@ public partial class MainWindow : Window
         DeepgramKeySettings.Visibility = speech == "deepgram" ? Visibility.Visible : Visibility.Collapsed;
         GroqModelSettings.Visibility = groqTranslation ? Visibility.Visible : Visibility.Collapsed;
 
+        bool isLocalSpeech = speech is "local" or "local-small" or "local-auto" or "local-turbo";
         string model = speech switch
         {
             "deepgram" => $"Deepgram · {DiarizedSttService.ModelName}",
             "groq" => $"Groq · {WhisperSttService.ModelName}",
             "local-small" => "Local Whisper small · CPU",
+            "local-auto" => "Live word-by-word · Auto (Vulkan GPU / CPU)",
+            "local-turbo" => "Live word-by-word · Whisper large-v3-turbo (GPU / CPU)",
             _ => "Local Whisper base · CPU"
         };
         TxtSpeechSelection.Text = _isAudioMode
             ? $"{model} · Stop audio to change speech settings."
-            : $"{model} · {(speech is "local" or "local-small" ? "No key needed. Downloads the model on first use." : "Sends audio to the selected provider.")}";
+            : $"{model} · {(isLocalSpeech ? "No key needed. Downloads and verifies the model on first use." : "Sends audio to the selected provider.")}";
 
         var usage = new List<string>();
         if (speech == "deepgram") usage.Add($"{model} (speech)\nCheck usage in your Deepgram dashboard.");
@@ -1771,18 +1781,178 @@ public partial class MainWindow : Window
         }
         else
         {
-            localService = _localSpeechService = new LocalSpeechService(mode == "local-small");
+            var tier = mode switch
+            {
+                "local-auto" => LocalSpeechModelTier.Auto,
+                "local-turbo" => LocalSpeechModelTier.LargeTurbo,
+                "local-small" => LocalSpeechModelTier.Small,
+                _ => LocalSpeechModelTier.Base
+            };
+            localService = _localSpeechService = new LocalSpeechService(tier);
+            Task? warmMtTask = _translationProvider is LocalTranslateProvider localMt
+                ? localMt.WarmUpAsync(sessionToken)
+                : null;
             await localService.InitializeAsync(source, sessionToken, message => Dispatcher.Invoke(() =>
             {
                 if (!sessionToken.IsCancellationRequested)
                     TxtAudioStatus.Text = CaptionTranslated.Text = message;
             }));
+            if (warmMtTask != null) await warmMtTask;
         }
         sessionToken.ThrowIfCancellationRequested();
 
         AcousticSpeakerDetector.Reset();
         var capture = new AudioCaptureService();
         _audioCaptureService = capture;
+
+        if (localService != null && mode is "local-auto" or "local-turbo")
+        {
+            var agreement = new StreamingAgreement();
+            DateTime lastInterimTranslateUtc = DateTime.MinValue;
+            string lastTranslatedInput = "";
+
+            capture.EnableStreamingWindows = true;
+            capture.StreamingStepMs = 300;
+            capture.StreamingMaxWindowMs = 10000;
+            capture.StreamingWindowHandler = async (chunk, isFinal) =>
+            {
+                if (sessionToken.IsCancellationRequested) return;
+                if (isFinal)
+                {
+                    try { await _translateSemaphore.WaitAsync(sessionToken); }
+                    catch (OperationCanceledException) { return; }
+                }
+                else if (!_translateSemaphore.Wait(0))
+                {
+                    return;
+                }
+
+                try
+                {
+                    string targetLang = "", sourceLang = "";
+                    Dispatcher.Invoke(() => { targetLang = GetTargetLanguage(); sourceLang = GetSourceLanguage(); });
+
+                    var asrSw = System.Diagnostics.Stopwatch.StartNew();
+                    string transcribed = isFinal
+                        ? await localService.TranscribeAsync(chunk, sessionToken)
+                        : await localService.TranscribeStreamingStepAsync(chunk, sessionToken);
+                    asrSw.Stop();
+
+                    if (sessionToken.IsCancellationRequested) return;
+                    if (!isFinal && (string.IsNullOrWhiteSpace(transcribed) || IsWhisperHallucination(transcribed) || HallucinationDetector.IsWhisperArtifact(transcribed)))
+                        return;
+
+                    if (isFinal && (IsWhisperHallucination(transcribed) || HallucinationDetector.IsWhisperArtifact(transcribed)))
+                        transcribed = "";
+
+                    var state = isFinal
+                        ? agreement.FinalizeSegment(transcribed)
+                        : agreement.Observe(transcribed);
+
+                    string stableOrLive = state.FullText;
+                    if (string.IsNullOrWhiteSpace(stableOrLive))
+                    {
+                        if (isFinal)
+                        {
+                            agreement.Reset();
+                            lastTranslatedInput = "";
+                        }
+                        return;
+                    }
+
+                    var speaker = AcousticSpeakerDetector.DetectSpeaker(chunk, sessionToken);
+                    if (sessionToken.IsCancellationRequested) return;
+                    string speakerLabel = speaker.SpeakerIndex >= 0
+                        ? LocalizationManager.Instance.Get("SpeakerEstimateLabel", speaker.SpeakerIndex + 1)
+                        : LocalizationManager.Instance.Get("SpeakerUnknown");
+
+                    string displayOriginal = await FormatJapaneseTextIfNeededAsync(stableOrLive, sourceLang);
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
+                        CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(speaker.ColorHex));
+                        CaptionSpeaker.Text = speakerLabel;
+                        CaptionSpeaker.Visibility = Visibility.Visible;
+                        CaptionOriginal.Text = isFinal ? displayOriginal : displayOriginal + " …";
+                        CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(speaker.ColorHex));
+                        ShowSubtitleWithAnimation();
+                    });
+
+                    bool shouldTranslate = isFinal
+                        || (!string.IsNullOrWhiteSpace(state.FullText)
+                            && !string.Equals(state.FullText, lastTranslatedInput, StringComparison.Ordinal)
+                            && (DateTime.UtcNow - lastInterimTranslateUtc).TotalMilliseconds >= 600);
+
+                    if (shouldTranslate && !sessionToken.IsCancellationRequested)
+                    {
+                        lastTranslatedInput = state.FullText;
+                        lastInterimTranslateUtc = DateTime.UtcNow;
+                        var mtSw = System.Diagnostics.Stopwatch.StartNew();
+                        string finalTranslation = "";
+                        await _translationProvider.TranslateStreamAsync(state.FullText, targetLang, sourceLang, piece =>
+                        {
+                            finalTranslation = piece;
+                            Dispatcher.Invoke(() =>
+                            {
+                                if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
+                                if (IsWhisperHallucination(piece))
+                                {
+                                    CaptionTranslated.Text = "";
+                                    return;
+                                }
+                                CaptionTranslated.Text = piece;
+                                ShowSubtitleWithAnimation();
+                            });
+                        });
+                        mtSw.Stop();
+
+                        if (JapaneseScriptConverter.IsMultiScriptLanguage(targetLang) && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
+                        {
+                            string formatted = await FormatJapaneseTextIfNeededAsync(finalTranslation, targetLang);
+                            if (!string.IsNullOrWhiteSpace(formatted) && formatted != finalTranslation)
+                            {
+                                finalTranslation = formatted;
+                                Dispatcher.Invoke(() =>
+                                {
+                                    if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
+                                    CaptionTranslated.Text = finalTranslation;
+                                });
+                            }
+                        }
+
+                        Dispatcher.Invoke(() =>
+                        {
+                            if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
+                            TxtAudioStatus.Text = $"Live word-by-word · {localService.ActiveModelLabel} ({localService.BackendLabel}) · ASR {asrSw.ElapsedMilliseconds} ms · MT {mtSw.ElapsedMilliseconds} ms";
+                            if (isFinal && !string.IsNullOrWhiteSpace(finalTranslation))
+                            {
+                                AppendToHistory($"[{speakerLabel}] {state.FullText}", finalTranslation);
+                            }
+                        });
+                    }
+
+                    if (isFinal)
+                    {
+                        agreement.Reset();
+                        lastTranslatedInput = "";
+                    }
+                }
+                catch (OperationCanceledException) when (sessionToken.IsCancellationRequested) { }
+                catch (Exception ex)
+                {
+                    Dispatcher.Invoke(() => { if (!sessionToken.IsCancellationRequested) CaptionTranslated.Text = $"[Error: {ex.Message}]"; });
+                }
+                finally { _translateSemaphore.Release(); }
+            };
+
+            await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId(), sessionToken);
+            if (sessionToken.IsCancellationRequested) { capture.Dispose(); return; }
+            StartUsageClock(capture);
+            TxtAudioStatus.Text = $"Active live streaming: {localService.ActiveModelLabel} ({localService.BackendLabel}) · 300 ms sliding window.";
+            CaptionTranslated.Text = "[Waiting for audio...]";
+            return;
+        }
+
         capture.AudioChunkHandler = async chunk =>
         {
             if (sessionToken.IsCancellationRequested) return;
@@ -2203,6 +2373,7 @@ public partial class MainWindow : Window
             await _whisperSttService.DisposeAsync();
             _whisperSttService = null;
         }
+        (_translationProvider as IDisposable)?.Dispose();
 
         if (_historyWindow != null)
         {

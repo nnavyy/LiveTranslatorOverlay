@@ -3,13 +3,14 @@
 <p align="center">
   <img src="https://img.shields.io/badge/.NET-10.0-512BD4?style=for-the-badge&logo=dotnet&logoColor=white" alt=".NET 10" />
   <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11%20%7C%20macOS%2014%2B-0078D6?style=for-the-badge" alt="Windows and macOS" />
+  <img src="https://img.shields.io/badge/GPU-Vulkan%20%7C%20Metal%20%7C%20CPU-blueviolet?style=for-the-badge" alt="Vulkan Metal CPU" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License" />
-  <img src="https://img.shields.io/badge/Version-1.0.0-brightgreen?style=for-the-badge" alt="v1.0.0" />
+  <img src="https://img.shields.io/badge/Version-1.1.0-brightgreen?style=for-the-badge" alt="v1.1.0" />
 </p>
 
 <p align="center">
-  <strong>Open-source, local-first real-time speech translation and screen OCR overlay for Windows and macOS.</strong><br>
-  Translate live system audio, microphone speech, and on-screen text with zero telemetry and full MIT-licensed source code.
+  <strong>Open-source, cross-vendor GPU & CPU real-time word-by-word speech translation and screen OCR overlay for Windows and macOS.</strong><br>
+  Translate live system audio, microphone speech, and on-screen text with zero telemetry, no NVIDIA lock-in, and full MIT-licensed source code.
 </p>
 
 <p align="center">
@@ -20,32 +21,48 @@
 
 ## Overview
 
-Live Translator Overlay is an open-source project licensed under the [MIT License](LICENSE). The entire application source code—including the 1.x release line and all subsequent versions—is free and open source.
+Live Translator Overlay is an open-source project licensed under the [MIT License](LICENSE). All core translation, OCR, and speech recognition features are free under MIT.
 
-By default, speech recognition runs locally on the CPU with no GPU, Python environment, or API key required. On first audio use, the app downloads and SHA-256-verifies the multilingual Whisper model (`148 MB` balanced default or `488 MB` larger optional model) and Silero VAD (`0.9 MB`), then caches them locally for offline speech recognition. Default text translation uses Google Translate without a key (internet connection and service limits apply). Optional cloud providers (Groq AI and Deepgram) and an optional separately prepared offline translator (`runtime/translation_worker.py`) are also supported.
+With **v1.1.0**, local speech recognition automatically adapts to your device:
+- **Universal Cross-Vendor GPU Acceleration (No CUDA / Python Needed)**: Uses `Whisper.net.Runtime.Vulkan` on Windows (works across NVIDIA, AMD, and Intel GPUs) and `Whisper.net.Runtime.Metal` on Apple Silicon macOS to run **Whisper `large-v3-turbo` (`Q5_0`, `574 MB`)** with automatic fallback to CPU (`ggml-base.bin` `148 MB` or `NoAvx` x64 CPU) on machines without a compatible GPU.
+- **Word-by-Word Local Agreement-2 Streaming (`300 ms` Sliding Windows)**: Select **Local multilingual — live word-by-word (Auto GPU/CPU)** to display words incrementally as they stabilize (both space-delimited languages and CJK ideographs/kana) without waiting for 4–12 second pauses.
+- **Persistent Warm Local Translation (`--daemon`)**: Optionally run offline M2M-100 (`418M` `int8`) via `runtime/translation_worker.py --daemon` with a kernel-guarded process tree and zero cold Python restarts per caption (alongside default key-free Google Translate and optional Groq/Deepgram cloud engines).
+- **Empirical Research & Novelty Paper**: See **[research/speech/paper/PAPER_NOVELTY_AND_RESEARCH_GAP.md](research/speech/paper/PAPER_NOVELTY_AND_RESEARCH_GAP.md)** for our full comparative study explaining why consumer Whisper `small` fine-tuning hits a `~10.6%` plateau and documenting measured v1.1.0 Vulkan vs. CPU latency & accuracy benchmarks (`5.00%` RU WER, `4.92%` JA CER, `0.186x` final RTF).
 
 ---
 
 ## Features
 
 ### Windows (`LiveTranslatorOverlay`)
-- **Local Multilingual CPU Speech (Default, No Key)**: Uses Whisper.net 1.9.1 (`ggml-base.bin` default or `ggml-small.bin` optional) with Silero VAD v6.2.0 and automatic SHA-256 verification, including a `NoAvx` native fallback for older x64 processors. Supports explicit source language selection or Auto-detect.
-- **Key-Free Text Translation + Optional Cloud Engines**: Uses Google Translate by default (with MyMemory fallback), or user-supplied API keys for **Groq AI** (LLM translation and `whisper-large-v3` STT) and **Deepgram** (streaming WebSocket STT with word-level speaker diarization).
-- **Optional Local Offline Text Translation**: Supports separately prepared local models via `runtime/translation_worker.py` (M2M100 418M CTranslate2 int8 + OpenCC) and `runtime/speech_worker.py` (`enable-local-speech.ps1`).
-- **Live Screen OCR Translation**: Draw any screen bounding rectangle to translate foreign game dialogue, text, or UI labels on-device via `Windows.Media.Ocr`.
-- **Privacy-First Floating Overlay**: Always-on-top, draggable captions with adjustable font sizes and Windows Graphics Capture Exclusion (`SetWindowDisplayAffinity` / `WDA_EXCLUDEFROMCAPTURE`) to keep captions and app windows hidden from OBS Studio, Discord, Zoom, and screen capture tools.
-- **Japanese & Multi-Script Support**: Renders Japanese captions as Standard, Hiragana, Furigana, Romaji, or Katakana, with 100-language catalog coverage and UI localization in **English**, **Indonesian**, **Russian**, and **Spanish**.
-- **Session History & Summarization**: Retains up to 500 session entries with scroll-preserving review, text export, and optional Groq conversation summarization.
-- **Windows DPAPI Key Protection & Updates**: Encrypts saved Groq and Deepgram keys with Windows Data Protection (`CurrentUser`), checks the `updates/ml-stable.json` GitHub release feed, and includes an optional bug-report dialog with device status tracking (`reports_status.json`).
-- **Community & Usage Tracking**: Tracks personal audio translation time privately on-device, with optional Community rankings (when configured via a local `community.json`) and a voluntary Support development window.
+- **Cross-Vendor GPU + CPU Local Speech (`No Key`)**:
+  - `local`: `ggml-base.bin` (`148 MB`) on CPU (`Cpu` + `NoAvx` fallback).
+  - `local-small`: `ggml-small.bin` (`488 MB`) on CPU.
+  - `local-auto` *(new)*: Word-by-word `300 ms` Local Agreement-2 streaming — automatically selects `ggml-large-v3-turbo-q5_0.bin` (`574 MB`) on Vulkan GPU when available, or `ggml-base.bin` on CPU, with Silero VAD v6.2.0 noise gating and startup shader warmup.
+  - `local-turbo` *(new)*: Word-by-word streaming using `ggml-large-v3-turbo-q5_0.bin` on Vulkan GPU with CPU fallback.
+- **Key-Free & Optional Offline/Cloud Translation**: Key-free Google Translate (MyMemory fallback) by default; optional persistent offline CTranslate2 daemon (`LocalTranslateProvider`, Win32 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` managed); optional user-supplied **Groq AI** and **Deepgram** keys protected via Windows DPAPI (`CurrentUser`).
+- **Live Screen OCR Translation**: Draw any screen region to translate game dialogue or UI text locally via `Windows.Media.Ocr`.
+- **Privacy-First Floating Overlay**: Draggable always-on-top captions with `WDA_EXCLUDEFROMCAPTURE` capture exclusion for OBS/Discord/Zoom.
+- **Japanese & Multi-Script Rendering + 4 UI Languages**: Standard, Hiragana, Furigana, Romaji, or Katakana output across a 100-language catalog, localized in English, Indonesian, Russian, and Spanish.
+- **3-Channel Auto-Updater (`main` / `beta` / `dev`)**: Verifies SHA-256 package hashes before staging across `updates/ml-stable.json` (`main`), `updates/ml-beta.json` (`beta`), and local `channel.json` (`dev`).
+- **Account Login, Selectable Tiers & Donation Tracking**: Built-in **Community & Account** dialog supporting email OTP sign-in (Supabase Auth when `community.json` is configured, or encrypted local staging ledger offline), tracked donation/license history, selectable **Lifetime Supporter (`US$19.99`)**, **Lifetime Insider (`US$100` Beta access)**, or custom donation tiers, and solo-developer gratitude messages.
 
 ### macOS (`MacApp`, `macOS 14+`)
-- **Local CPU Speech & Floating Captions**: Captures **System audio** (`ScreenCaptureKit`) or **Microphone** (`AVAudioEngine`) via `MacApp/NativeAudio.swift` and transcribes locally on CPU with Whisper (`Balanced` / `Larger model`) and Silero VAD.
-- **Manual Text Translation & Session History**: Side-by-side translation workspace using Google Translate (with fallback) or a session-only Groq API key, 100-language catalog, up to 500 history entries with clear/export, private audio timer, and Community/Support views.
-- **Current macOS limits**: Screen OCR and an automatic Mac updater are not implemented yet. Prebuilt Mac bundles are ad-hoc signed rather than Apple Developer ID notarized; see [MacApp/INSTALL.md](MacApp/INSTALL.md).
+- **Metal GPU / CPU Local Speech & Floating Captions**: Captures **System audio** (`ScreenCaptureKit`) or **Microphone** (`AVAudioEngine`) via `MacApp/NativeAudio.swift` with selectable `Balanced (CPU)`, `Larger model (CPU)`, `Auto (Metal GPU / CPU)`, and `Large-v3-turbo (Metal GPU)` speech options.
+- **Side-by-Side Workspace, History & Community/Account**: 100-language catalog, up to 500 scroll-preserving history entries, and synchronized Account Login, Donation Tracker, and Update Channel selector.
+- **Current macOS limits**: Screen OCR and automatic in-app self-updater remain Windows-only; prebuilt Mac archives are ad-hoc signed ([MacApp/INSTALL.md](MacApp/INSTALL.md)).
 
-### Accuracy & Hardware Caveats
-- **Approximation & Latency**: Speech recognition and machine translation are approximate and can omit or alter words, names, or negations. CPU decoding speed depends on your processor; slower machines can fall behind live speech, and upstream key-free translation services can rate-limit or produce inaccurate fallbacks (see [docs/cpu-release-verification.md](docs/cpu-release-verification.md) and [docs/reviews/2026-11-10-russian-live-caption-quality.md](docs/reviews/2026-11-10-russian-live-caption-quality.md)).
+### Accuracy & Latency Notes
+- Speech recognition and translation remain approximate. On an RTX 2050 laptop running cross-vendor Vulkan (`Q5_0`), `300 ms` sliding-window step inference averages `818 ms` (first-word compute `880 ms`, final utterance `0.186x` RTF — `5.4x` faster than real time), and warm offline M2M-100 CPU translation averages `892.5 ms`. True wall-clock time per word update depends on host GPU/CPU speed and selected translation engine.
+
+---
+
+## 3-Branch Release Channels (`dev`, `beta`, `main`)
+
+| Branch / Channel | Manifest Feed | Intended Audience | Notes |
+|---|---|---|---|
+| **`main` (`stable`)** | `updates/ml-stable.json` | Free MIT users & **Lifetime Supporters (`US$19.99`)** | Verified public Windows & Mac preview releases. |
+| **`beta`** | `updates/ml-beta.json` | **Lifetime Insiders (`US$100`)** & early testers | Early builds of new runtime/model improvements. |
+| **`dev`** | Local `DevFeed\ml-dev.json` (`channel.json`) | Owner / local contributor testing | Syncs directly to `%LOCALAPPDATA%\LiveTranslatorOverlay\DevApp` via `scripts/publish-channel.ps1 -Channel dev`. |
 
 ---
 
@@ -53,102 +70,67 @@ By default, speech recognition runs locally on the CPU with no GPU, Python envir
 
 ### Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- **Windows builds**: Windows 10/11 x64 (`net10.0-windows10.0.19041.0` target). Self-contained release packaging (`scripts/package-windows.ps1`) also uses Visual Studio C++ CRT redistributable files; installer builds (`scripts/build-setup.ps1`) use NSIS (`makensis.exe`).
-- **macOS builds**: macOS 14+ with Xcode Command Line Tools (`swiftc`, `codesign`) for `MacApp/NativeAudio.swift` and `.app` bundling (`MacApp/package-macos.sh`).
-- **Optional Supabase check**: Node.js (to run `tests/CommunityDatabase/verify.mjs` against `@electric-sql/pglite` in a scratch folder).
+- **Windows builds**: Windows 10/11 x64. Packaging (`scripts/package-windows.ps1`) bundles C++ CRT DLLs (VS Redistributable or `System32` fallback) alongside Vulkan and CPU/NoAvx native runtimes.
+- **macOS builds**: macOS 14+ with Xcode Command Line Tools (`swiftc`, `codesign`) for `MacApp/package-macos.sh`.
+- **Database checks**: Node.js (`@electric-sql/pglite` in an external temp dir).
 
-### Windows (WPF App & Offline Checks)
+### Build & Verify
 
 ```powershell
-dotnet restore LiveTranslatorOverlay.csproj
+# Build Windows & macOS targets
 dotnet build LiveTranslatorOverlay.csproj -c Release --nologo
-dotnet run --project LiveTranslatorOverlay.csproj -c Release --nologo
-```
+dotnet build MacApp/LiveTranslatorMac.csproj -c Release --nologo
 
-Run the deterministic offline test suites on Windows:
-
-```powershell
+# Run all 4 offline verification suites + WPF UI check
 dotnet run --project tests/RegressionChecks/RegressionChecks.csproj -c Release --nologo
 dotnet run --project tests/AuditChecks/AuditChecks.csproj -c Release --nologo
 dotnet run --project tests/SpeakerChecks/SpeakerChecks.csproj -c Release --nologo
 dotnet run --project tests/LocalCpuChecks/LocalCpuChecks.csproj -c Release --nologo
-```
+dotnet run --project tests/LocalCpuChecks/LocalCpuChecks.csproj -c Release --nologo -- --ui
 
-Create a self-contained Windows x64 package (copies CRT DLLs and verifies empty `appsettings.json` credentials):
-
-```powershell
+# Package self-contained Windows release or sync owner DevApp
 ./scripts/package-windows.ps1
-```
-
-### macOS (`MacApp`)
-
-```sh
-dotnet build MacApp/LiveTranslatorMac.csproj -c Release --nologo
-dotnet run --project MacApp/LiveTranslatorMac.csproj -c Release
-```
-
-Package and smoke-test a self-contained `.app` bundle on macOS (`osx-arm64` or `osx-x64`):
-
-```sh
-bash MacApp/package-macos.sh osx-arm64 ./out
-```
-
-### Cross-Platform Shared Library & Community SQL Tests
-
-```sh
-dotnet build Shared/LiveTranslatorOverlay.Shared.csproj -c Release --nologo
+./scripts/publish-channel.ps1 -Channel dev
 ```
 
 Offline database migration check (see [supabase/README.md](supabase/README.md)):
 
-```sh
-npm install --prefix /tmp/pglite @electric-sql/pglite
-node tests/CommunityDatabase/verify.mjs /tmp/pglite
+```powershell
+npm.cmd install --prefix "$env:TEMP\pglite-verify" @electric-sql/pglite
+node tests/CommunityDatabase/verify.mjs "$env:TEMP\pglite-verify\node_modules"
 ```
 
 ---
 
-## Downloads
+## Downloads & Configuration
 
 Prebuilt binaries are published on [GitHub Releases](https://github.com/nnavyy/LiveTranslatorOverlay/releases):
-- **Windows 10/11 x64**: Self-contained ZIP (`LiveTranslatorOverlay-Windows-x64.zip`) including the .NET runtime and Visual C++ CRT files.
-- **macOS 14+ (Apple Silicon `osx-arm64` & Intel `osx-x64`)**: Preview ZIP archives (`LiveTranslatorOverlay-Mac-preview-*.zip`). See [MacApp/INSTALL.md](MacApp/INSTALL.md) for opening ad-hoc signed builds.
+- **Windows 10/11 x64**: `LiveTranslatorOverlay-Windows-x64.zip` (self-contained .NET + CRT + Vulkan + CPU/NoAvx).
+- **macOS 14+ (`osx-arm64` / `osx-x64`)**: `LiveTranslatorOverlay-Mac-preview-*.zip` (Metal + CPU).
 
----
-
-## Configuration and Privacy
-
-- **Optional API Keys**: Enter Groq or Deepgram keys under **Settings** if using cloud engines. On Windows, keys persist encrypted with DPAPI in `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json` (never commit `appsettings.json`; see [appsettings.example.json](appsettings.example.json)). On macOS, the optional Groq key stays in session memory only.
-- **Local-First Processing**: Audio buffers and screen captures stay in volatile memory and are never written to disk or sent to developer servers.
-- **Zero Telemetry & Optional Staging Community**: No background analytics or telemetry are collected. Online Community rankings are inactive unless a local `community.json` pointing to a staging Supabase project with a publishable key is placed in the app data directory (see [supabase/README.md](supabase/README.md)).
+Optional keys persist under `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json` (DPAPI encrypted on Windows; never commit `appsettings.json` or `community.json`).
 
 ---
 
 ## Support Development
 
-**All features are free; the source code is licensed under MIT; support is voluntary and never unlocks the software or source.**
+**All core features remain free under the [MIT License](LICENSE). Voluntary support funds ongoing solo development across additional languages and Windows/macOS builds.**
 
-The in-app **Support development** tab lists the project's planned voluntary tiers:
+| Tier | Amount | Benefits & Notes |
+|---|---|---|
+| **Lifetime Supporter** | `US$19.99` once | Supporter badge & personal thank-you, helping sustain solo multi-language development. |
+| **Lifetime Insider** | `US$100` once | Insider badge, `beta` channel early-access builds, priority support & experimental features. |
+| **Custom Donate** | Any positive USD | Tracked cumulative contribution in your signed-in ledger (`account-session.dat` / Supabase RPC). |
 
-| Tier | Amount | What it represents |
-| --- | --- | --- |
-| **Lifetime Supporter** | US$19.99 once | Voluntary lifetime support with a Supporter medal and a personal thank-you. |
-| **Lifetime Insider** | US$100 once | Voluntary lifetime support with an Insider medal, release archive, early-access / beta builds, compatible experimental models, priority support, and a personal thank-you. |
-| **Donate** | Any positive amount | Voluntary one-time contribution supporting development, testing, and releases (does not grant a paid tier). |
-
-The two lifetime options are independent.
-
-**Current status:** Purchases, public account registration, and donations are **currently closed/disabled** in this release (`SupportCatalog.Closed`). Only a staging-only developer-assisted request preview exists behind a local `community.json` configuration (`previewManualRequests: true`), and it takes no payment.
+*Note: Real payment gateway links remain disabled (`SupportCatalog.Closed`) while checkout integration is staged; sign-in & selection operate via local staging tracking or configured Supabase preview instances.*
 
 ---
 
 ## Documentation & Policies
 
+- **Academic Paper (Research Gap & Novelty)**: [research/speech/paper/PAPER_NOVELTY_AND_RESEARCH_GAP.md](research/speech/paper/PAPER_NOVELTY_AND_RESEARCH_GAP.md)
 - **Source License**: [LICENSE](LICENSE) (MIT License)
-- **Terms of Service & Open Source Summary**: [APP_LICENSE.md](APP_LICENSE.md)
-- **Privacy Policy**: [PRIVACY.md](PRIVACY.md)
-- **Third-Party Notices**: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
-- **Contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
-- **Security Policy**: [SECURITY.md](SECURITY.md)
-- **Code of Conduct**: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- **Terms & Privacy**: [APP_LICENSE.md](APP_LICENSE.md) · [PRIVACY.md](PRIVACY.md) · [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+- **Community Database & Migrations**: [supabase/README.md](supabase/README.md)
+- **Contributing / Security / Conduct**: [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - **Release Notes**: [RELEASE_NOTES.md](RELEASE_NOTES.md) · [MacApp/RELEASE_NOTES.md](MacApp/RELEASE_NOTES.md)

@@ -17,6 +17,8 @@ node_modules/
 appsettings.json
 community.json
 local-speech.json
+account-session.dat
+channel.json
 feedback_history.json
 device_id.txt
 last_seen_release.txt

@@ -20,11 +20,13 @@ public static class SupportCatalog
     public const string Closed = "Purchases and donations are currently closed.";
     public const string IndependenceNote = "Supporter and Insider are independent tiers — choosing both is US$119.99 total.";
     public const string AvailabilityNote = "Purchasing is currently preview-only; no payment links or checkout are active in this version.";
+    public const string SoloDeveloperNote = "Every license purchase or donation directly helps this solo developer continue developing support for even more languages and cross-platform updates on Windows & macOS.";
+
     public static IReadOnlyList<SupportOffer> Offers { get; } = Array.AsReadOnly(new SupportOffer[]
     {
         new("supporter", "Lifetime Supporter", 1999, "Voluntary lifetime support. Includes a Supporter medal and a personal thank-you."),
-        new("insider", "Lifetime Insider", 10000, "Voluntary lifetime support. Includes an Insider medal, early-access and beta builds, compatible experimental models, priority support, and a personal thank-you."),
-        new("donation", "Donate", null, "Voluntary contribution of any positive amount. Donations do not add a Supporter or Insider tier.")
+        new("insider", "Lifetime Insider", 10000, "Voluntary lifetime support. Includes an Insider medal, early-access beta builds, compatible experimental models, priority support, and a personal thank-you."),
+        new("donation", "Donate", null, "Voluntary contribution of any positive amount. Tracked in your account ledger. Donations help fund new language packs.")
     });
 }
 
@@ -47,24 +49,29 @@ public sealed record CommunityPage(bool Available, CommunityRank[] Entries, stri
         Available && offset == 0 && string.IsNullOrWhiteSpace(search) ? Entries.Take(3).ToArray() : [];
 }
 
-/// <summary>Reads the consented public projections. The desktop never needs a service key.</summary>
+public sealed record AccountActionResult(bool Success, string Message, AccountSessionState? Session = null);
+
+/// <summary>Reads consented public projections and manages email OTP login, licenses, and tracked donations.</summary>
 public sealed class CommunityClient
 {
     public const int PageSize = 50;
     private sealed record Endpoint(string Url, string PublishableKey, bool PreviewManualRequests);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private static readonly HttpClient DefaultHttp = new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(12) };
+    private readonly string _dataDirectory;
     private readonly HttpClient _http;
     private readonly Uri? _rpcBase;
     private readonly string? _key;
     private readonly Uri? _authBase;
     public bool ManualRequestPreview => _authBase != null;
+    public bool HasOnlineAccountService => _authBase != null && _rpcBase != null;
 
     public const string NotConfigured = "Online rankings aren’t connected in this build. Your usage on this device stays private.";
     public const string Unavailable = "Could not load online rankings. Check your connection and try again.";
 
     public CommunityClient(string dataDirectory, HttpClient? http = null)
     {
+        _dataDirectory = dataDirectory;
         _http = http ?? DefaultHttp;
         try
         {
@@ -80,6 +87,176 @@ public sealed class CommunityClient
             if (endpoint.PreviewManualRequests) _authBase = new Uri(url, "auth/v1/");
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException) { }
+    }
+
+    public AccountSessionState? GetCachedSession() => AccountSessionStore.Load(_dataDirectory);
+
+    public void SignOut() => AccountSessionStore.Clear(_dataDirectory);
+
+    public async Task<AccountActionResult> SendLoginOtpAsync(string email, CancellationToken token)
+    {
+        email = (email ?? "").Trim();
+        if (!IsValidEmail(email))
+            return new(false, "Enter a valid email address.");
+
+        if (_authBase == null)
+        {
+            return new(true, "Local staging login active (online community.json not present). Enter any 6 digits (e.g. 123456) to sign in and track support locally.");
+        }
+
+        using var response = await PostPurchaseAsync(new Uri(_authBase, "otp"), new { email, create_user = true }, null, token).ConfigureAwait(false);
+        return response?.IsSuccessStatusCode == true
+            ? new(true, "A six-digit sign-in code was sent to your email.")
+            : new(false, "Could not send a sign-in code. Check the address and try again shortly.");
+    }
+
+    public async Task<AccountActionResult> VerifyLoginOtpAsync(string email, string code, CancellationToken token)
+    {
+        email = (email ?? "").Trim();
+        code = (code ?? "").Trim();
+        if (!IsValidEmail(email))
+            return new(false, "Enter a valid email address.");
+        if (code.Length != 6 || !code.All(char.IsAsciiDigit))
+            return new(false, "Enter the six-digit code.");
+
+        string displayName = email.Split('@')[0];
+        if (string.IsNullOrWhiteSpace(displayName)) displayName = "Member";
+
+        if (_authBase == null || _rpcBase == null)
+        {
+            var existing = AccountSessionStore.Load(_dataDirectory);
+            var localSession = existing != null && string.Equals(existing.Email, email, StringComparison.OrdinalIgnoreCase)
+                ? existing with { AccessToken = "local-staging-session", IsLocalStaging = true, SignedInUtc = DateTimeOffset.UtcNow }
+                : new AccountSessionState(email, displayName, "local-staging-session", "free", 0, false, true, DateTimeOffset.UtcNow, []);
+            AccountSessionStore.Save(_dataDirectory, localSession);
+            return new(true, $"Signed in as {email} (local staging ledger active).", localSession);
+        }
+
+        try
+        {
+            using var verification = await PostPurchaseAsync(new Uri(_authBase, "verify"), new { email, token = code, type = "email" }, null, token).ConfigureAwait(false);
+            if (verification?.IsSuccessStatusCode != true)
+                return new(false, "Could not verify your code. Request a new one and try again.");
+
+            var session = await verification.Content.ReadFromJsonAsync<EmailSession>(Json, token).ConfigureAwait(false);
+            if (string.IsNullOrEmpty(session?.AccessToken) ||
+                !session.AccessToken.All(character => char.IsAsciiLetterOrDigit(character) || character is '.' or '_' or '-'))
+                return new(false, "Could not verify your code.");
+
+            var remoteState = await FetchRemoteAccountStateAsync(email, displayName, session.AccessToken, token).ConfigureAwait(false);
+            AccountSessionStore.Save(_dataDirectory, remoteState);
+            return new(true, $"Signed in as {email}.", remoteState);
+        }
+        catch (Exception error) when (error is HttpRequestException or IOException or JsonException ||
+                                      error is OperationCanceledException && !token.IsCancellationRequested)
+        {
+            return new(false, "Could not complete sign-in. Check your network connection and retry.");
+        }
+    }
+
+    public async Task<AccountActionResult> SubmitSupportChoiceAsync(string offerId, long customDonationCents, string note, CancellationToken token)
+    {
+        var session = AccountSessionStore.Load(_dataDirectory);
+        if (session == null)
+            return new(false, "Sign in with your email first so your license and donations can be tracked to your account.");
+
+        var offer = SupportCatalog.Offers.FirstOrDefault(o => o.Id == offerId);
+        if (offer == null)
+            return new(false, "Choose Lifetime Supporter (US$19.99), Lifetime Insider (US$100), or Donate.");
+
+        long cents = offer.Cents ?? customDonationCents;
+        if (cents <= 0 || cents > 10_000_000)
+            return new(false, "Enter a positive support amount up to US$100,000.");
+
+        if (!HasOnlineAccountService || session.IsLocalStaging)
+        {
+            string entryId = $"loc-{Guid.NewGuid():N}"[..16];
+            var updated = AccountSessionStore.RecordSupport(
+                _dataDirectory,
+                session,
+                entryId,
+                offer.Id,
+                offer.Title,
+                cents,
+                "local-staging",
+                offer.Id == "donation" ? "tracked-staging" : "staged-preview",
+                countsTowardTier: offer.Id is "supporter" or "insider");
+
+            return new(
+                true,
+                $"Recorded {offer.Title} ({AccountSessionStore.FormatUsd(cents)}) in staging ledger [{entryId}]. No real payment was charged. {SupportCatalog.SoloDeveloperNote}",
+                updated);
+        }
+
+        try
+        {
+            using var response = await PostPurchaseAsync(
+                new Uri(_rpcBase!, "lt_submit_support_request"),
+                new { p_offer = offer.Id, p_cents = (int)cents, p_note = (note ?? "").Trim() },
+                session.AccessToken,
+                token).ConfigureAwait(false);
+
+            if (response?.IsSuccessStatusCode == true)
+            {
+                var summary = await response.Content.ReadFromJsonAsync<SupportRequestRpcResponse>(Json, token).ConfigureAwait(false);
+                var updated = AccountSessionStore.RecordSupport(
+                    _dataDirectory,
+                    session,
+                    summary?.RequestId ?? Guid.NewGuid().ToString("D"),
+                    offer.Id,
+                    offer.Title,
+                    cents,
+                    "supabase",
+                    summary?.Status ?? "pending",
+                    countsTowardTier: false);
+
+                return new(
+                    true,
+                    $"Recorded {offer.Title} ({AccountSessionStore.FormatUsd(cents)}) · Request {summary?.RequestId}. Verification awaits settled payment. {SupportCatalog.SoloDeveloperNote}",
+                    updated);
+            }
+        }
+        catch (Exception error) when (error is HttpRequestException or IOException or JsonException ||
+                                      error is OperationCanceledException && !token.IsCancellationRequested) { }
+
+        return new(false, "Could not submit your support request. Sign in again if your code session expired.");
+    }
+
+    private async Task<AccountSessionState> FetchRemoteAccountStateAsync(string email, string displayName, string accessToken, CancellationToken token)
+    {
+        try
+        {
+            using var response = await PostPurchaseAsync(new Uri(_rpcBase!, "lt_my_account_summary"), new { }, accessToken, token).ConfigureAwait(false);
+            if (response?.IsSuccessStatusCode == true)
+            {
+                var remote = await response.Content.ReadFromJsonAsync<RemoteAccountSummary>(Json, token).ConfigureAwait(false);
+                if (remote != null)
+                {
+                    var history = (remote.History ?? []).Select(h => new SupportLedgerEntry(
+                        h.Id ?? "",
+                        h.Offer ?? "donation",
+                        SupportCatalog.Offers.FirstOrDefault(o => o.Id == h.Offer)?.Title ?? (h.Offer ?? "Support"),
+                        h.Cents,
+                        "supabase",
+                        h.Status ?? "pending",
+                        h.CreatedAt)).ToArray();
+
+                    return new AccountSessionState(
+                        string.IsNullOrWhiteSpace(remote.Email) ? email : remote.Email,
+                        displayName,
+                        accessToken,
+                        remote.ActiveTier ?? "free",
+                        remote.VerifiedTotalCents,
+                        remote.BetaAccessUnlocked,
+                        false,
+                        DateTimeOffset.UtcNow,
+                        history);
+                }
+            }
+        }
+        catch { }
+
+        return new AccountSessionState(email, displayName, accessToken, "free", 0, false, false, DateTimeOffset.UtcNow, []);
     }
 
     public async Task<CommunityPage> ReadAsync(CommunityBoard board, string search = "", int offset = 0, CancellationToken token = default)
@@ -168,4 +345,17 @@ public sealed class CommunityClient
 
     private sealed record EmailSession([property: JsonPropertyName("access_token")] string AccessToken);
     private sealed record BoardResponse([property: JsonPropertyName("open")] bool Open, CommunityRank[]? Entries);
+    private sealed record SupportRequestRpcResponse([property: JsonPropertyName("requestId")] string RequestId, [property: JsonPropertyName("status")] string Status);
+    private sealed record RemoteHistoryRow(
+        [property: JsonPropertyName("id")] string? Id,
+        [property: JsonPropertyName("offer")] string? Offer,
+        [property: JsonPropertyName("cents")] long Cents,
+        [property: JsonPropertyName("status")] string? Status,
+        [property: JsonPropertyName("createdAt")] DateTimeOffset CreatedAt);
+    private sealed record RemoteAccountSummary(
+        [property: JsonPropertyName("email")] string? Email,
+        [property: JsonPropertyName("activeTier")] string? ActiveTier,
+        [property: JsonPropertyName("verifiedTotalCents")] long VerifiedTotalCents,
+        [property: JsonPropertyName("betaAccessUnlocked")] bool BetaAccessUnlocked,
+        [property: JsonPropertyName("history")] RemoteHistoryRow[]? History);
 }

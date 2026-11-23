@@ -23,6 +23,17 @@ if (args is ["--ru-caption-report", var manifest])
     return;
 }
 
+if (args.Length >= 2 && args[0] == "--streaming-benchmark")
+{
+    string? outJson = null;
+    for (int i = 2; i < args.Length - 1; i++)
+    {
+        if (args[i] == "--out") outJson = args[i + 1];
+    }
+    await StreamingBenchmark.RunAsync(args[1], cpuOnly: args.Contains("--cpu-only"), skipMt: args.Contains("--skip-mt"), outJson);
+    return;
+}
+
 if (args.Contains("--ui"))
 {
     Exception? error = null;

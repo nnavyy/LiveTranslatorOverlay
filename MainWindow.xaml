@@ -552,6 +552,8 @@
                             <ComboBoxItem x:Name="ItemSttGroq" Content="Groq Whisper (Batch + Speaker)" Tag="groq"/>
                             <ComboBoxItem Content="Local multilingual — balanced, no key" Tag="local" ToolTip="Runs on CPU. Automatically downloads a 148 MB speech model once. Supports auto-detect. No NVIDIA card or Python needed."/>
                             <ComboBoxItem Content="Local multilingual — larger model, no key" Tag="local-small" ToolTip="Runs on CPU with a larger 488 MB model. May improve recognition, but is slower. Accuracy varies by language and audio."/>
+                            <ComboBoxItem Content="Local multilingual — live word-by-word (Auto GPU/CPU), no key" Tag="local-auto" ToolTip="Low-latency word-by-word local streaming. Uses Vulkan GPU (AMD/Intel/NVIDIA) with Whisper large-v3-turbo (Q5_0, 574 MB) when available, or CPU Whisper base (148 MB)."/>
+                            <ComboBoxItem Content="Local multilingual — live word-by-word High Accuracy GPU, no key" Tag="local-turbo" ToolTip="Low-latency word-by-word streaming using Whisper large-v3-turbo (Q5_0, 574 MB) on Vulkan GPU with automatic CPU fallback."/>
                         </ComboBox>
                         <TextBlock x:Name="TxtSpeechSelection" TextWrapping="Wrap" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,10"/>
                         <StackPanel x:Name="GroqKeySettings" Visibility="Collapsed">

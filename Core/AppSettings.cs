@@ -30,10 +30,11 @@ namespace LiveTranslatorOverlay.Core
         public int UiLanguageIndex { get; set; } = 0; // 0=en, 1=id, 2=auto
         public bool HideFromCapture { get; set; } = false;
         public string DeviceId { get; set; } = "";
+        public string UpdateChannel { get; set; } = "stable";
 
         public void UseAvailableEngines(bool preparedTranslation)
         {
-            if (SttModeIndex is < 0 or > 3 ||
+            if (SttModeIndex is < 0 or > 5 ||
                 (SttModeIndex == 0 && string.IsNullOrWhiteSpace(DeepgramApiKey)) ||
                 (SttModeIndex == 1 && string.IsNullOrWhiteSpace(GroqApiKey)))
                 SttModeIndex = 2;

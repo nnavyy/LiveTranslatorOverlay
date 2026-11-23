@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - beta
       - 'release/ml-1.0'
     tags:
       - 'v*'
@@ -50,8 +51,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           [xml]$project = Get-Content LiveTranslatorOverlay.csproj
-          $expectedTag = 'v' + $project.Project.PropertyGroup.Version
-          if ($env:GITHUB_REF_NAME -ne $expectedTag) { throw "Release tag must be $expectedTag" }
+          $ver = $project.Project.PropertyGroup.Version
+          $allowed = @("v$ver", "v$ver-ml", "v$ver-ml-beta")
+          if ($allowed -notcontains $env:GITHUB_REF_NAME) { throw "Release tag must be one of: $($allowed -join ', ')" }
 
       - name: Publish Release Build
         run: ./scripts/package-windows.ps1
@@ -112,7 +114,7 @@ jobs:
         with:
           name: "Windows x64 — Live Translator Overlay ${{ github.ref_name }}"
           draft: false
-          prerelease: false
+          prerelease: ${{ contains(github.ref_name, '-beta') }}
           body_path: RELEASE_NOTES.md
           files: release-assets/LiveTranslatorOverlay-Windows-x64.zip
       - name: Publish separate Mac developer preview

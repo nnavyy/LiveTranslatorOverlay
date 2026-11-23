@@ -3,21 +3,35 @@ using System.Text.Json;
 
 namespace LiveTranslatorOverlay.Core.Update;
 
-public sealed record StableRelease(Version Version, Uri DownloadUri, long Size, string Sha256)
+public sealed record StableRelease(Version Version, Uri DownloadUri, long Size, string Sha256, string Channel = "stable")
 {
     private const string Downloads = "https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/";
     public const string ManifestUrl = "https://raw.githubusercontent.com/nnavyy/LiveTranslatorOverlay/main/updates/ml-stable.json";
+    public const string BetaManifestUrl = "https://raw.githubusercontent.com/nnavyy/LiveTranslatorOverlay/beta/updates/ml-beta.json";
 
-    public static StableRelease? Read(string json, string runtime)
+    public static string GetManifestUrl(string channel) => channel?.Trim().ToLowerInvariant() switch
     {
+        "beta" => BetaManifestUrl,
+        _ => ManifestUrl
+    };
+
+    public static StableRelease? Read(string json, string runtime) =>
+        Read(json, runtime, "stable");
+
+    public static StableRelease? Read(string json, string runtime, string expectedChannel)
+    {
+        string normalizedChannel = string.IsNullOrWhiteSpace(expectedChannel)
+            ? "stable"
+            : expectedChannel.Trim().ToLowerInvariant();
+
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
-        if (root.GetProperty("line").GetString() != "ml" || root.GetProperty("channel").GetString() != "stable")
+        if (root.GetProperty("line").GetString() != "ml" || root.GetProperty("channel").GetString() != normalizedChannel)
             return null;
 
         string? text = root.GetProperty("version").GetString();
         if (!Version.TryParse(text, out var version) || version.Build < 0 || version.Revision >= 0 || text != version.ToString(3))
-            throw new InvalidDataException("Expected a stable three-part release version.");
+            throw new InvalidDataException("Expected a three-part release version.");
 
         var fileName = runtime switch
         {
@@ -27,13 +41,41 @@ public sealed record StableRelease(Version Version, Uri DownloadUri, long Size, 
             _ => throw new ArgumentOutOfRangeException(nameof(runtime))
         };
         if (!root.GetProperty("packages").TryGetProperty(runtime, out var package)) return null;
-        var url = new Uri($"{Downloads}v{version}-ml/{fileName}");
+
         long size = package.GetProperty("size").GetInt64();
         string? hash = package.GetProperty("sha256").GetString();
-        if (size <= 0 || hash is not { Length: 64 } || !hash.All(Uri.IsHexDigit) ||
-            package.GetProperty("url").GetString() != url.AbsoluteUri)
-            throw new InvalidDataException("The stable package metadata is invalid.");
-        return new StableRelease(version, url, size, hash);
+        string? rawUrl = package.GetProperty("url").GetString();
+        if (size <= 0 || hash is not { Length: 64 } || !hash.All(Uri.IsHexDigit) || string.IsNullOrWhiteSpace(rawUrl))
+            throw new InvalidDataException($"The {normalizedChannel} package metadata is invalid.");
+
+        Uri resolvedUri;
+        if (normalizedChannel == "dev")
+        {
+            if (!Uri.TryCreate(rawUrl, UriKind.Absolute, out var parsed) ||
+                !(parsed.IsFile || (parsed.Scheme == Uri.UriSchemeHttp && parsed.IsLoopback) || parsed.Scheme == Uri.UriSchemeHttps) ||
+                !parsed.AbsolutePath.EndsWith("/" + fileName, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("The dev package URL must point to a matching local or HTTPS archive.");
+            }
+            resolvedUri = parsed;
+        }
+        else if (normalizedChannel == "beta")
+        {
+            var mlUrl = $"{Downloads}v{version}-ml/{fileName}";
+            var betaUrl = $"{Downloads}v{version}-ml-beta/{fileName}";
+            if (rawUrl != mlUrl && rawUrl != betaUrl)
+                throw new InvalidDataException("The beta package metadata is invalid.");
+            resolvedUri = new Uri(rawUrl);
+        }
+        else
+        {
+            var expectedUrl = $"{Downloads}v{version}-ml/{fileName}";
+            if (rawUrl != expectedUrl)
+                throw new InvalidDataException("The stable package metadata is invalid.");
+            resolvedUri = new Uri(expectedUrl);
+        }
+
+        return new StableRelease(version, resolvedUri, size, hash, normalizedChannel);
     }
 
     public async Task VerifyAsync(string filePath, CancellationToken token)

@@ -1,13 +1,20 @@
-# Live Translator Overlay 1.0.0
+# Live Translator Overlay 1.1.0
 
-Open-source (MIT) release candidate for the 1.x machine-learning release line. Earlier GitHub releases through v2.1.2 belong to the legacy alpha series. This line uses the `ml-stable` update feed and validates downloaded update packages before staging.
+Open-source (MIT) cross-vendor GPU streaming and multi-channel release on the 1.x machine-learning line.
 
-- **Local CPU speech on Windows and macOS**: Runs multilingual Whisper (`base` 148 MB default, `small` 488 MB optional) + Silero VAD on the CPU with SHA-256 checksum verification, plus a `NoAvx` CPU fallback on Windows. Stop audio to unlock speech model, source language, and input device settings before starting a new session.
-- **Key-free translation and optional cloud providers**: Uses Google Translate (with MyMemory fallback) by default without a key, or optional user-supplied keys for Groq AI and Deepgram streaming. Only the selected cloud providers show key controls, and Groq speech/text usage are displayed separately.
-- **Windows DPAPI key encryption**: Saved Groq and Deepgram keys are encrypted using Windows Data Protection tied to the current Windows user account. Earlier plaintext settings are upgraded automatically on load.
-- **Windows installer and versioned terms**: Both Windows and macOS share the versioned `ml-2` terms and privacy notice (`APP_LICENSE.md`, `PRIVACY.md`, `TERMS_REVISION.txt`), rendered without raw Markdown syntax. The Windows installer offers to prepare missing local speech files and reuses valid cached models.
-- **Community rankings & voluntary Support development**: Both apps show a private on-device audio translation total, optional online rankings (when configured via `community.json`), top-three podium, searchable standings, profile popups with badges, and voluntary Support development offers (Supporter US$19.99, Insider US$100, Donate). All features are free under MIT; purchases and donations are currently closed.
-- **Windows Screen OCR & History**: Screen OCR closes cleanly from the result panel, Stop OCR button, or Escape while staying within screen edges. Session history (Windows and Mac) keeps scroll position when new entries arrive while scrolled up.
-- **Developer mode & updater**: Windows shows the installed version in Settings, keeps `--developer` mode badges across update restarts, and reports clearly when no public 1.x release is published yet.
+## Highlights
 
-Default speech recognition runs locally. Recognition and translation remain approximate and can make mistakes. Advanced offline text translation requires separately prepared models (`runtime/translation_worker.py`).
+- **Cross-Vendor GPU + CPU Auto Tiering (No NVIDIA/CUDA or Python Lock-In)**:
+  - Windows packages bundle **`Whisper.net.Runtime.Vulkan` 1.9.1** (NVIDIA, AMD, and Intel GPUs) alongside `Cpu` and `NoAvx` runtimes.
+  - Added two word-by-word modes (`local-auto` and `local-turbo`) using quantized **`ggml-large-v3-turbo-q5_0.bin`** (`574 MB`, SHA-256 verified) on GPU with automatic `ggml-base.bin` CPU fallback, Silero VAD v6.2.0 gating (tuned to preserve quiet speakers), and startup SPIR-V shader warm-up.
+  - On RTX 2050 Vulkan held-out FLEURS test speech, `large-v3-turbo (Q5_0)` cut Russian WER from `13.63%` -> `5.00%`, Japanese CER from `25.56%` -> `4.92%`, and Indonesian WER from `26.84%` -> `11.33%` while running at `0.186x` final RTF (`5.4x` faster than real time).
+- **Word-by-Word Local Agreement-2 Streaming (`300 ms` Windows)**:
+  - Non-queuing `300 ms` sliding-window capture (`EnableStreamingWindows`) paired with Unicode/CJK-aware prefix stabilization (`StreamingAgreement`) displays stabilized words progressively instead of waiting 4–12 seconds per sentence.
+- **Persistent Local MT Daemon (`--daemon`) & Kernel Process Guard**:
+  - Reuses loaded M2M-100 CTranslate2 weights across captions (`11.18 s` cold boot -> `892.5 ms` warm mean), validates CUDA BLAS before use with clean `int8` CPU fallback, overlaps warmup with Whisper initialization, and binds the Python tree to a Win32 `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` handle so zero orphaned worker processes survive exit.
+- **Email OTP Account Login, Tracked Donations & Selectable Tiers**:
+  - Updated **Community & Support** dialog with email OTP sign-in (Supabase Auth + offline local staging ledger fallback), cumulative donation/support history (`20261123120000_account_login_donations_and_tiers.sql`), selectable **Lifetime Supporter (`US$19.99`)**, **Lifetime Insider (`US$100`)**, and custom donations, plus solo-developer gratitude notices. Core MIT functionality remains free and public checkout remains staged (`SupportCatalog.Closed`).
+- **3-Channel Git & Updater Support (`main` / `beta` / `dev`)**:
+  - Supports `stable` (`updates/ml-stable.json`), `beta` (`updates/ml-beta.json` for `$100` Insiders), and `dev` (local `channel.json` feed via `scripts/publish-channel.ps1`).
+- **Research Paper & Reproducible Benchmarks**:
+  - Added [research/speech/paper/PAPER_NOVELTY_AND_RESEARCH_GAP.md](research/speech/paper/PAPER_NOVELTY_AND_RESEARCH_GAP.md) and [research/speech/paper/streaming-benchmark-results.json](research/speech/paper/streaming-benchmark-results.json).

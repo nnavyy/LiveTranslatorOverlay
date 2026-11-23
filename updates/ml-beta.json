@@ -1,0 +1,12 @@
+﻿{
+    "line":  "ml",
+    "channel":  "beta",
+    "version":  "1.1.0",
+    "packages":  {
+                     "win-x64":  {
+                                     "url":  "https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.1.0-ml/LiveTranslatorOverlay-Windows-x64.zip",
+                                     "size":  123071957,
+                                     "sha256":  "A12BD888E3CBF446FA14FCE1A20685B53863DB95F89179AA5D635D2BBB663AD2"
+                                 }
+                 }
+}

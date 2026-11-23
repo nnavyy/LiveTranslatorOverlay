@@ -1,0 +1,193 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+
+namespace LiveTranslatorOverlay.Core;
+
+public sealed record SupportLedgerEntry(
+    string Id,
+    string OfferId,
+    string OfferTitle,
+    long Cents,
+    string Mode,
+    string Status,
+    DateTimeOffset CreatedUtc)
+{
+    public string AmountLabel => AccountSessionStore.FormatUsd(Cents);
+}
+
+public sealed record AccountSessionState(
+    string Email,
+    string DisplayName,
+    string AccessToken,
+    string ActiveTier,
+    long TotalDonatedCents,
+    bool BetaAccessUnlocked,
+    bool IsLocalStaging,
+    DateTimeOffset SignedInUtc,
+    SupportLedgerEntry[] History)
+{
+    public string TierDisplayName => ActiveTier switch
+    {
+        "insider" => "Lifetime Insider (US$100 · Beta unlocked)",
+        "supporter" => "Lifetime Supporter (US$19.99)",
+        _ => "Free (MIT Open Source)"
+    };
+}
+
+/// <summary>Persists signed-in account state and tracked licenses/donations locally under DPAPI (Windows) or 0600 permissions.</summary>
+public static class AccountSessionStore
+{
+    private const string ProtectedPrefix = "DPAPI1:";
+    private static readonly object StoreLock = new();
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+
+    public static string FormatUsd(long cents) =>
+        "US$" + (cents / 100m).ToString(cents % 100 == 0 ? "0.00" : "N2", CultureInfo.InvariantCulture);
+
+    private static string GetSessionPath(string dataDirectory) =>
+        Path.Combine(dataDirectory, "account-session.dat");
+
+    public static AccountSessionState? Load(string dataDirectory)
+    {
+        lock (StoreLock)
+        {
+            string path = GetSessionPath(dataDirectory);
+            if (!File.Exists(path)) return null;
+            try
+            {
+                string raw = File.ReadAllText(path, Encoding.UTF8);
+                string json = raw.StartsWith(ProtectedPrefix, StringComparison.Ordinal)
+                    ? Unprotect(raw[ProtectedPrefix.Length..])
+                    : raw;
+                return string.IsNullOrWhiteSpace(json)
+                    ? null
+                    : JsonSerializer.Deserialize<AccountSessionState>(json, JsonOptions);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or CryptographicException or FormatException)
+            {
+                return null;
+            }
+        }
+    }
+
+    public static void Save(string dataDirectory, AccountSessionState state)
+    {
+        lock (StoreLock)
+        {
+            Directory.CreateDirectory(dataDirectory);
+            string path = GetSessionPath(dataDirectory);
+            string json = JsonSerializer.Serialize(state, JsonOptions);
+            string payload = OperatingSystem.IsWindows()
+                ? ProtectedPrefix + Protect(json)
+                : json;
+
+            string temp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                File.WriteAllText(temp, payload, Encoding.UTF8);
+                if (!OperatingSystem.IsWindows())
+                {
+                    try { File.SetUnixFileMode(temp, UnixFileMode.UserRead | UnixFileMode.UserWrite); }
+                    catch { }
+                }
+                File.Move(temp, path, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(temp))
+                {
+                    try { File.Delete(temp); } catch { }
+                }
+            }
+        }
+    }
+
+    public static void Clear(string dataDirectory)
+    {
+        lock (StoreLock)
+        {
+            string path = GetSessionPath(dataDirectory);
+            if (File.Exists(path))
+            {
+                try { File.Delete(path); } catch { }
+            }
+        }
+    }
+
+    public static AccountSessionState RecordSupport(
+        string dataDirectory,
+        AccountSessionState current,
+        string entryId,
+        string offerId,
+        string offerTitle,
+        long cents,
+        string mode,
+        string status,
+        bool countsTowardTier)
+    {
+        var updatedHistory = new List<SupportLedgerEntry>(current.History ?? [])
+        {
+            new(entryId, offerId, offerTitle, cents, mode, status, DateTimeOffset.UtcNow)
+        };
+
+        long nextTotal = Math.Max(0, current.TotalDonatedCents) + Math.Max(0, cents);
+        string nextTier = current.ActiveTier;
+        bool beta = current.BetaAccessUnlocked;
+
+        if (countsTowardTier)
+        {
+            if (string.Equals(offerId, "insider", StringComparison.OrdinalIgnoreCase))
+            {
+                nextTier = "insider";
+                beta = true;
+            }
+            else if (string.Equals(offerId, "supporter", StringComparison.OrdinalIgnoreCase) &&
+                     !string.Equals(nextTier, "insider", StringComparison.OrdinalIgnoreCase))
+            {
+                nextTier = "supporter";
+            }
+        }
+
+        var updated = current with
+        {
+            ActiveTier = nextTier,
+            TotalDonatedCents = nextTotal,
+            BetaAccessUnlocked = beta || nextTotal >= 10000,
+            History = updatedHistory.ToArray()
+        };
+        Save(dataDirectory, updated);
+        return updated;
+    }
+
+    private static string Protect(string plaintext)
+    {
+        if (!OperatingSystem.IsWindows()) return plaintext;
+        byte[] bytes = Encoding.UTF8.GetBytes(plaintext);
+        try
+        {
+            byte[] encrypted = ProtectedData.Protect(bytes, null, DataProtectionScope.CurrentUser);
+            return Convert.ToBase64String(encrypted);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(bytes);
+        }
+    }
+
+    private static string Unprotect(string base64)
+    {
+        if (!OperatingSystem.IsWindows()) return "";
+        byte[] encrypted = Convert.FromBase64String(base64);
+        byte[] plaintext = ProtectedData.Unprotect(encrypted, null, DataProtectionScope.CurrentUser);
+        try
+        {
+            return Encoding.UTF8.GetString(plaintext);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plaintext);
+        }
+    }
+}

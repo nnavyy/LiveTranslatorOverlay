@@ -24,6 +24,7 @@ try {
   await db.exec(await readFile(new URL('../../supabase/migrations/20261110152000_community_rankings.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(new URL('../../supabase/migrations/20261111100000_manual_purchase_preview.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(new URL('../../supabase/migrations/20261111210000_public_profile_support.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../../supabase/migrations/20261123120000_account_login_donations_and_tiers.sql', import.meta.url), 'utf8'));
   const board = async (kind, search = '', offset = 0) =>
     (await db.query('select public.lt_community_board($1, $2, $3) as board', [kind, search, offset])).rows[0].board;
 
@@ -119,6 +120,35 @@ try {
   await db.exec('reset role');
   assert.equal((await db.query('select count(*)::integer as count from community_private.manual_purchase_requests')).rows[0].count, 3);
   assert.equal((await db.query('select count(*)::integer as count from community_private.verified_support')).rows[0].count, 4);
+
+  // Account summary, selectable licenses, and custom donation tracking checks
+  await db.exec('set role anon');
+  await assert.rejects(db.query("select public.lt_submit_support_request('donation', 500, '')"), { code: '42501' });
+  await assert.rejects(db.query('select public.lt_my_account_summary()'), { code: '42501' });
+  await db.exec('reset role');
+
+  await setUser(unverified);
+  await db.exec('set role authenticated');
+  await assert.rejects(db.query("select public.lt_submit_support_request('supporter', 1999, '')"), { code: '42501' });
+  await assert.rejects(db.query('select public.lt_my_account_summary()'), { code: '42501' });
+
+  await setUser(alice);
+  await assert.rejects(db.query("select public.lt_submit_support_request('supporter', 500, '')"), { code: '22023' });
+  await assert.rejects(db.query("select public.lt_submit_support_request('donation', 0, '')"), { code: '22023' });
+  const reqRow = (await db.query("select public.lt_submit_support_request('donation', 1500, 'keep building!') as res")).rows[0].res;
+  assert.equal(reqRow.offer, 'donation');
+  assert.equal(reqRow.cents, 1500);
+  assert.equal(reqRow.status, 'pending');
+  await assert.rejects(db.query('select * from community_private.support_requests'), { code: '42501' });
+
+  const aliceSummary = (await db.query('select public.lt_my_account_summary() as res')).rows[0].res;
+  assert.equal(aliceSummary.activeTier, 'insider');
+  assert.equal(aliceSummary.verifiedTotalCents, 10000);
+  assert.equal(aliceSummary.pendingTotalCents, 1500);
+  assert.equal(aliceSummary.betaAccessUnlocked, true);
+  assert(aliceSummary.history.length >= 2);
+  await db.exec('reset role');
+
   console.log('Community SQL passed: consent, closed defaults, overlap, UTC boundaries, ties, pagination, refunds, and private access.');
-  console.log('Manual purchase preview passed: closed by default, verified accounts only, private requests, idempotent retry, and no credit.');
+  console.log('Manual purchase preview & account tracking passed: verified accounts, tier/donation validation, private ledger, and summary projection.');
 } finally { await db.close(); }

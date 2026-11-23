@@ -10,7 +10,7 @@ namespace LiveTranslatorMac;
 public sealed partial class TranslatorWindow
 {
     private readonly ComboBox _audioSource = new() { ItemsSource = new[] { "System audio", "Microphone" }, SelectedIndex = 0 };
-    private readonly ComboBox _speechModel = new() { ItemsSource = new[] { "Balanced", "Larger model" }, SelectedIndex = 0 };
+    private readonly ComboBox _speechModel = new() { ItemsSource = new[] { "Balanced (CPU)", "Larger model (CPU)", "Auto (Metal GPU / CPU)", "Large-v3-turbo (Metal GPU)" }, SelectedIndex = 2 };
     private readonly Button _audioToggle = new() { Content = "Start audio" };
     private readonly GuestAudioUsage _usageClock = new(AppSettings.DataDirectory);
     private readonly TextBlock _usageText = new() { Classes = { "secondary" } };
@@ -69,19 +69,26 @@ public sealed partial class TranslatorWindow
         usageCheckpoint.Tick += (_, _) => ShowAudioUsage(_usageClock.Checkpoint());
         try
         {
-            await using var speech = new LocalSpeechService(small: _speechModel.SelectedIndex == 1);
+            var tier = _speechModel.SelectedIndex switch
+            {
+                1 => LocalSpeechModelTier.Small,
+                2 => LocalSpeechModelTier.Auto,
+                3 => LocalSpeechModelTier.LargeTurbo,
+                _ => LocalSpeechModelTier.Base
+            };
+            await using var speech = new LocalSpeechService(tier);
             await speech.InitializeAsync(sourceTag, request.Token, message => Dispatcher.UIThread.Post(() =>
             {
                 if (!_closed && _audioRequest == request && !request.IsCancellationRequested) SetStatus(message);
             }));
             await using var capture = new MacAudioCapture();
-            SetStatus("Starting audio capture…");
+            SetStatus($"Starting audio capture ({speech.ActiveModelLabel} · {speech.BackendLabel})…");
             await capture.StartAsync(microphone, request.Token);
             request.Token.ThrowIfCancellationRequested();
             overlay.Show(this);
             _usageClock.Start();
             usageCheckpoint.Start();
-            SetStatus("Audio translation is running. Drag the captions to reposition them.");
+            SetStatus($"Audio translation is running ({speech.ActiveModelLabel} · {speech.BackendLabel}). Drag the captions to reposition them.");
             using var processing = CancellationTokenSource.CreateLinkedTokenSource(request.Token);
             var processingToken = processing.Token;
             // Stop ongoing recognition or network work as soon as native capture stops.

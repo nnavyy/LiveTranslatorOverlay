@@ -26,6 +26,13 @@ namespace LiveTranslatorOverlay.Core
 
         // Queue dengan batas 2 chunk agar tidak numpuk tapi tidak buang semua
         private readonly SemaphoreSlim _chunkQueue = new SemaphoreSlim(2, 2);
+        private readonly SemaphoreSlim _streamingGate = new SemaphoreSlim(1, 1);
+
+        /// <summary>When enabled with StreamingWindowHandler, emits sliding audio snapshots every ~300 ms instead of waiting 4-12 s.</summary>
+        public bool EnableStreamingWindows { get; set; }
+        public int StreamingStepMs { get; set; } = 300;
+        public int StreamingMaxWindowMs { get; set; } = 10000;
+        public Func<float[], bool, Task>? StreamingWindowHandler { get; set; }
 
         // VAD settings
         private const float SilenceThreshold = 0.0025f;  // Level suara dianggap hening (lowered to catch quiet speech)
@@ -185,6 +192,12 @@ namespace LiveTranslatorOverlay.Core
 
         private async Task ChunkEmitterLoop()
         {
+            if (EnableStreamingWindows && StreamingWindowHandler != null)
+            {
+                await StreamingWindowEmitterLoop();
+                return;
+            }
+
             const int sampleRate = 16000;
             int minChunkSamples = sampleRate * MinChunkMs / 1000;
             int maxChunkSamples = sampleRate * MaxChunkMs / 1000;
@@ -311,6 +324,127 @@ namespace LiveTranslatorOverlay.Core
 
                 await Task.Delay(50);
             }
+        }
+
+        private async Task StreamingWindowEmitterLoop()
+        {
+            const int sampleRate = 16000;
+            int stepSamples = sampleRate * Math.Clamp(StreamingStepMs, 150, 2000) / 1000;
+            int maxWindowSamples = sampleRate * Math.Clamp(StreamingMaxWindowMs, 3000, 18000) / 1000;
+            int minSpeechForSilenceCommit = sampleRate * 900 / 1000;
+            int silenceWindowSamples = sampleRate * SilenceWindowMs / 1000;
+            int overlapSamples = sampleRate * OverlapMs / 1000;
+
+            var currentWindow = new List<float>(maxWindowSamples);
+            int samplesSinceEmit = 0;
+            int stagnantLoops = 0;
+            bool emittedPartialInUtterance = false;
+
+            while (_isCapturing)
+            {
+                bool gotData = false;
+                while (_audioBuffer.TryDequeue(out float sample))
+                {
+                    currentWindow.Add(sample);
+                    samplesSinceEmit++;
+                    gotData = true;
+                }
+
+                if (gotData) stagnantLoops = 0;
+                else stagnantLoops++;
+
+                bool shouldFinalize = false;
+                bool hitMaxWindow = false;
+                if (currentWindow.Count >= maxWindowSamples)
+                {
+                    shouldFinalize = true;
+                    hitMaxWindow = true;
+                }
+                else if (currentWindow.Count >= minSpeechForSilenceCommit)
+                {
+                    int checkFrom = Math.Max(0, currentWindow.Count - silenceWindowSamples);
+                    float tailEnergy = 0;
+                    for (int i = checkFrom; i < currentWindow.Count; i++)
+                        tailEnergy += Math.Abs(currentWindow[i]);
+                    float avgTail = tailEnergy / (currentWindow.Count - checkFrom);
+
+                    if (avgTail < SilenceThreshold || stagnantLoops > 14)
+                        shouldFinalize = true;
+                }
+                else if (emittedPartialInUtterance && stagnantLoops > 14 && currentWindow.Count >= stepSamples)
+                {
+                    shouldFinalize = true;
+                }
+
+                if (shouldFinalize && currentWindow.Count > 0)
+                {
+                    float[] finalWindow = currentWindow.ToArray();
+                    bool hasSpeech = HasWindowSpeech(finalWindow);
+                    currentWindow.Clear();
+                    samplesSinceEmit = 0;
+
+                    if (hitMaxWindow && finalWindow.Length > overlapSamples)
+                    {
+                        for (int i = finalWindow.Length - overlapSamples; i < finalWindow.Length; i++)
+                            currentWindow.Add(finalWindow[i]);
+                    }
+
+                    if (hasSpeech)
+                    {
+                        var handler = StreamingWindowHandler;
+                        if (handler != null)
+                        {
+                            await _streamingGate.WaitAsync();
+                            _ = Task.Run(async () =>
+                            {
+                                try { await handler(finalWindow, true); }
+                                finally { _streamingGate.Release(); }
+                            });
+                        }
+                    }
+                    emittedPartialInUtterance = false;
+                }
+                else if (samplesSinceEmit >= stepSamples && currentWindow.Count >= stepSamples)
+                {
+                    float[] snapshot = currentWindow.ToArray();
+                    samplesSinceEmit = 0;
+                    if (HasWindowSpeech(snapshot))
+                    {
+                        emittedPartialInUtterance = true;
+                        var handler = StreamingWindowHandler;
+                        if (handler != null && _streamingGate.Wait(0))
+                        {
+                            _ = Task.Run(async () =>
+                            {
+                                try { await handler(snapshot, false); }
+                                finally { _streamingGate.Release(); }
+                            });
+                        }
+                    }
+                    else if (!emittedPartialInUtterance && currentWindow.Count > silenceWindowSamples)
+                    {
+                        // Drop leading pure silence while preserving a tiny pre-roll.
+                        int removeCount = currentWindow.Count - (sampleRate / 4);
+                        if (removeCount > 0)
+                            currentWindow.RemoveRange(0, removeCount);
+                    }
+                }
+
+                await Task.Delay(40);
+            }
+        }
+
+        private static bool HasWindowSpeech(IReadOnlyList<float> samples)
+        {
+            float totalEnergy = 0;
+            float maxAmp = 0;
+            for (int i = 0; i < samples.Count; i++)
+            {
+                float abs = Math.Abs(samples[i]);
+                totalEnergy += abs;
+                if (abs > maxAmp) maxAmp = abs;
+            }
+            return maxAmp >= 0.004f && (totalEnergy / samples.Count) >= 0.0005f;
         }
 
         private void OnRecordingStopped(object? sender, EventArgs e)

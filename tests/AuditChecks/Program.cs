@@ -126,6 +126,59 @@ for (int i = 0; i < 501; i++) sessionHistory.Add($"phrase-{i}:", "translated");
 bool boundedHistory = !sessionHistory.ToString().Contains("phrase-0:") && sessionHistory.ToString().Contains("phrase-500:");
 sessionHistory.Clear();
 Check("Session history is bounded and clearable", boundedHistory && sessionHistory.ToString() == "", "last 500 entries retained, then cleared");
+
+// StreamingAgreement Local Agreement-2 word and CJK-grapheme stabilization
+var agreement = new StreamingAgreement();
+var step1 = agreement.Observe("Testing.");
+var step2 = agreement.Observe("Testing one two");
+var step3 = agreement.Observe("Testing one two three");
+var finalStep = agreement.FinalizeSegment("Testing one two three.");
+Check("Local Agreement-2 stabilizes English words progressively without premature periods",
+    step1.CommittedText == "" && step1.ProvisionalText == "Testing."
+    && step2.CommittedText == "Testing" && step2.ProvisionalText == "one two"
+    && step3.CommittedText == "Testing one two" && step3.ProvisionalText == "three"
+    && finalStep.CommittedText == "Testing one two three.",
+    $"step2='{step2.CommittedText}|{step2.ProvisionalText}'; final='{finalStep.CommittedText}'");
+
+agreement.Reset();
+var cjk1 = agreement.Observe("今日は");
+var cjk2 = agreement.Observe("今日はいい天気です");
+var cjkFinal = agreement.FinalizeSegment("今日はいい天気です");
+Check("Local Agreement-2 stabilizes CJK characters without inserting spaces",
+    cjk2.CommittedText == "今日は" && cjkFinal.CommittedText == "今日はいい天気です",
+    $"cjk2='{cjk2.CommittedText}+{cjk2.ProvisionalText}'; final='{cjkFinal.CommittedText}'");
+
+// Hardware-adaptive model tier resolution
+Check("Auto model tier selects LargeTurbo when GPU is available and Base on CPU",
+    SpeechModelDownload.ResolveEffectiveTier(LocalSpeechModelTier.Auto, gpuAvailable: true) == LocalSpeechModelTier.LargeTurbo
+    && SpeechModelDownload.ResolveEffectiveTier(LocalSpeechModelTier.Auto, gpuAvailable: false) == LocalSpeechModelTier.Base
+    && SpeechModelDownload.ResolveEffectiveTier(LocalSpeechModelTier.Small, gpuAvailable: true) == LocalSpeechModelTier.Small,
+    "auto tiering verified");
+
+// Local staging account login + selectable license & donation ledger tracking
+string acctRoot = Path.Combine(Path.GetTempPath(), "TranslatorAccountAudit-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(acctRoot);
+try
+{
+    var communityClient = new CommunityClient(acctRoot);
+    var otpRes = await communityClient.SendLoginOtpAsync("donor@example.test", CancellationToken.None);
+    var loginRes = await communityClient.VerifyLoginOtpAsync("donor@example.test", "123456", CancellationToken.None);
+    var donateRes = await communityClient.SubmitSupportChoiceAsync("donation", 1500, "Indonesian pack", CancellationToken.None);
+    var insiderRes = await communityClient.SubmitSupportChoiceAsync("insider", 0, "Beta tester", CancellationToken.None);
+    var reloaded = AccountSessionStore.Load(acctRoot);
+    Check("Account login, custom donation, and $100 Insider beta unlock persist with solo-dev message",
+        otpRes.Success && loginRes.Success && donateRes.Success && insiderRes.Success
+        && donateRes.Message.Contains("solo developer", StringComparison.OrdinalIgnoreCase)
+        && reloaded != null && reloaded.TotalDonatedCents == 11500
+        && reloaded.BetaAccessUnlocked && reloaded.ActiveTier == "insider"
+        && reloaded.History.Length == 2,
+        $"tier={reloaded?.ActiveTier}; total={reloaded?.TotalDonatedCents}; history={reloaded?.History.Length}");
+}
+finally
+{
+    if (Directory.Exists(acctRoot)) Directory.Delete(acctRoot, recursive: true);
+}
+
 Console.WriteLine($"Audit checks: {passed}/{total} passed");
 Environment.ExitCode = passed == total ? 0 : 1;
 

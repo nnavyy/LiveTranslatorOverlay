@@ -689,7 +689,7 @@ public sealed class CommunityWindow : Window
     {
         var panel = new StackPanel { Margin = new Thickness(24, 16, 24, 16) };
 
-        var title = Heading("Support development", 24, bottom: 0);
+        var title = Heading("Support & Account", 24, bottom: 0);
         title.VerticalAlignment = VerticalAlignment.Center;
         title.Margin = new Thickness(0, 0, 12, 4);
         var licensePill = PillBadge("MIT Open Source · Free forever", "#1D3329", "#3A6B52", "#B8F2D0");
@@ -700,9 +700,23 @@ public sealed class CommunityWindow : Window
         titleWrap.Children.Add(licensePill);
         panel.Children.Add(titleWrap);
 
-        var intro = Line(SupportCatalog.Intro, size: 13.5, bottom: 16);
+        var intro = Line(SupportCatalog.Intro, size: 13.5, bottom: 8);
         intro.Foreground = PodiumBrush("#D4D4DE", SystemColors.WindowTextBrush);
         panel.Children.Add(intro);
+
+        var soloThanks = Surface(new StackPanel
+        {
+            Children =
+            {
+                Heading("Thank you for supporting this solo developer", 14.5, bottom: 4),
+                Line(SupportCatalog.SoloDeveloperNote, size: 13, bottom: 0)
+            }
+        }, tinted: true);
+        soloThanks.Margin = new Thickness(0, 0, 0, 12);
+        panel.Children.Add(soloThanks);
+
+        var client = new CommunityClient(AppSettings.DataDirectory);
+        panel.Children.Add(AccountAndChannelSection(client));
 
         var lifetimeGrid = new Grid { Margin = new Thickness(0, 0, 0, 8) };
         lifetimeGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -728,11 +742,13 @@ public sealed class CommunityWindow : Window
             }
         }
 
+        panel.Children.Add(SelectableCheckoutSection(client));
+
         var purchaseHeader = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
-        var purchaseHeading = Heading("Purchase options", 15.5, bottom: 0);
+        var purchaseHeading = Heading("Purchase & settlement status", 15.5, bottom: 0);
         purchaseHeading.VerticalAlignment = VerticalAlignment.Center;
         purchaseHeading.Margin = new Thickness(0, 0, 10, 2);
-        var previewPill = PillBadge("Preview only", "#3B3052", "#68558A", "#E9DAFF");
+        var previewPill = PillBadge(client.HasOnlineAccountService ? "Online account preview" : "Staging tracker", "#3B3052", "#68558A", "#E9DAFF");
         previewPill.Margin = new Thickness(0, 0, 0, 2);
         previewPill.VerticalAlignment = VerticalAlignment.Center;
         purchaseHeader.Children.Add(purchaseHeading);
@@ -744,7 +760,6 @@ public sealed class CommunityWindow : Window
         availabilityLine.Foreground = PodiumBrush("#CEC2E6", SystemColors.WindowTextBrush);
 
         var purchase = new StackPanel { Children = { purchaseHeader, closedLine, availabilityLine } };
-        var client = new CommunityClient(AppSettings.DataDirectory);
         if (client.ManualRequestPreview)
         {
             var expander = new Expander
@@ -766,6 +781,244 @@ public sealed class CommunityWindow : Window
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
+    }
+
+    private readonly List<Action> _accountRefreshCallbacks = [];
+
+    private void NotifyAccountChanged()
+    {
+        foreach (var cb in _accountRefreshCallbacks) cb();
+    }
+
+    private UIElement AccountAndChannelSection(CommunityClient client)
+    {
+        var summaryHeading = Heading("Account login & release channel", 15.5, bottom: 4);
+        var accountSummaryText = MutedLine("", size: 13, bottom: 8);
+        accountSummaryText.Foreground = PodiumBrush("#E5E5F0", SystemColors.WindowTextBrush);
+        var historyList = new StackPanel { Margin = new Thickness(0, 4, 0, 8) };
+
+        var emailBox = new TextBox { MaxLength = 254, Padding = new Thickness(10, 6, 10, 6), Margin = new Thickness(0, 0, 0, 6) };
+        ApplyStyle(emailBox, "CommunityTextBox");
+        var codeBox = new TextBox { MaxLength = 6, Padding = new Thickness(10, 6, 10, 6), Margin = new Thickness(0, 0, 0, 8) };
+        ApplyStyle(codeBox, "CommunityTextBox");
+        var sendCodeBtn = ActionButton("Send login code", bottomMargin: 6, rightMargin: 8);
+        var verifyBtn = ActionButton("Sign in", primary: true, bottomMargin: 6, rightMargin: 8);
+        var signOutBtn = ActionButton("Sign out", bottomMargin: 6, rightMargin: 0);
+        var authStatus = MutedLine("", size: 12.5, bottom: 8);
+        authStatus.Foreground = PodiumBrush("#B8F2D0", SystemColors.WindowTextBrush);
+
+        var channelCombo = new ComboBox
+        {
+            ItemsSource = new[]
+            {
+                "Main / Stable (Free & US$19.99 Supporter)",
+                "Beta (Early access · US$100 Insider)",
+                "Dev (Owner workspace local feed)"
+            },
+            Margin = new Thickness(0, 0, 0, 6)
+        };
+        ApplyStyle(channelCombo, "CommunityComboBox");
+        var settings = AppSettings.Load();
+        channelCombo.SelectedIndex = settings.UpdateChannel switch
+        {
+            "beta" => 1,
+            "dev" => 2,
+            _ => 0
+        };
+        var channelHint = MutedLine("", size: 12, bottom: 0);
+
+        void RefreshView()
+        {
+            var session = client.GetCachedSession();
+            if (session == null)
+            {
+                accountSummaryText.Text = client.HasOnlineAccountService
+                    ? "Not signed in. Enter your email to receive a 6-digit login code and sync licenses/donations."
+                    : "Not signed in (local staging ledger ready). Enter your email and any 6 digits (e.g. 123456) to track licenses & donations.";
+                emailBox.Visibility = codeBox.Visibility = sendCodeBtn.Visibility = verifyBtn.Visibility = Visibility.Visible;
+                signOutBtn.Visibility = Visibility.Collapsed;
+                historyList.Children.Clear();
+            }
+            else
+            {
+                string modeLabel = session.IsLocalStaging ? "Local staging" : "Synced";
+                accountSummaryText.Text = $"Signed in: {session.Email} ({modeLabel})\nActive tier: {session.TierDisplayName}\nTracked donations & support: {AccountSessionStore.FormatUsd(session.TotalDonatedCents)}";
+                emailBox.Visibility = codeBox.Visibility = sendCodeBtn.Visibility = verifyBtn.Visibility = Visibility.Collapsed;
+                signOutBtn.Visibility = Visibility.Visible;
+                historyList.Children.Clear();
+                if (session.History is { Length: > 0 })
+                {
+                    historyList.Children.Add(MutedLine("Recent support & donation ledger:", size: 12, bottom: 4, semiBold: true));
+                    foreach (var entry in session.History.Reverse().Take(6))
+                    {
+                        historyList.Children.Add(MutedLine($"• {entry.CreatedUtc:yyyy-MM-dd} · {entry.OfferTitle} · {entry.AmountLabel} ({entry.Status})", size: 12, bottom: 2));
+                    }
+                }
+            }
+
+            string ch = channelCombo.SelectedIndex switch { 1 => "beta", 2 => "dev", _ => "stable" };
+            channelHint.Text = ch switch
+            {
+                "beta" => session?.BetaAccessUnlocked == true
+                    ? "Beta channel unlocked on your Insider account (updates/ml-beta.json)."
+                    : "Beta builds belong to US$100 Lifetime Insiders (tracks updates/ml-beta.json).",
+                "dev" => "Dev channel checks your local owner build feed when configured in channel.json.",
+                _ => "Stable channel receives verified public releases from updates/ml-stable.json."
+            };
+        }
+
+        _accountRefreshCallbacks.Add(RefreshView);
+        RefreshView();
+
+        channelCombo.SelectionChanged += (_, _) =>
+        {
+            var current = AppSettings.Load();
+            current.UpdateChannel = channelCombo.SelectedIndex switch { 1 => "beta", 2 => "dev", _ => "stable" };
+            current.Save();
+            RefreshView();
+        };
+
+        sendCodeBtn.Click += async (_, _) =>
+        {
+            sendCodeBtn.IsEnabled = verifyBtn.IsEnabled = false;
+            try
+            {
+                var res = await client.SendLoginOtpAsync(emailBox.Text, _lifetime.Token);
+                authStatus.Text = res.Message;
+            }
+            finally
+            {
+                if (!_lifetime.IsCancellationRequested) sendCodeBtn.IsEnabled = verifyBtn.IsEnabled = true;
+            }
+        };
+
+        verifyBtn.Click += async (_, _) =>
+        {
+            sendCodeBtn.IsEnabled = verifyBtn.IsEnabled = false;
+            try
+            {
+                var res = await client.VerifyLoginOtpAsync(emailBox.Text, codeBox.Text, _lifetime.Token);
+                authStatus.Text = res.Message;
+                if (res.Success)
+                {
+                    codeBox.Clear();
+                    NotifyAccountChanged();
+                }
+            }
+            finally
+            {
+                if (!_lifetime.IsCancellationRequested) sendCodeBtn.IsEnabled = verifyBtn.IsEnabled = true;
+            }
+        };
+
+        signOutBtn.Click += (_, _) =>
+        {
+            client.SignOut();
+            authStatus.Text = "Signed out.";
+            NotifyAccountChanged();
+        };
+
+        var card = Surface(new StackPanel
+        {
+            Children =
+            {
+                summaryHeading,
+                accountSummaryText,
+                emailBox,
+                codeBox,
+                new WrapPanel { Children = { sendCodeBtn, verifyBtn, signOutBtn } },
+                authStatus,
+                historyList,
+                MutedLine("Release update channel", size: 12, bottom: 4, semiBold: true),
+                channelCombo,
+                channelHint
+            }
+        }, tinted: false);
+        card.Margin = new Thickness(0, 0, 0, 12);
+        return card;
+    }
+
+    private UIElement SelectableCheckoutSection(CommunityClient client)
+    {
+        var offerSelect = new ComboBox
+        {
+            ItemsSource = SupportCatalog.Offers,
+            DisplayMemberPath = nameof(SupportOffer.Label),
+            SelectedIndex = 0,
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        ApplyStyle(offerSelect, "CommunityComboBox");
+
+        var customAmountPanel = new StackPanel { Visibility = Visibility.Collapsed, Margin = new Thickness(0, 0, 0, 8) };
+        var amountBox = new TextBox { Text = "10.00", MaxLength = 8, Padding = new Thickness(10, 6, 10, 6), Margin = new Thickness(0, 4, 0, 6) };
+        ApplyStyle(amountBox, "CommunityTextBox");
+        var presetWrap = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
+        foreach (var preset in new[] { 5, 10, 25 })
+        {
+            var btn = ActionButton($"US${preset}", bottomMargin: 0, rightMargin: 6);
+            btn.Click += (_, _) => amountBox.Text = preset.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+            presetWrap.Children.Add(btn);
+        }
+        customAmountPanel.Children.Add(MutedLine("Choose a preset or custom USD donation amount:", size: 12, bottom: 2));
+        customAmountPanel.Children.Add(presetWrap);
+        customAmountPanel.Children.Add(amountBox);
+
+        var noteBox = new TextBox { MaxLength = 200, Padding = new Thickness(10, 6, 10, 6), Margin = new Thickness(0, 0, 0, 8) };
+        ApplyStyle(noteBox, "CommunityTextBox");
+
+        offerSelect.SelectionChanged += (_, _) =>
+        {
+            bool isDonation = (offerSelect.SelectedItem as SupportOffer)?.Id == "donation";
+            customAmountPanel.Visibility = isDonation ? Visibility.Visible : Visibility.Collapsed;
+        };
+
+        var submitChoiceBtn = ActionButton("Select license / record support", primary: true, bottomMargin: 6, rightMargin: 0);
+        var resultLine = MutedLine("", size: 12.5, bottom: 0);
+        resultLine.Foreground = PodiumBrush("#B8F2D0", SystemColors.WindowTextBrush);
+
+        submitChoiceBtn.Click += async (_, _) =>
+        {
+            if (offerSelect.SelectedItem is not SupportOffer chosen) return;
+            long customCents = 0;
+            if (chosen.Id == "donation")
+            {
+                if (!decimal.TryParse(amountBox.Text.Trim(), System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal dollars) || dollars <= 0)
+                {
+                    resultLine.Text = "Enter a positive USD amount such as 5.00 or 20.00.";
+                    return;
+                }
+                customCents = (long)Math.Round(dollars * 100m);
+            }
+
+            submitChoiceBtn.IsEnabled = false;
+            try
+            {
+                var res = await client.SubmitSupportChoiceAsync(chosen.Id, customCents, noteBox.Text, _lifetime.Token);
+                resultLine.Text = res.Message;
+                if (res.Success) NotifyAccountChanged();
+            }
+            finally
+            {
+                if (!_lifetime.IsCancellationRequested) submitChoiceBtn.IsEnabled = true;
+            }
+        };
+
+        var box = Surface(new StackPanel
+        {
+            Children =
+            {
+                Heading("Choose a license or donation to track", 15, bottom: 6),
+                MutedLine("Every license purchase or donation helps this solo developer expand support for more languages.", size: 12.5, bottom: 8),
+                offerSelect,
+                customAmountPanel,
+                MutedLine("Optional message or requested language (max 200 chars)", size: 12, bottom: 4),
+                noteBox,
+                new WrapPanel { Children = { submitChoiceBtn } },
+                resultLine
+            }
+        }, tinted: false);
+        box.Margin = new Thickness(0, 0, 0, 12);
+        return box;
     }
 
     private static Border LifetimeOfferCard(SupportOffer offer)
