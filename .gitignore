@@ -20,6 +20,8 @@ appsettings.json
 community.json
 local-speech.json
 account-session.dat
+user-profile.dat
+owner-admin.dat
 guest-donations.dat
 channel.json
 feedback_history.json

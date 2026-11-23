@@ -94,10 +94,13 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        if (AppBranding.LoadWindowIcon() is { } appIcon) Icon = appIcon;
+        if (AppBranding.LoadLogoImage() is { } appLogo) ImgHeaderLogo.Source = appLogo;
         TxtInstalledVersion.Text = $"Installed {AppVersion.DisplayString}";
         if (App.IsDeveloperMode)
         {
             BtnDeveloper.Visibility = Visibility.Visible;
+            BtnOwnerGrants.Visibility = Visibility.Visible;
             DeveloperBadge.Visibility = Visibility.Visible;
             Title = $"Live Translator Overlay {AppVersion.DisplayString} — Developer mode";
         }
@@ -1121,14 +1124,14 @@ public partial class MainWindow : Window
         {
             "deepgram" => $"Deepgram · {DiarizedSttService.ModelName}",
             "groq" => $"Groq · {WhisperSttService.ModelName}",
-            "local-small" => "Local Whisper small · CPU",
-            "local-auto" => "Live word-by-word · Auto (Vulkan GPU / CPU)",
-            "local-turbo" => "Live word-by-word · Whisper large-v3-turbo (GPU / CPU)",
-            _ => "Local Whisper base · CPU"
+            "local-small" => "Local small · CPU",
+            "local-auto" => "Auto · Vulkan GPU or CPU",
+            "local-turbo" => "Large-v3-turbo · Vulkan GPU / CPU",
+            _ => "Local base · CPU"
         };
         TxtSpeechSelection.Text = _isAudioMode
             ? $"{model} · Stop audio to change speech settings."
-            : $"{model} · {(isLocalSpeech ? "No key needed. Downloads and verifies the model on first use." : "Sends audio to the selected provider.")}";
+            : $"{model} · {(isLocalSpeech ? "Key-free; downloads and verifies model on first use." : "Sends audio to the selected cloud provider.")}";
 
         var usage = new List<string>();
         if (speech == "deepgram") usage.Add($"{model} (speech)\nCheck usage in your Deepgram dashboard.");
@@ -1484,6 +1487,8 @@ public partial class MainWindow : Window
     private void BtnLicense_Click(object sender, RoutedEventArgs e) => new CommunityWindow(this, _usageClock.Checkpoint(), showSupport: true).ShowDialog();
 
     private void BtnCommunity_Click(object sender, RoutedEventArgs e) => new CommunityWindow(this, _usageClock.Checkpoint(), showSupport: false).ShowDialog();
+
+    private void BtnOwnerGrants_Click(object sender, RoutedEventArgs e) => new OwnerGrantsWindow(this).ShowDialog();
 
     private string GetSttMode()
     {
@@ -1923,7 +1928,7 @@ public partial class MainWindow : Window
                         Dispatcher.Invoke(() =>
                         {
                             if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
-                            TxtAudioStatus.Text = $"Live word-by-word · {localService.ActiveModelLabel} ({localService.BackendLabel}) · ASR {asrSw.ElapsedMilliseconds} ms · MT {mtSw.ElapsedMilliseconds} ms";
+                            TxtAudioStatus.Text = $"Streaming · {localService.ActiveModelLabel} ({localService.BackendLabel}) · ASR {asrSw.ElapsedMilliseconds} ms · MT {mtSw.ElapsedMilliseconds} ms";
                             if (isFinal && !string.IsNullOrWhiteSpace(finalTranslation))
                             {
                                 AppendToHistory($"[{speakerLabel}] {state.FullText}", finalTranslation);

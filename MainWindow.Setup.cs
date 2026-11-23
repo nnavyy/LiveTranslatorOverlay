@@ -29,7 +29,8 @@ public partial class MainWindow
             MinWidth = 370,
             MinHeight = 315,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Background = new SolidColorBrush(Color.FromRgb(28, 28, 34)),
+            Icon = AppBranding.LoadWindowIcon(),
+            Background = new SolidColorBrush(Color.FromRgb(18, 18, 23)),
             Foreground = Brushes.White,
             Content = content,
             ShowInTaskbar = false
@@ -76,6 +77,9 @@ public partial class MainWindow
             panel.Children.Add(button);
         }
         if (Directory.Exists(archive)) AddLink("Local Windows version archive", archive);
+        var grantsBtn = SetupButton("Payments & Beta Grants Dashboard");
+        grantsBtn.Click += (_, _) => new OwnerGrantsWindow(this).ShowDialog();
+        panel.Children.Add(grantsBtn);
         AddLink("Public releases", "https://github.com/nnavyy/LiveTranslatorOverlay/releases");
         AddLink("Private build releases", "https://github.com/nnavyy/LiveTranslatorOverlay-private/releases");
         AddLink("Received reports and feedback in Gmail", "https://mail.google.com/mail/?authuser=nandazhafran%40gmail.com#search/in%3Aanywhere%20%22Live%20Translator%22");

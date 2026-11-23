@@ -65,3 +65,11 @@ Beta (`$100` Insider) and `dev` branches live only on the private repository (`p
    .\scripts\publish-channel.ps1 -Channel beta
    powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\owner-grants.ps1 -Action publish-beta -Version 1.1.2 -Runtime win-x64 -ZipPath .\publish-beta\LiveTranslatorOverlay-Windows-x64.zip
    ```
+
+## `v1.1.3`: Live Profile & Rankings RPCs + Owner GUI (`supabase/migrations/20261123220000_enable_authenticated_rankings.sql`)
+
+1. Apply `migrations/20261123220000_enable_authenticated_rankings.sql` to expose authenticated profile read/write (`lt_my_profile`, `lt_save_profile`), device-bound usage submission (`lt_submit_usage_segment`), and service-role board toggle (`lt_admin_set_rankings_open`), while preserving `rankings_open = false` by default.
+2. Manage requests, guest donations, Beta grants, and the global rankings toggle either through the in-app **Payments & Beta Grants** dialog (launch `LiveTranslatorOverlay.exe --developer` -> Developer Tools) or via CLI:
+   ```powershell
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\owner-grants.ps1 -Action open-rankings -Active 1
+   ```

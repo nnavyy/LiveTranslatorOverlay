@@ -45,6 +45,18 @@ public sealed record GuestDonationLedgerState(
     long TotalDonatedCents,
     SupportLedgerEntry[] History);
 
+public sealed record UserProfileState(
+    string Nickname,
+    bool SyncUsage,
+    bool PublicUsage,
+    bool PublicSupport,
+    bool ShowMedals,
+    DateTimeOffset UpdatedUtc);
+
+public sealed record OwnerAdminConfig(
+    string SupabaseUrl,
+    string ServiceRoleKey);
+
 /// <summary>Persists signed-in account state and tracked licenses/donations locally under DPAPI (Windows) or 0600 permissions.</summary>
 public static class AccountSessionStore
 {
@@ -231,5 +243,49 @@ public static class GuestDonationLedgerStore
         var updated = new GuestDonationLedgerState(identity.GuestDisplayTag, identity.FingerprintHash, nextTotal, entries.ToArray());
         AccountSessionStore.SaveProtectedJson(GetLedgerPath(dataDirectory), updated);
         return updated;
+    }
+}
+
+/// <summary>Persists optional community ranking profile preferences locally under DPAPI or 0600 permissions.</summary>
+public static class UserProfileStore
+{
+    private static string GetProfilePath(string dataDirectory) =>
+        Path.Combine(dataDirectory, "user-profile.dat");
+
+    public static UserProfileState? Load(string dataDirectory) =>
+        AccountSessionStore.LoadProtectedJson<UserProfileState>(GetProfilePath(dataDirectory));
+
+    public static void Save(string dataDirectory, UserProfileState profile) =>
+        AccountSessionStore.SaveProtectedJson(GetProfilePath(dataDirectory), profile);
+
+    public static void Clear(string dataDirectory)
+    {
+        string path = GetProfilePath(dataDirectory);
+        if (File.Exists(path))
+        {
+            try { File.Delete(path); } catch { }
+        }
+    }
+}
+
+/// <summary>Stores owner-only Supabase Service Role connection locally (DPAPI / 0600, gitignored).</summary>
+public static class OwnerAdminConfigStore
+{
+    private static string GetConfigPath(string dataDirectory) =>
+        Path.Combine(dataDirectory, "owner-admin.dat");
+
+    public static OwnerAdminConfig? Load(string dataDirectory) =>
+        AccountSessionStore.LoadProtectedJson<OwnerAdminConfig>(GetConfigPath(dataDirectory));
+
+    public static void Save(string dataDirectory, OwnerAdminConfig config) =>
+        AccountSessionStore.SaveProtectedJson(GetConfigPath(dataDirectory), config);
+
+    public static void Clear(string dataDirectory)
+    {
+        string path = GetConfigPath(dataDirectory);
+        if (File.Exists(path))
+        {
+            try { File.Delete(path); } catch { }
+        }
     }
 }

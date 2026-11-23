@@ -17,17 +17,17 @@ public sealed record SupportOffer(string Id, string Title, int? Cents, string De
 
 public static class SupportCatalog
 {
-    public const string Intro = "Live Translator Overlay is free and open source under the MIT License. All stable features remain free — login is optional for app usage and guest donations, while Community Rankings and Supporter/Insider badges require login.";
+    public const string Intro = "Live Translator Overlay is free under the MIT License. Core features stay free with no login required; sign in only for public Community Rankings or Lifetime tier verification.";
     public const string Closed = "Purchases and donations are currently closed.";
-    public const string IndependenceNote = "Supporter and Insider are independent tiers (login required to receive badges) — choosing both is US$119.99 total.";
-    public const string AvailabilityNote = "Purchasing is currently preview-only; no payment links or checkout are active in this version.";
-    public const string SoloDeveloperNote = "Every license purchase or donation directly helps this solo developer continue developing support for even more languages and cross-platform updates on Windows & macOS.";
+    public const string IndependenceNote = "Supporter and Insider are independent tiers — selecting both is US$119.99 total.";
+    public const string AvailabilityNote = "Checkout is in staging preview; no payment is charged in this build.";
+    public const string SoloDeveloperNote = "Every purchase or donation helps this solo developer support more languages across Windows and macOS.";
 
     public static IReadOnlyList<SupportOffer> Offers { get; } = Array.AsReadOnly(new SupportOffer[]
     {
-        new("supporter", "Lifetime Supporter", 1999, "Voluntary lifetime support (login required). Includes a Supporter medal on Community Rankings and a personal thank-you."),
-        new("insider", "Lifetime Insider", 10000, "Voluntary lifetime support (login required). Includes an Insider medal, early-access beta builds, compatible experimental models, priority support, and a personal thank-you."),
-        new("donation", "Donate", null, "Voluntary contribution of any positive amount. No login required — guest donors appear anonymously as User#XXXXX on the Supporters board.")
+        new("supporter", "Lifetime Supporter", 1999, "One-time support (sign-in required). Recognizes your account on Community Rankings with a personal thank-you."),
+        new("insider", "Lifetime Insider", 10000, "One-time support (sign-in required). Unlocks developer-verified Beta access, experimental models, and priority support."),
+        new("donation", "Donate", null, "Voluntary contribution of any positive amount. Works without login (listed as User#XXXXX on Supporters).")
     });
 }
 
@@ -98,6 +98,129 @@ public sealed class CommunityClient
 
     public GuestDonationLedgerState? GetGuestDonations() => GuestDonationLedgerStore.Load(_dataDirectory);
 
+    public UserProfileState? GetCachedProfile() => UserProfileStore.Load(_dataDirectory);
+
+    public async Task<AccountActionResult> SaveProfileAsync(
+        string nickname,
+        bool syncUsage,
+        bool publicUsage,
+        bool publicSupport,
+        bool showMedals,
+        CancellationToken token)
+    {
+        var session = AccountSessionStore.Load(_dataDirectory);
+        if (session == null)
+            return new(false, "Sign in on the Support tab before saving a public ranking profile.");
+
+        string clean = (nickname ?? "").Trim();
+        if (clean.Length is < 3 or > 24)
+            return new(false, "Choose a nickname between 3 and 24 characters.");
+
+        var localProfile = new UserProfileState(clean, syncUsage, publicUsage, publicSupport, showMedals, DateTimeOffset.UtcNow);
+        if (!HasOnlineAccountService || session.IsLocalStaging || string.IsNullOrWhiteSpace(session.AccessToken) || session.AccessToken == "local-staging-session")
+        {
+            UserProfileStore.Save(_dataDirectory, localProfile);
+            return new(true, $"Profile saved locally ({clean}). Connect a community server to publish to live rankings.", session);
+        }
+
+        try
+        {
+            using var response = await PostPurchaseAsync(
+                new Uri(_rpcBase!, "lt_save_profile"),
+                new
+                {
+                    p_nickname = clean,
+                    p_sync_usage = syncUsage,
+                    p_public_usage = publicUsage,
+                    p_public_support = publicSupport,
+                    p_show_medals = showMedals
+                },
+                session.AccessToken,
+                token).ConfigureAwait(false);
+
+            if (response?.IsSuccessStatusCode == true)
+            {
+                var remote = await response.Content.ReadFromJsonAsync<RemoteProfileResponse>(Json, token).ConfigureAwait(false);
+                if (remote?.Configured == true)
+                {
+                    var synced = new UserProfileState(
+                        remote.Nickname ?? clean,
+                        remote.SyncUsage,
+                        remote.PublicUsage,
+                        remote.PublicSupport,
+                        remote.ShowMedals,
+                        DateTimeOffset.UtcNow);
+                    UserProfileStore.Save(_dataDirectory, synced);
+                    return new(true, $"Public ranking profile updated ({synced.Nickname}).", session);
+                }
+            }
+        }
+        catch (Exception error) when (error is HttpRequestException or IOException or JsonException ||
+                                      error is OperationCanceledException && !token.IsCancellationRequested) { }
+
+        return new(false, "Could not save profile to the ranking server (choose a different nickname or sign in again).");
+    }
+
+    public async Task<UserProfileState?> RefreshProfileAsync(CancellationToken token)
+    {
+        var session = AccountSessionStore.Load(_dataDirectory);
+        if (session == null || !HasOnlineAccountService || session.IsLocalStaging || string.IsNullOrWhiteSpace(session.AccessToken))
+            return UserProfileStore.Load(_dataDirectory);
+
+        try
+        {
+            using var response = await PostPurchaseAsync(new Uri(_rpcBase!, "lt_my_profile"), new { }, session.AccessToken, token).ConfigureAwait(false);
+            if (response?.IsSuccessStatusCode == true)
+            {
+                var remote = await response.Content.ReadFromJsonAsync<RemoteProfileResponse>(Json, token).ConfigureAwait(false);
+                if (remote?.Configured == true && !string.IsNullOrWhiteSpace(remote.Nickname))
+                {
+                    var synced = new UserProfileState(remote.Nickname, remote.SyncUsage, remote.PublicUsage, remote.PublicSupport, remote.ShowMedals, DateTimeOffset.UtcNow);
+                    UserProfileStore.Save(_dataDirectory, synced);
+                    return synced;
+                }
+            }
+        }
+        catch { }
+
+        return UserProfileStore.Load(_dataDirectory);
+    }
+
+    public CommunityPage BuildLocalPreviewPage(CommunityBoard board, TimeSpan localUsage, string search = "")
+    {
+        var session = AccountSessionStore.Load(_dataDirectory);
+        var profile = UserProfileStore.Load(_dataDirectory);
+        var hw = GetDeviceIdentity();
+        var guestDonations = GuestDonationLedgerStore.Load(_dataDirectory);
+
+        string displayName = !string.IsNullOrWhiteSpace(profile?.Nickname)
+            ? profile.Nickname
+            : session?.DisplayName ?? hw.GuestDisplayTag;
+
+        long score = board == CommunityBoard.Supporters
+            ? (session?.TotalDonatedCents ?? 0) + (guestDonations?.TotalDonatedCents ?? 0)
+            : Math.Max(0, (long)Math.Floor(localUsage.TotalSeconds));
+
+        if (score <= 0)
+            return new(false, [], "No local usage or contributions recorded on this device yet.");
+
+        string[]? medals = session?.ActiveTier switch
+        {
+            "insider" => ["Insider"],
+            "supporter" => ["Supporter"],
+            _ => null
+        };
+        long? supportCents = (session?.TotalDonatedCents ?? 0) + (guestDonations?.TotalDonatedCents ?? 0);
+        if (supportCents == 0) supportCents = null;
+
+        var entry = new CommunityRank(1, displayName, score, medals, supportCents);
+        string q = (search ?? "").Trim();
+        var filtered = string.IsNullOrEmpty(q) || entry.Nickname.Contains(q, StringComparison.OrdinalIgnoreCase)
+            ? new[] { entry }
+            : [];
+        return new(true, filtered, filtered.Length == 0 ? "No local entries match that search." : "Showing local device standings (connect community.json for global rankings).");
+    }
+
     public void SignOut() => AccountSessionStore.Clear(_dataDirectory);
 
     public async Task<AccountActionResult> SendLoginOtpAsync(string email, CancellationToken token)
@@ -108,7 +231,7 @@ public sealed class CommunityClient
 
         if (_authBase == null)
         {
-            return new(true, $"Local staging login active (production OTPs send from {ProjectDomainConfig.NoReplyAddress}). Enter any 6 digits (e.g. 123456) to sign in for Community Rankings and license badges.");
+            return new(true, $"Local staging login active (production OTPs send from {ProjectDomainConfig.NoReplyAddress}). Enter any 6 digits (e.g. 123456) to sign in for Community Rankings and lifetime support tiers.");
         }
 
         using var response = await PostPurchaseAsync(new Uri(_authBase, "otp"), new { email, create_user = true }, null, token).ConfigureAwait(false);
@@ -172,7 +295,7 @@ public sealed class CommunityClient
         // License tiers & badges ALWAYS require signed-in account; custom donations are login-optional (User#XXXXX).
         if (session == null && offer.Id != "donation")
         {
-            return new(false, $"Login required for {offer.Title}. Sign in with your email first to claim your license badge (donations work without login as User#XXXXX).");
+            return new(false, $"Login required for {offer.Title}. Sign in with your email first to claim your lifetime support tier (donations work without login as User#XXXXX).");
         }
 
         long cents = offer.Cents ?? customDonationCents;
@@ -487,4 +610,11 @@ public sealed class CommunityClient
         [property: JsonPropertyName("verifiedTotalCents")] long VerifiedTotalCents,
         [property: JsonPropertyName("betaAccessUnlocked")] bool BetaAccessUnlocked,
         [property: JsonPropertyName("history")] RemoteHistoryRow[]? History);
+    private sealed record RemoteProfileResponse(
+        [property: JsonPropertyName("configured")] bool Configured,
+        [property: JsonPropertyName("nickname")] string? Nickname,
+        [property: JsonPropertyName("syncUsage")] bool SyncUsage,
+        [property: JsonPropertyName("publicUsage")] bool PublicUsage,
+        [property: JsonPropertyName("publicSupport")] bool PublicSupport,
+        [property: JsonPropertyName("showMedals")] bool ShowMedals);
 }

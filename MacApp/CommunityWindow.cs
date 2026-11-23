@@ -111,23 +111,24 @@ internal sealed class CommunityWindow : Window
     private Control Rankings(TimeSpan usage)
     {
         var client = _rankingsClient;
-        var panel = new StackPanel { Margin = new Thickness(24, 12, 24, 14) };
+        var panel = new StackPanel { Margin = new Thickness(24, 16, 24, 16) };
 
-        var badge = PodiumAvatar(SolidBrush(CommunityPodium.AvatarFill), SolidBrush(CommunityPodium.AvatarInk), size: 44);
+        var badge = PodiumAvatar(SolidBrush(CommunityPodium.AvatarFill), SolidBrush(CommunityPodium.AvatarInk), size: 40);
         badge.Margin = new Thickness(16, 0, 0, 0);
         badge.VerticalAlignment = VerticalAlignment.Center;
         DockPanel.SetDock(badge, Dock.Right);
-        var subtitle = MutedLine($"Your audio translation time · {GuestAudioUsage.Format(usage)} · Private to this device", size: 13, bottom: 0);
+        var subtitle = MutedLine($"Guest handle {client.GetDeviceIdentity().GuestDisplayTag} · Optional login for global rankings", size: 13, bottom: 0);
         panel.Children.Add(new DockPanel
         {
-            Margin = new Thickness(0, 0, 0, 6),
+            Margin = new Thickness(0, 0, 0, 12),
             Children =
             {
                 badge,
                 new StackPanel { Children = { Heading("Community rankings", 24, bottom: 2), subtitle } }
             }
         });
-        panel.Children.Add(MutedLine("Login is required for Community Rankings or Supporter/Insider badges · Custom donations require no login (guest donors appear anonymously as User#XXXXX).", size: 12, bottom: 10));
+
+        panel.Children.Add(UserProfileCard(client, usage));
 
         panel.Children.Add(MutedLine("Board and nickname search", size: 12, bottom: 6, semiBold: true));
         var board = new ComboBox
@@ -388,6 +389,12 @@ internal sealed class CommunityWindow : Window
             {
                 var data = await client.ReadAsync(category, query, page, token);
                 if (token.IsCancellationRequested) return;
+                if (!data.Available && data.Message != CommunityClient.Unavailable)
+                {
+                    var localPreview = client.BuildLocalPreviewPage(category, usage, query);
+                    if (localPreview.Available || !string.IsNullOrWhiteSpace(query))
+                        data = localPreview;
+                }
                 offset = page;
                 loadingBar.IsVisible = false;
                 bool isError = !data.Available && data.Message == CommunityClient.Unavailable;
@@ -457,6 +464,138 @@ internal sealed class CommunityWindow : Window
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
         return new Grid { Children = { scroll, profile } };
+    }
+
+    private Border UserProfileCard(CommunityClient client, TimeSpan localUsage)
+    {
+        var monogramText = new TextBlock
+        {
+            FontSize = 16,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = SolidBrush("#F2F2F7"),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var avatarCircle = new Border
+        {
+            Width = 42,
+            Height = 42,
+            CornerRadius = new CornerRadius(21),
+            Background = SolidBrush("#1A2638"),
+            BorderBrush = SolidBrush("#2D4A73"),
+            BorderThickness = new Thickness(1),
+            Margin = new Thickness(0, 0, 12, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = monogramText
+        };
+
+        var nameText = Heading("", 15.5, bottom: 2);
+        var tierLine = MutedLine("", size: 12.5, bottom: 0);
+        var metricAudioVal = Heading(GuestAudioUsage.Format(localUsage), 15, bottom: 0);
+        var metricStandingVal = Heading("Local only", 15, bottom: 0);
+
+        var nicknameBox = new TextBox { MaxLength = 24, Padding = new Thickness(10, 6), Margin = new Thickness(0, 4, 0, 8), Classes = { "community-input" } };
+        var publicUsageBox = new CheckBox { Content = "List usage on public rankings", Margin = new Thickness(0, 0, 12, 6) };
+        var publicSupportBox = new CheckBox { Content = "Show total support publicly", Margin = new Thickness(0, 0, 0, 6) };
+        var saveProfileBtn = ActionButton("Save ranking profile", primary: true);
+        var saveStatus = MutedLine("", size: 12, bottom: 0);
+        saveStatus.VerticalAlignment = VerticalAlignment.Center;
+
+        var editSection = new StackPanel
+        {
+            Margin = new Thickness(0, 12, 0, 0),
+            Children =
+            {
+                MutedLine("Public ranking nickname (3–24 chars)", size: 12, bottom: 2),
+                nicknameBox,
+                new WrapPanel { ItemSpacing = 12, Children = { publicUsageBox, publicSupportBox } },
+                new WrapPanel { ItemSpacing = 8, Margin = new Thickness(0, 6, 0, 0), Children = { saveProfileBtn, saveStatus } }
+            }
+        };
+        var guestPrompt = MutedLine("Using guest mode. Sign in under Support development to pick a custom nickname and join public rankings.", size: 12.5, bottom: 0);
+        guestPrompt.Margin = new Thickness(0, 10, 0, 0);
+
+        void BindProfileState()
+        {
+            var session = client.GetCachedSession();
+            var prof = client.GetCachedProfile();
+            var hw = client.GetDeviceIdentity();
+            string handle = !string.IsNullOrWhiteSpace(prof?.Nickname)
+                ? prof.Nickname
+                : session?.DisplayName ?? hw.GuestDisplayTag;
+            monogramText.Text = handle.StartsWith("User#", StringComparison.Ordinal)
+                ? "#"
+                : char.ToUpperInvariant(handle[0]).ToString();
+            nameText.Text = handle;
+            tierLine.Text = session == null
+                ? $"Guest device · {hw.GuestDisplayTag}"
+                : $"{session.Email} · {session.TierDisplayName}";
+            metricStandingVal.Text = prof?.PublicUsage == true
+                ? "Public opt-in"
+                : session != null ? "Private account" : "Local only";
+
+            if (session != null)
+            {
+                editSection.IsVisible = true;
+                guestPrompt.IsVisible = false;
+                if (string.IsNullOrWhiteSpace(nicknameBox.Text))
+                    nicknameBox.Text = prof?.Nickname ?? session.DisplayName;
+                publicUsageBox.IsChecked = prof?.PublicUsage ?? false;
+                publicSupportBox.IsChecked = prof?.PublicSupport ?? false;
+            }
+            else
+            {
+                editSection.IsVisible = false;
+                guestPrompt.IsVisible = true;
+            }
+        }
+
+        _accountRefreshCallbacks.Add(BindProfileState);
+        BindProfileState();
+
+        saveProfileBtn.Click += async (_, _) =>
+        {
+            saveProfileBtn.IsEnabled = false;
+            try
+            {
+                bool pubUsage = publicUsageBox.IsChecked == true;
+                bool pubSupp = publicSupportBox.IsChecked == true;
+                var res = await client.SaveProfileAsync(nicknameBox.Text ?? "", pubUsage, pubUsage, pubSupp, false, _lifetime.Token);
+                saveStatus.Text = res.Message;
+                BindProfileState();
+            }
+            finally
+            {
+                if (!_lifetime.IsCancellationRequested) saveProfileBtn.IsEnabled = true;
+            }
+        };
+
+        var topRow = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto")
+        };
+        var identityStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { nameText, tierLine } };
+        var metricsWrap = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            Spacing = 16,
+            Children =
+            {
+                new StackPanel { Margin = new Thickness(12, 0, 0, 0), Children = { MutedLine("Audio on device", size: 11, bottom: 2), metricAudioVal } },
+                new StackPanel { Children = { MutedLine("Standing", size: 11, bottom: 2), metricStandingVal } }
+            }
+        };
+        Grid.SetColumn(avatarCircle, 0);
+        Grid.SetColumn(identityStack, 1);
+        Grid.SetColumn(metricsWrap, 2);
+        topRow.Children.Add(avatarCircle);
+        topRow.Children.Add(identityStack);
+        topRow.Children.Add(metricsWrap);
+
+        var card = Surface(new StackPanel { Children = { topRow, editSection, guestPrompt } }, tinted: false);
+        card.Margin = new Thickness(0, 0, 0, 12);
+        return card;
     }
 
     private static Border Podium(IReadOnlyList<CommunityRank> leaders, CommunityBoard category, Action<CommunityRank, Button> openProfile)
@@ -648,74 +787,30 @@ internal sealed class CommunityWindow : Window
         var contributionsValue = Heading(entry.SupportLabel, 18, bottom: 12);
         contributionsValue.Foreground = SolidBrush(CommunityPodium.StageInk);
 
-        var badgesLabel = new TextBlock
+        var tierLabel = new TextBlock
         {
-            Text = "Badges",
+            Text = "Support tier",
             FontSize = 12,
-            Foreground = SolidBrush("#CEC2E6"),
-            Margin = new Thickness(0, 0, 0, 6)
+            Foreground = SolidBrush("#A1A1AA"),
+            Margin = new Thickness(0, 0, 0, 4)
         };
-        var badges = new WrapPanel { ItemSpacing = 8, LineSpacing = 6 };
-        var detail = new TextBlock
+        var resolvedTiers = CommunityBadge.For(entry).Select(b => b.Name).ToArray();
+        var tierText = new TextBlock
         {
-            Text = "",
-            FontSize = 12.5,
-            Foreground = SolidBrush("#CEC2E6"),
-            TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(0, 6, 0, 0),
-            IsVisible = false
+            Text = resolvedTiers.Length > 0 ? string.Join(" · ", resolvedTiers) : "No public tier",
+            FontSize = 13.5,
+            FontWeight = FontWeight.SemiBold,
+            Foreground = SolidBrush("#F2F2F7")
         };
-
-        foreach (var badge in CommunityBadge.For(entry))
-        {
-            var icon = BadgeIcon(badge, 20);
-            var label = new TextBlock
-            {
-                Text = badge.Name,
-                FontSize = 13,
-                FontWeight = FontWeight.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            var content = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Spacing = 6,
-                Children = { icon, label }
-            };
-            var tile = new Button
-            {
-                Content = content,
-                MinHeight = 32,
-                Padding = new Thickness(10, 6),
-                Classes = { "community-badge" }
-            };
-            AutomationProperties.SetName(tile, badge.Name);
-            ToolTip.SetTip(tile, badge.Name);
-            tile.Click += (_, _) =>
-            {
-                detail.Text = $"{badge.Name} medal — voluntary lifetime support";
-                detail.IsVisible = true;
-            };
-            badges.Children.Add(tile);
-        }
-        if (badges.Children.Count == 0)
-        {
-            badges.Children.Add(new TextBlock
-            {
-                Text = "No public badges",
-                FontSize = 13,
-                Foreground = SolidBrush("#B8B0CA")
-            });
-        }
 
         var card = new Border
         {
             Width = 344,
             MaxWidth = 344,
-            Background = SolidBrush(CommunityPodium.StageFill),
-            BorderBrush = SolidBrush("#5E4E75"),
+            Background = SolidBrush("#16161D"),
+            BorderBrush = SolidBrush("#323242"),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(14),
+            CornerRadius = new CornerRadius(12),
             Padding = new Thickness(16),
             BoxShadow = new BoxShadows(new BoxShadow
             {
@@ -725,7 +820,7 @@ internal sealed class CommunityWindow : Window
             }),
             Child = new StackPanel
             {
-                Children = { header, divider, contributionsLabel, contributionsValue, badgesLabel, badges, detail }
+                Children = { header, divider, contributionsLabel, contributionsValue, tierLabel, tierText }
             }
         };
         card.KeyDown += (_, args) =>
@@ -749,33 +844,11 @@ internal sealed class CommunityWindow : Window
     {
         var panel = new StackPanel { Margin = new Thickness(24, 16, 24, 16) };
 
-        var title = Heading("Support & Account", 24, bottom: 0);
-        title.VerticalAlignment = VerticalAlignment.Center;
-        var licensePill = PillBadge("MIT Open Source · Free forever", "#1D3329", "#3A6B52", "#B8F2D0");
-        licensePill.VerticalAlignment = VerticalAlignment.Center;
-        var titleWrap = new WrapPanel
-        {
-            ItemSpacing = 12,
-            LineSpacing = 4,
-            Margin = new Thickness(0, 0, 0, 8),
-            Children = { title, licensePill }
-        };
-        panel.Children.Add(titleWrap);
+        panel.Children.Add(Heading("Support & Account", 24, bottom: 6));
 
-        var intro = Line(SupportCatalog.Intro, size: 13.5, bottom: 8);
+        var intro = Line(SupportCatalog.Intro, size: 13.5, bottom: 12);
         intro.Foreground = SolidBrush("#D4D4DE");
         panel.Children.Add(intro);
-
-        var soloThanks = Surface(new StackPanel
-        {
-            Children =
-            {
-                Heading("Thank you for supporting this solo developer", 14.5, bottom: 4),
-                Line(SupportCatalog.SoloDeveloperNote, size: 13, bottom: 0)
-            }
-        }, tinted: true);
-        soloThanks.Margin = new Thickness(0, 0, 0, 12);
-        panel.Children.Add(soloThanks);
 
         var client = _offersClient;
         panel.Children.Add(AccountAndChannelSection(client));
@@ -805,25 +878,13 @@ internal sealed class CommunityWindow : Window
 
         panel.Children.Add(SelectableCheckoutSection(client));
 
-        var purchaseHeader = new WrapPanel
-        {
-            ItemSpacing = 10,
-            LineSpacing = 4,
-            Margin = new Thickness(0, 0, 0, 6)
-        };
-        var purchaseHeading = Heading("Purchase & settlement status", 15.5, bottom: 0);
-        purchaseHeading.VerticalAlignment = VerticalAlignment.Center;
-        var previewPill = PillBadge(client.HasOnlineAccountService ? "Online account preview" : "Staging tracker", "#3B3052", "#68558A", "#E9DAFF");
-        previewPill.VerticalAlignment = VerticalAlignment.Center;
-        purchaseHeader.Children.Add(purchaseHeading);
-        purchaseHeader.Children.Add(previewPill);
-
+        var purchaseHeading = Heading("Checkout status", 15.5, bottom: 4);
         var closedLine = Line(SupportCatalog.Closed, size: 13.5, bottom: 4);
         closedLine.FontWeight = FontWeight.SemiBold;
         var availabilityLine = MutedLine(SupportCatalog.AvailabilityNote, size: 13, bottom: 0);
-        availabilityLine.Foreground = SolidBrush("#CEC2E6");
+        availabilityLine.Foreground = SolidBrush("#A1A1AA");
 
-        var purchase = new StackPanel { Children = { purchaseHeader, closedLine, availabilityLine } };
+        var purchase = new StackPanel { Children = { purchaseHeading, closedLine, availabilityLine } };
         if (client.ManualRequestPreview)
         {
             purchase.Children.Add(new Expander
@@ -834,7 +895,7 @@ internal sealed class CommunityWindow : Window
                 Content = ManualRequestForm(client)
             });
         }
-        var purchaseSurface = Surface(purchase, tinted: true);
+        var purchaseSurface = Surface(purchase, tinted: false);
         purchaseSurface.Margin = new Thickness(0);
         panel.Children.Add(purchaseSurface);
 
@@ -870,15 +931,11 @@ internal sealed class CommunityWindow : Window
         authStatus.Foreground = SolidBrush("#B8F2D0");
 
         var settings = AppSettings.Load();
-        bool showDevChannel = Array.Exists(Environment.GetCommandLineArgs(), arg => string.Equals(arg, "--developer", StringComparison.Ordinal))
-            || string.Equals(settings.UpdateChannel, "dev", StringComparison.OrdinalIgnoreCase);
         var channelOptions = new List<(string Key, string Label)>
         {
-            ("stable", "Stable (Public · Free & US$19.99 Supporter)"),
-            ("beta", "Beta (Early access · Developer-granted US$100 Insider)")
+            ("stable", "Stable (Public releases)"),
+            ("beta", "Beta (Developer-verified Insider)")
         };
-        if (showDevChannel)
-            channelOptions.Add(("dev", "Dev (Owner local feed)"));
 
         var channelCombo = new ComboBox
         {
@@ -936,10 +993,9 @@ internal sealed class CommunityWindow : Window
             channelHint.Text = ch switch
             {
                 "beta" => session?.BetaAccessUnlocked == true
-                    ? "Beta channel unlocked on your Insider account (authenticated private server feed)."
-                    : "Locked — requires developer-verified US$100 Lifetime Insider grant. Sign in and click 'Refresh access status' after approval.",
-                "dev" => "Dev channel checks your owner local build feed when configured.",
-                _ => "Stable channel receives verified public releases from updates/ml-stable.json."
+                    ? "Beta channel unlocked on your Insider account."
+                    : "Locked until the developer verifies a US$100 Lifetime Insider contribution. Click Refresh access status after approval.",
+                _ => "Stable channel receives verified public releases."
             };
         }
 
@@ -1118,8 +1174,8 @@ internal sealed class CommunityWindow : Window
         {
             Children =
             {
-                Heading("Choose a license or donation to track", 15, bottom: 6),
-                MutedLine("Sign in required for US$19.99 Supporter / US$100 Insider badges · No login needed for Donate (appears anonymously as User#XXXXX). Every contribution helps this solo developer expand language support.", size: 12.5, bottom: 8),
+                Heading("Select license or donation", 15, bottom: 4),
+                MutedLine("Sign in before selecting Supporter or Insider. Custom donations work without login as User#XXXXX.", size: 12.5, bottom: 8),
                 offerSelect,
                 customAmountPanel,
                 MutedLine("Optional message or requested language (max 200 chars)", size: 12, bottom: 4),
@@ -1134,32 +1190,14 @@ internal sealed class CommunityWindow : Window
 
     private static Border LifetimeOfferCard(SupportOffer offer)
     {
-        var badge = CommunityBadge.ForOffer(offer.Id);
-        var titleRow = new Grid
-        {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
-            ColumnSpacing = 8,
-            Margin = new Thickness(0, 0, 0, 6)
-        };
-        if (badge != null)
-        {
-            var icon = BadgeIcon(badge, 20);
-            icon.VerticalAlignment = VerticalAlignment.Center;
-            Grid.SetColumn(icon, 0);
-            titleRow.Children.Add(icon);
-        }
-        var title = Heading(offer.Title, 15.5, bottom: 0);
-        title.VerticalAlignment = VerticalAlignment.Center;
-        Grid.SetColumn(title, 1);
-        titleRow.Children.Add(title);
-
+        var title = Heading(offer.Title, 15.5, bottom: 4);
         var price = Heading(offer.Price, 22, bottom: 2);
-        if (badge != null) price.Foreground = SolidBrush(badge.Color);
+        price.Foreground = SolidBrush(offer.Id == "insider" ? "#3B82F6" : "#10B981");
         var subtitle = MutedLine("Voluntary · One-time", size: 12, bottom: 8);
         var description = Line(offer.Description, size: 13, bottom: 0);
         description.Foreground = SolidBrush("#D4D4DE");
 
-        var card = Surface(new StackPanel { Children = { titleRow, price, subtitle, description } }, tinted: false);
+        var card = Surface(new StackPanel { Children = { title, price, subtitle, description } }, tinted: false);
         card.Margin = new Thickness(0);
         return card;
     }
@@ -1283,30 +1321,6 @@ internal sealed class CommunityWindow : Window
         };
     }
 
-    private static Viewbox BadgeIcon(CommunityBadge badge, double size)
-    {
-        var canvas = new Canvas { Width = 28, Height = 28 };
-        canvas.Children.Add(new ShapePath { Data = Geometry.Parse(badge.Body), Fill = SolidBrush(badge.Color) });
-        canvas.Children.Add(new ShapePath { Data = Geometry.Parse(badge.Detail), Fill = SolidBrush("#302241") });
-        return new Viewbox { Width = size, Height = size, Child = canvas };
-    }
-
-    private static Border PillBadge(string text, string fill, string border, string ink) => new()
-    {
-        Background = SolidBrush(fill),
-        BorderBrush = SolidBrush(border),
-        BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(6),
-        Padding = new Thickness(8, 3),
-        Child = new TextBlock
-        {
-            Text = text,
-            FontSize = 11.5,
-            FontWeight = FontWeight.SemiBold,
-            Foreground = SolidBrush(ink)
-        }
-    };
-
     private static Border PodiumAvatar(IBrush fill, IBrush ink, double size)
     {
         var face = new Canvas { Width = 44, Height = 44 };
@@ -1357,8 +1371,8 @@ internal sealed class CommunityWindow : Window
         Margin = new Thickness(0, 0, 0, 8),
         CornerRadius = new CornerRadius(12),
         BorderThickness = new Thickness(1),
-        Background = SolidBrush(tinted ? CommunityPodium.StageFill : "#24242C"),
-        BorderBrush = SolidBrush(tinted ? CommunityPodium.StageOutline : "#383844")
+        Background = SolidBrush(tinted ? "#161B26" : "#18181F"),
+        BorderBrush = SolidBrush(tinted ? "#2B3A55" : "#2D2D3A")
     };
 
     private static Grid RankRow(params Control[] cells)
@@ -1497,7 +1511,6 @@ internal sealed class CommunityWindow : Window
 
         AddButtonStyle("community-btn", "#2C2C33", "#F2F2F7", "#42424E", "#383842", "#5C5C6C", "#23232A", 8, new Thickness(14, 7), 13, FontWeight.Normal);
         AddButtonStyle("community-primary", "#0A84FF", "#FFFFFF", "#2D97FF", "#2492FF", "#60B2FF", "#006EE6", 8, new Thickness(14, 7), 13, FontWeight.SemiBold);
-        AddButtonStyle("community-badge", "#382E4C", "#F3E9FF", "#5C4B78", "#46395F", "#7A659E", "#2F2540", 8, new Thickness(10, 6), 13, FontWeight.SemiBold);
         AddButtonStyle("community-link", "Transparent", "#E9DAFF", "Transparent", "#352B4B", "#352B4B", "#2A213C", 6, new Thickness(6, 4), 13.5, FontWeight.Normal, hoverFg: "#F7F0FF");
         AddButtonStyle("community-icon", "Transparent", "#B4B4BE", "Transparent", "#383844", "#383844", "#2B2B34", 6, new Thickness(0), 12, FontWeight.Normal, hoverFg: "#F2F2F7");
 

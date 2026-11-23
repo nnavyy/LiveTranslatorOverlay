@@ -1,4 +1,11 @@
-# Mac release notes — v1.1.2
+# Mac release notes — v1.1.3
+
+## What's new in v1.1.3
+
+- **Clean UI & Support Tab Refinement**: Removed redundant badge pills from the Support & Account cards and profile popup, tightened speech model names (`Balanced (CPU)`, `Higher Accuracy (CPU)`, `Auto (Metal GPU / CPU)`, `High Accuracy (GPU)`), and removed the internal `Dev` option from the user-facing Release Channel picker.
+- **User Profile & Local Rankings Preview**: Added an inline User Profile card (`UserProfileStore`, `lt_my_profile` / `lt_save_profile`) and local device standings preview (`BuildLocalPreviewPage`) ahead of live global rankings.
+
+## What's new in v1.1.2
 
 ## What's new in v1.1.2
 

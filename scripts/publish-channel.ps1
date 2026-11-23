@@ -56,6 +56,7 @@ if ($Channel -eq 'dev') {
     $wsh = New-Object -ComObject WScript.Shell
     $sc = $wsh.CreateShortcut($shortcutPath)
     $sc.TargetPath = $devExePath
+    $sc.IconLocation = "$devExePath,0"
     $sc.WorkingDirectory = $devApp
     $sc.Arguments = '--developer'
     $sc.Description = "Launch Live Translator Overlay v$version (Developer mode)"

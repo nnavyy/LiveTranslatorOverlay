@@ -14,6 +14,10 @@ VIAddVersionKey "LegalCopyright" "Live Translator Overlay"
 SetCompressor zlib
 
 !define MUI_ABORTWARNING
+!ifdef APP_ICON
+!define MUI_ICON "${APP_ICON}"
+!define MUI_UNICON "${APP_ICON}"
+!endif
 !define MUI_FINISHPAGE_RUN "$INSTDIR\LiveTranslatorOverlay.exe"
 !insertmacro MUI_PAGE_WELCOME
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipAcceptedTerms

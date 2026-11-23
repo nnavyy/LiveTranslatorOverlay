@@ -10,7 +10,7 @@ namespace LiveTranslatorMac;
 public sealed partial class TranslatorWindow
 {
     private readonly ComboBox _audioSource = new() { ItemsSource = new[] { "System audio", "Microphone" }, SelectedIndex = 0 };
-    private readonly ComboBox _speechModel = new() { ItemsSource = new[] { "Balanced (CPU)", "Larger model (CPU)", "Auto (Metal GPU / CPU)", "Large-v3-turbo (Metal GPU)" }, SelectedIndex = 2 };
+    private readonly ComboBox _speechModel = new() { ItemsSource = new[] { "Balanced (CPU)", "Higher Accuracy (CPU)", "Auto (GPU / CPU)", "High Accuracy (GPU)" }, SelectedIndex = 2 };
     private readonly Button _audioToggle = new() { Content = "Start audio" };
     private readonly GuestAudioUsage _usageClock = new(AppSettings.DataDirectory);
     private readonly TextBlock _usageText = new() { Classes = { "secondary" } };

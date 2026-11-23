@@ -1,13 +1,13 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][ValidateSet('list', 'grant', 'revoke', 'grant-guest', 'set-beta', 'publish-beta')]
+    [Parameter(Mandatory)][ValidateSet('list', 'grant', 'revoke', 'grant-guest', 'set-beta', 'publish-beta', 'open-rankings')]
     [string]$Action,
     [ValidateSet('all', 'pending', 'verified', 'cancelled')]
     [string]$Status = 'all',
     [string]$RequestId = '',
     [string]$UserId = '',
     [switch]$GrantBeta,
-    [bool]$Active = $true,
+    [string]$Active = 'true',
     [string]$Note = '',
     [string]$ZipPath = '',
     [ValidateSet('win-x64', 'osx-arm64', 'osx-x64')]
@@ -19,6 +19,12 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+$activeBool = switch -Regex ($Active.Trim()) {
+    '^(1|true|\$true|yes|y)$' { $true; break }
+    '^(0|false|\$false|no|n)$' { $false; break }
+    default { throw "Invalid -Active value '$Active'. Pass true/false or 1/0." }
+}
 
 function Invoke-OwnerRpc([string]$RpcName, [System.Collections.Specialized.OrderedDictionary]$Body) {
     $baseUrl = if ([string]::IsNullOrWhiteSpace($SupabaseUrl)) { 'https://YOUR-PROJECT.supabase.co' } else { $SupabaseUrl.TrimEnd('/') }
@@ -90,7 +96,7 @@ switch ($Action) {
         if ([string]::IsNullOrWhiteSpace($UserId)) { throw 'Pass -UserId <uuid> for -Action set-beta.' }
         $payload = [ordered]@{
             p_user_id = $UserId.Trim()
-            p_active = [bool]$Active
+            p_active = $activeBool
             p_note = $Note
         }
         $res = Invoke-OwnerRpc 'lt_admin_set_beta_access' $payload
@@ -134,6 +140,13 @@ switch ($Action) {
             p_notes = $Note
         }
         $res = Invoke-OwnerRpc 'lt_admin_register_beta_release' $payload
+        if ($res -ne $null) { Write-Output ($res | ConvertTo-Json -Depth 6) }
+    }
+    'open-rankings' {
+        $payload = [ordered]@{
+            p_open = $activeBool
+        }
+        $res = Invoke-OwnerRpc 'lt_admin_set_rankings_open' $payload
         if ($res -ne $null) { Write-Output ($res | ConvertTo-Json -Depth 6) }
     }
 }

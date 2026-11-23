@@ -5,11 +5,11 @@
   <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11%20%7C%20macOS%2014%2B-0078D6?style=for-the-badge" alt="Windows and macOS" />
   <img src="https://img.shields.io/badge/GPU-Vulkan%20%7C%20Metal%20%7C%20CPU-blueviolet?style=for-the-badge" alt="Vulkan Metal CPU" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License" />
-  <img src="https://img.shields.io/badge/Version-1.1.2-brightgreen?style=for-the-badge" alt="v1.1.2" />
+  <img src="https://img.shields.io/badge/Version-1.1.3-brightgreen?style=for-the-badge" alt="v1.1.3" />
 </p>
 
 <p align="center">
-  <strong>Open-source, cross-vendor GPU & CPU real-time word-by-word speech translation and screen OCR overlay for Windows and macOS.</strong><br>
+  <strong>Open-source, cross-vendor GPU & CPU real-time speech translation and screen OCR overlay for Windows and macOS.</strong><br>
   Translate live system audio, microphone speech, and on-screen text with zero telemetry, no NVIDIA lock-in, and full MIT-licensed source code.
 </p>
 
@@ -23,9 +23,9 @@
 
 Live Translator Overlay is an open-source project licensed under the [MIT License](LICENSE). All core translation, OCR, and speech recognition features are free under MIT.
 
-With **v1.1.2**, local speech recognition automatically adapts to your device while delivering a single-click Windows Setup wizard (`.exe`), server-gated private Beta access, and `livetranslator.app` email identity:
+With **v1.1.3**, local speech recognition automatically adapts to your device while delivering a branded Windows Setup wizard (`.exe`), clean Zinc UI with smooth scrolling, working User Profile & Community Rankings, a developer-only Owner Dashboard (`--developer`), and `livetranslator.app` email identity:
 - **Universal Cross-Vendor GPU Acceleration (No CUDA / Python Needed)**: Uses `Whisper.net.Runtime.Vulkan` on Windows (works across NVIDIA, AMD, and Intel GPUs) and `Whisper.net.Runtime.Metal` on Apple Silicon macOS to run **Whisper `large-v3-turbo` (`Q5_0`, `574 MB`)** with automatic fallback to CPU (`ggml-base.bin` `148 MB` or `NoAvx` x64 CPU) on machines without a compatible GPU.
-- **Word-by-Word Local Agreement-2 Streaming (`300 ms` Sliding Windows)**: Select **Local multilingual — live word-by-word (Auto GPU/CPU)** to display words incrementally as they stabilize (both space-delimited languages and CJK ideographs/kana) without waiting for 4–12 second pauses.
+- **Local Agreement-2 Incremental Streaming (`300 ms` Sliding Windows)**: Select **Local · Auto (GPU / CPU)** or **Local · High Accuracy (GPU)** to display words incrementally as they stabilize (both space-delimited languages and CJK ideographs/kana) without waiting for 4–12 second pauses.
 - **Persistent Warm Local Translation (`--daemon`)**: Optionally run offline M2M-100 (`418M` `int8`) via `runtime/translation_worker.py --daemon` with a kernel-guarded process tree and zero cold Python restarts per caption (alongside default key-free Google Translate and optional Groq/Deepgram cloud engines).
 - **Empirical Research & Novelty Paper**: See **[research/speech/paper/PAPER_NOVELTY_AND_RESEARCH_GAP.md](research/speech/paper/PAPER_NOVELTY_AND_RESEARCH_GAP.md)** for our full comparative study explaining why consumer Whisper `small` fine-tuning hits a `~10.6%` plateau and documenting measured v1.1.0 Vulkan vs. CPU latency & accuracy benchmarks (`5.00%` RU WER, `4.92%` JA CER, `0.186x` final RTF).
 
@@ -106,7 +106,7 @@ node tests/CommunityDatabase/verify.mjs "$env:TEMP\pglite-verify\node_modules"
 ## Downloads & Configuration
 
 Prebuilt binaries are published on [GitHub Releases](https://github.com/nnavyy/LiveTranslatorOverlay/releases):
-- **Windows 10/11 x64 Setup Wizard (Recommended)**: `LiveTranslatorOverlay-Setup-1.1.2.exe` (one-click per-user installer — extracts binaries, installs Start Menu & Desktop shortcuts, and prepares speech models).
+- **Windows 10/11 x64 Setup Wizard (Recommended)**: `LiveTranslatorOverlay-Setup-1.1.3.exe` (one-click per-user installer — extracts binaries, installs Start Menu & Desktop shortcuts, and prepares speech models).
 - **Windows 10/11 x64 Portable Archive**: `LiveTranslatorOverlay-Windows-x64.zip` (self-contained .NET + CRT + Vulkan + CPU/NoAvx).
 - **macOS 14+ (`osx-arm64` / `osx-x64`)**: `LiveTranslatorOverlay-Mac-preview-*.zip` (Metal + CPU).
 
@@ -120,8 +120,8 @@ Optional keys persist under `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.js
 
 | Tier | Login Required? | Amount | Benefits & Notes |
 |---|---|---|---|
-| **Lifetime Supporter** | **Yes (Email OTP)** | `US$19.99` once | Supporter medal on Community Rankings, signed entitlement & personal thank-you, helping sustain solo multi-language development. |
-| **Lifetime Insider** | **Yes (Email OTP)** | `US$100` once | Insider medal, `beta` channel early-access builds, priority support & experimental features. |
+| **Lifetime Supporter** | **Yes (Email OTP)** | `US$19.99` once | Signed lifetime support record & personal thank-you, helping sustain solo multi-language development. |
+| **Lifetime Insider** | **Yes (Email OTP)** | `US$100` once | Developer-verified `beta` channel early-access builds, priority support & experimental features. |
 | **Custom Donate** | **No (Optional)** | Any positive USD | Appears anonymously as deterministic `User#XXXXX` from your salted HWID on the Supporters board, or links to your signed-in ledger. |
 
 *Note: Real payment gateway links remain disabled (`SupportCatalog.Closed`) while checkout integration is staged; sign-in, `livetranslator.app` SMTP templates (`supabase/email/`), and selection operate via local staging tracking or configured Supabase preview instances.*

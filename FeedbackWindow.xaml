@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Report Bug &amp; Feedback" Width="490" Height="580"
         WindowStartupLocation="CenterScreen" Topmost="True"
-        Background="#18181B" Foreground="White"
-        FontFamily="Segoe UI" ResizeMode="NoResize">
+        Background="#121217" Foreground="#F2F2F7"
+        FontFamily="Segoe UI Variable Text, Segoe UI" ResizeMode="NoResize">
     <Window.Resources>
         <Style TargetType="Button" x:Key="ModernButton">
             <Setter Property="Background" Value="#2E2E33"/>
@@ -86,7 +86,7 @@
 
             <!-- View 1: Submit Form -->
             <Grid x:Name="GridSubmit" Grid.Row="2" Visibility="Visible">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ScrollViewer x:Name="SubmitScrollViewer" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
                         <TextBlock x:Name="LblType" Text="Report Type:" Foreground="#BBBBBB" FontSize="11" Margin="0,0,0,4"/>
                         <ComboBox x:Name="CmbType" SelectedIndex="0" Margin="0,0,0,10" Padding="5">
@@ -122,7 +122,7 @@
                         <TextBlock x:Name="TxtDeviceIdDisplay" Text="Device ID: " Foreground="#777777" FontSize="11" VerticalAlignment="Center"/>
                     </DockPanel>
 
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer x:Name="HistoryScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <TextBlock x:Name="TxtHistoryEmpty" Text="No reports submitted from this device yet." 
                                        Foreground="#777777" FontSize="12" HorizontalAlignment="Center" Margin="0,40,0,0" Visibility="Collapsed"/>

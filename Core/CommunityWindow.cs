@@ -20,6 +20,7 @@ public sealed class CommunityWindow : Window
     {
         Owner = owner;
         Title = "Live Translator Community";
+        Icon = AppBranding.LoadWindowIcon();
         var workArea = SystemParameters.WorkArea;
         double maxWidth = workArea.Width > 32 ? workArea.Width - 32 : 740;
         double maxHeight = workArea.Height > 32 ? workArea.Height - 32 : 760;
@@ -37,7 +38,7 @@ public sealed class CommunityWindow : Window
             });
             Resources.MergedDictionaries.Add(CommunityStyles);
         }
-        Background = PodiumBrush("#1C1C22", SystemColors.WindowBrush);
+        Background = PodiumBrush("#121217", SystemColors.WindowBrush);
         Foreground = PodiumBrush("#F2F2F7", SystemColors.WindowTextBrush);
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
 
@@ -77,8 +78,8 @@ public sealed class CommunityWindow : Window
         bar.Children.Add(close);
         return new Border
         {
-            Background = PodiumBrush("#18181E", SystemColors.WindowBrush),
-            BorderBrush = PodiumBrush("#2E2E38", SystemColors.WindowTextBrush),
+            Background = PodiumBrush("#16161D", SystemColors.WindowBrush),
+            BorderBrush = PodiumBrush("#2D2D3A", SystemColors.WindowTextBrush),
             BorderThickness = new Thickness(0, 1, 0, 0),
             Padding = new Thickness(24, 12, 24, 12),
             Child = bar
@@ -88,25 +89,30 @@ public sealed class CommunityWindow : Window
     private UIElement Rankings(TimeSpan usage)
     {
         var client = new CommunityClient(AppSettings.DataDirectory);
-        var panel = new StackPanel { Margin = new Thickness(24, 10, 24, 10) };
+        var panel = new StackPanel { Margin = new Thickness(24, 16, 24, 16) };
 
-        var badge = PodiumAvatar(
-            PodiumBrush(CommunityPodium.AvatarFill, SystemColors.WindowBrush),
-            PodiumBrush(CommunityPodium.AvatarInk, SystemColors.WindowTextBrush));
-        badge.Margin = new Thickness(16, 0, 0, 0);
-        badge.VerticalAlignment = VerticalAlignment.Center;
-        DockPanel.SetDock(badge, Dock.Right);
-        var subtitle = MutedLine($"Your audio translation time · {GuestAudioUsage.Format(usage)} · Private to this device", size: 13, bottom: 0);
+        UIElement headerMark = (UIElement?)AppBranding.CreateLogoControl(32)
+            ?? PodiumAvatar(
+                PodiumBrush(CommunityPodium.AvatarFill, SystemColors.WindowBrush),
+                PodiumBrush(CommunityPodium.AvatarInk, SystemColors.WindowTextBrush));
+        if (headerMark is FrameworkElement feMark)
+        {
+            feMark.Margin = new Thickness(16, 0, 0, 0);
+            feMark.VerticalAlignment = VerticalAlignment.Center;
+            DockPanel.SetDock(feMark, Dock.Right);
+        }
+        var subtitle = MutedLine($"Guest handle {client.GetDeviceIdentity().GuestDisplayTag} · Optional login for global rankings", size: 13, bottom: 0);
         panel.Children.Add(new DockPanel
         {
-            Margin = new Thickness(0, 0, 0, 6),
+            Margin = new Thickness(0, 0, 0, 12),
             Children =
             {
-                badge,
+                headerMark,
                 new StackPanel { Children = { Heading("Community rankings", 24, bottom: 2), subtitle } }
             }
         });
-        panel.Children.Add(MutedLine("Login is required for Community Rankings or Supporter/Insider badges · Custom donations require no login (guest donors appear anonymously as User#XXXXX).", size: 12, bottom: 10));
+
+        panel.Children.Add(UserProfileCard(client, usage));
 
         panel.Children.Add(MutedLine("Board and nickname search", size: 12, bottom: 6, semiBold: true));
         var board = new ComboBox
@@ -332,6 +338,12 @@ public sealed class CommunityWindow : Window
             {
                 var data = await client.ReadAsync(category, query, page, token);
                 if (token.IsCancellationRequested) return;
+                if (!data.Available && data.Message != CommunityClient.Unavailable)
+                {
+                    var localPreview = client.BuildLocalPreviewPage(category, usage, query);
+                    if (localPreview.Available || !string.IsNullOrWhiteSpace(query))
+                        data = localPreview;
+                }
                 offset = page;
                 loadingBar.Visibility = Visibility.Collapsed;
                 bool isError = !data.Available && data.Message == CommunityClient.Unavailable;
@@ -380,12 +392,147 @@ public sealed class CommunityWindow : Window
         next.Click += async (_, _) => await Load(offset + CommunityClient.PageSize);
         board.SelectionChanged += async (_, _) => await Load(0);
         Loaded += async (_, _) => await Load(0);
-        return new ScrollViewer
+        var rankingsScroll = new ScrollViewer
         {
             Content = panel,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
+        SmoothScrollBehavior.Attach(rankingsScroll);
+        return rankingsScroll;
+    }
+
+    private Border UserProfileCard(CommunityClient client, TimeSpan localUsage)
+    {
+        var monogramText = new TextBlock
+        {
+            FontSize = 16,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = PodiumBrush("#F2F2F7", SystemColors.WindowTextBrush),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var avatarCircle = new Border
+        {
+            Width = 42,
+            Height = 42,
+            CornerRadius = new CornerRadius(21),
+            Background = PodiumBrush("#1A2638", SystemColors.ControlBrush),
+            BorderBrush = PodiumBrush("#2D4A73", SystemColors.WindowTextBrush),
+            BorderThickness = new Thickness(1),
+            Margin = new Thickness(0, 0, 12, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = monogramText
+        };
+
+        var nameText = Heading("", 15.5, bottom: 2);
+        var tierLine = MutedLine("", size: 12.5, bottom: 0);
+        var metricAudioVal = Heading(GuestAudioUsage.Format(localUsage), 15, bottom: 0);
+        var metricStandingVal = Heading("Local only", 15, bottom: 0);
+
+        var nicknameBox = new TextBox { MaxLength = 24, Padding = new Thickness(10, 6, 10, 6), Margin = new Thickness(0, 4, 0, 8) };
+        ApplyStyle(nicknameBox, "CommunityTextBox");
+        var publicUsageBox = new CheckBox { Content = "List my usage on public rankings", Foreground = PodiumBrush("#D4D4DE", SystemColors.WindowTextBrush), Margin = new Thickness(0, 0, 14, 6) };
+        var publicSupportBox = new CheckBox { Content = "Show my total support publicly", Foreground = PodiumBrush("#D4D4DE", SystemColors.WindowTextBrush), Margin = new Thickness(0, 0, 0, 6) };
+        var saveProfileBtn = ActionButton("Save ranking profile", primary: true, bottomMargin: 0, rightMargin: 8);
+        var saveStatus = MutedLine("", size: 12, bottom: 0);
+        saveStatus.VerticalAlignment = VerticalAlignment.Center;
+
+        var editSection = new StackPanel
+        {
+            Margin = new Thickness(0, 12, 0, 0),
+            Children =
+            {
+                MutedLine("Public ranking nickname (3–24 chars)", size: 12, bottom: 2),
+                nicknameBox,
+                new WrapPanel { Children = { publicUsageBox, publicSupportBox } },
+                new WrapPanel { Margin = new Thickness(0, 4, 0, 0), Children = { saveProfileBtn, saveStatus } }
+            }
+        };
+        var guestPrompt = MutedLine("Using guest mode. Sign in under Support development to pick a custom nickname and join public rankings.", size: 12.5, bottom: 0);
+        guestPrompt.Margin = new Thickness(0, 10, 0, 0);
+
+        void BindProfileState()
+        {
+            var session = client.GetCachedSession();
+            var prof = client.GetCachedProfile();
+            var hw = client.GetDeviceIdentity();
+            string handle = !string.IsNullOrWhiteSpace(prof?.Nickname)
+                ? prof.Nickname
+                : session?.DisplayName ?? hw.GuestDisplayTag;
+            monogramText.Text = handle.StartsWith("User#", StringComparison.Ordinal)
+                ? "#"
+                : char.ToUpperInvariant(handle[0]).ToString();
+            nameText.Text = handle;
+            tierLine.Text = session == null
+                ? $"Guest device · {hw.GuestDisplayTag}"
+                : $"{session.Email} · {session.TierDisplayName}";
+            metricStandingVal.Text = prof?.PublicUsage == true
+                ? "Public opt-in"
+                : session != null ? "Private account" : "Local only";
+
+            if (session != null)
+            {
+                editSection.Visibility = Visibility.Visible;
+                guestPrompt.Visibility = Visibility.Collapsed;
+                if (string.IsNullOrWhiteSpace(nicknameBox.Text))
+                    nicknameBox.Text = prof?.Nickname ?? session.DisplayName;
+                publicUsageBox.IsChecked = prof?.PublicUsage ?? false;
+                publicSupportBox.IsChecked = prof?.PublicSupport ?? false;
+            }
+            else
+            {
+                editSection.Visibility = Visibility.Collapsed;
+                guestPrompt.Visibility = Visibility.Visible;
+            }
+        }
+
+        _accountRefreshCallbacks.Add(BindProfileState);
+        BindProfileState();
+
+        saveProfileBtn.Click += async (_, _) =>
+        {
+            saveProfileBtn.IsEnabled = false;
+            try
+            {
+                bool pubUsage = publicUsageBox.IsChecked == true;
+                bool pubSupp = publicSupportBox.IsChecked == true;
+                var res = await client.SaveProfileAsync(nicknameBox.Text, pubUsage, pubUsage, pubSupp, false, _lifetime.Token);
+                saveStatus.Text = res.Message;
+                BindProfileState();
+            }
+            finally
+            {
+                if (!_lifetime.IsCancellationRequested) saveProfileBtn.IsEnabled = true;
+            }
+        };
+
+        var topRow = new Grid();
+        topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        topRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        var identityStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { nameText, tierLine } };
+        var metricsWrap = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children =
+            {
+                new StackPanel { Margin = new Thickness(12, 0, 16, 0), Children = { MutedLine("Audio on device", size: 11, bottom: 2), metricAudioVal } },
+                new StackPanel { Children = { MutedLine("Standing", size: 11, bottom: 2), metricStandingVal } }
+            }
+        };
+        Grid.SetColumn(avatarCircle, 0);
+        Grid.SetColumn(identityStack, 1);
+        Grid.SetColumn(metricsWrap, 2);
+        topRow.Children.Add(avatarCircle);
+        topRow.Children.Add(identityStack);
+        topRow.Children.Add(metricsWrap);
+
+        var card = Surface(new StackPanel { Children = { topRow, editSection, guestPrompt } }, tinted: false);
+        card.Margin = new Thickness(0, 0, 0, 12);
+        return card;
     }
 
     private DataGridTemplateColumn NicknameColumn(Action<CommunityRank, Button> openProfile)
@@ -598,76 +745,33 @@ public sealed class CommunityWindow : Window
         };
         var contributionsValue = Heading(entry.SupportLabel, 18, bottom: 12);
 
-        var badgesLabel = new TextBlock
+        var tierLabel = new TextBlock
         {
-            Text = "Badges",
+            Text = "Support tier",
             FontSize = 12,
-            Foreground = PodiumBrush("#CEC2E6", SystemColors.WindowTextBrush),
-            Margin = new Thickness(0, 0, 0, 6)
+            Foreground = PodiumBrush("#A1A1AA", SystemColors.WindowTextBrush),
+            Margin = new Thickness(0, 0, 0, 4)
         };
-        var badges = new WrapPanel();
-        var detail = new TextBlock
+        var resolvedTiers = CommunityBadge.For(entry).Select(b => b.Name).ToArray();
+        var tierText = new TextBlock
         {
-            Text = "",
-            FontSize = 12.5,
-            Foreground = PodiumBrush("#CEC2E6", SystemColors.WindowTextBrush),
-            TextWrapping = TextWrapping.Wrap,
-            Margin = new Thickness(0, 4, 0, 0),
-            Visibility = Visibility.Collapsed
+            Text = resolvedTiers.Length > 0 ? string.Join(" · ", resolvedTiers) : "No public tier",
+            FontSize = 13.5,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = PodiumBrush("#F2F2F7", SystemColors.WindowTextBrush)
         };
-
-        foreach (var badge in CommunityBadge.For(entry))
-        {
-            var icon = BadgeIcon(badge, 20);
-            icon.Margin = new Thickness(0, 0, 6, 0);
-            var label = new TextBlock
-            {
-                Text = badge.Name,
-                FontSize = 13,
-                FontWeight = FontWeights.SemiBold,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            var content = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Children = { icon, label }
-            };
-            var tile = new Button
-            {
-                Content = content,
-                Margin = new Thickness(0, 0, 8, 6),
-                ToolTip = badge.Name
-            };
-            if (!SystemParameters.HighContrast) tile.Style = (Style)CommunityStyles["CommunityBadgeTile"];
-            System.Windows.Automation.AutomationProperties.SetName(tile, badge.Name);
-            tile.Click += (_, _) =>
-            {
-                detail.Text = $"{badge.Name} medal — voluntary lifetime support";
-                detail.Visibility = Visibility.Visible;
-            };
-            badges.Children.Add(tile);
-        }
-        if (badges.Children.Count == 0)
-        {
-            badges.Children.Add(new TextBlock
-            {
-                Text = "No public badges",
-                FontSize = 13,
-                Foreground = PodiumBrush("#B8B0CA", SystemColors.GrayTextBrush)
-            });
-        }
 
         var card = new Border
         {
             Width = 344,
-            Background = PodiumBrush(CommunityPodium.StageFill, SystemColors.WindowBrush),
-            BorderBrush = PodiumBrush("#5E4E75", SystemColors.WindowTextBrush),
+            Background = PodiumBrush("#16161D", SystemColors.WindowBrush),
+            BorderBrush = PodiumBrush("#323242", SystemColors.WindowTextBrush),
             BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(14),
+            CornerRadius = new CornerRadius(12),
             Padding = new Thickness(16),
             Child = new StackPanel
             {
-                Children = { header, divider, contributionsLabel, contributionsValue, badgesLabel, badges, detail }
+                Children = { header, divider, contributionsLabel, contributionsValue, tierLabel, tierText }
             }
         };
         if (!SystemParameters.HighContrast)
@@ -691,31 +795,11 @@ public sealed class CommunityWindow : Window
     {
         var panel = new StackPanel { Margin = new Thickness(24, 16, 24, 16) };
 
-        var title = Heading("Support & Account", 24, bottom: 0);
-        title.VerticalAlignment = VerticalAlignment.Center;
-        title.Margin = new Thickness(0, 0, 12, 4);
-        var licensePill = PillBadge("MIT Open Source · Free forever", "#1D3329", "#3A6B52", "#B8F2D0");
-        licensePill.Margin = new Thickness(0, 0, 0, 4);
-        licensePill.VerticalAlignment = VerticalAlignment.Center;
-        var titleWrap = new WrapPanel { Margin = new Thickness(0, 0, 0, 6) };
-        titleWrap.Children.Add(title);
-        titleWrap.Children.Add(licensePill);
-        panel.Children.Add(titleWrap);
+        panel.Children.Add(Heading("Support & Account", 24, bottom: 6));
 
-        var intro = Line(SupportCatalog.Intro, size: 13.5, bottom: 8);
+        var intro = Line(SupportCatalog.Intro, size: 13.5, bottom: 12);
         intro.Foreground = PodiumBrush("#D4D4DE", SystemColors.WindowTextBrush);
         panel.Children.Add(intro);
-
-        var soloThanks = Surface(new StackPanel
-        {
-            Children =
-            {
-                Heading("Thank you for supporting this solo developer", 14.5, bottom: 4),
-                Line(SupportCatalog.SoloDeveloperNote, size: 13, bottom: 0)
-            }
-        }, tinted: true);
-        soloThanks.Margin = new Thickness(0, 0, 0, 12);
-        panel.Children.Add(soloThanks);
 
         var client = new CommunityClient(AppSettings.DataDirectory);
         panel.Children.Add(AccountAndChannelSection(client));
@@ -746,22 +830,13 @@ public sealed class CommunityWindow : Window
 
         panel.Children.Add(SelectableCheckoutSection(client));
 
-        var purchaseHeader = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
-        var purchaseHeading = Heading("Purchase & settlement status", 15.5, bottom: 0);
-        purchaseHeading.VerticalAlignment = VerticalAlignment.Center;
-        purchaseHeading.Margin = new Thickness(0, 0, 10, 2);
-        var previewPill = PillBadge(client.HasOnlineAccountService ? "Online account preview" : "Staging tracker", "#3B3052", "#68558A", "#E9DAFF");
-        previewPill.Margin = new Thickness(0, 0, 0, 2);
-        previewPill.VerticalAlignment = VerticalAlignment.Center;
-        purchaseHeader.Children.Add(purchaseHeading);
-        purchaseHeader.Children.Add(previewPill);
-
+        var purchaseHeading = Heading("Checkout status", 15.5, bottom: 4);
         var closedLine = Line(SupportCatalog.Closed, size: 13.5, bottom: 4);
         closedLine.FontWeight = FontWeights.SemiBold;
         var availabilityLine = MutedLine(SupportCatalog.AvailabilityNote, size: 13, bottom: 0);
-        availabilityLine.Foreground = PodiumBrush("#CEC2E6", SystemColors.WindowTextBrush);
+        availabilityLine.Foreground = PodiumBrush("#A1A1AA", SystemColors.WindowTextBrush);
 
-        var purchase = new StackPanel { Children = { purchaseHeader, closedLine, availabilityLine } };
+        var purchase = new StackPanel { Children = { purchaseHeading, closedLine, availabilityLine } };
         if (client.ManualRequestPreview)
         {
             var expander = new Expander
@@ -773,16 +848,18 @@ public sealed class CommunityWindow : Window
             ApplyStyle(expander, "CommunityExpander");
             purchase.Children.Add(expander);
         }
-        var purchaseSurface = Surface(purchase, tinted: true);
+        var purchaseSurface = Surface(purchase, tinted: false);
         purchaseSurface.Margin = new Thickness(0);
         panel.Children.Add(purchaseSurface);
 
-        return new ScrollViewer
+        var offersScroll = new ScrollViewer
         {
             Content = panel,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
         };
+        SmoothScrollBehavior.Attach(offersScroll);
+        return offersScroll;
     }
 
     private readonly List<Action> _accountRefreshCallbacks = [];
@@ -818,14 +895,11 @@ public sealed class CommunityWindow : Window
         authStatus.Foreground = PodiumBrush("#B8F2D0", SystemColors.WindowTextBrush);
 
         var settings = AppSettings.Load();
-        bool showDevChannel = App.IsDeveloperMode || string.Equals(settings.UpdateChannel, "dev", StringComparison.OrdinalIgnoreCase);
         var channelOptions = new List<(string Key, string Label)>
         {
-            ("stable", "Stable (Public · Free & US$19.99 Supporter)"),
-            ("beta", "Beta (Early access · Developer-granted US$100 Insider)")
+            ("stable", "Stable (Public releases)"),
+            ("beta", "Beta (Developer-verified Insider)")
         };
-        if (showDevChannel)
-            channelOptions.Add(("dev", "Dev (Owner local feed)"));
 
         var channelCombo = new ComboBox
         {
@@ -883,10 +957,9 @@ public sealed class CommunityWindow : Window
             channelHint.Text = ch switch
             {
                 "beta" => session?.BetaAccessUnlocked == true
-                    ? "Beta channel unlocked on your Insider account (authenticated private server feed)."
-                    : "Locked — requires developer-verified US$100 Lifetime Insider grant. Sign in and click 'Refresh access status' after approval.",
-                "dev" => "Dev channel checks your owner local build feed (DevFeed/ml-dev.json).",
-                _ => "Stable channel receives verified public releases from updates/ml-stable.json."
+                    ? "Beta channel unlocked on your Insider account."
+                    : "Locked until the developer verifies a US$100 Lifetime Insider contribution. Click Refresh access status after approval.",
+                _ => "Stable channel receives verified public releases."
             };
         }
 
@@ -1065,8 +1138,8 @@ public sealed class CommunityWindow : Window
         {
             Children =
             {
-                Heading("Choose a license or donation to track", 15, bottom: 6),
-                MutedLine("Sign in required for US$19.99 Supporter / US$100 Insider badges · No login needed for Donate (appears anonymously as User#XXXXX). Every contribution helps this solo developer expand language support.", size: 12.5, bottom: 8),
+                Heading("Select license or donation", 15, bottom: 4),
+                MutedLine("Sign in before selecting Supporter or Insider. Custom donations work without login as User#XXXXX.", size: 12.5, bottom: 8),
                 offerSelect,
                 customAmountPanel,
                 MutedLine("Optional message or requested language (max 200 chars)", size: 12, bottom: 4),
@@ -1081,26 +1154,14 @@ public sealed class CommunityWindow : Window
 
     private static Border LifetimeOfferCard(SupportOffer offer)
     {
-        var badge = CommunityBadge.ForOffer(offer.Id);
-        var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
-        if (badge != null)
-        {
-            var icon = BadgeIcon(badge, 20);
-            icon.Margin = new Thickness(0, 0, 8, 0);
-            icon.VerticalAlignment = VerticalAlignment.Center;
-            titleRow.Children.Add(icon);
-        }
-        var title = Heading(offer.Title, 15.5, bottom: 0);
-        title.VerticalAlignment = VerticalAlignment.Center;
-        titleRow.Children.Add(title);
-
+        var title = Heading(offer.Title, 15.5, bottom: 4);
         var price = Heading(offer.Price, 22, bottom: 2);
-        if (badge != null) price.Foreground = PodiumBrush(badge.Color, SystemColors.WindowTextBrush);
+        price.Foreground = PodiumBrush(offer.Id == "insider" ? "#3B82F6" : "#10B981", SystemColors.WindowTextBrush);
         var subtitle = MutedLine("Voluntary · One-time", size: 12, bottom: 8);
         var description = Line(offer.Description, size: 13, bottom: 0);
         description.Foreground = PodiumBrush("#D4D4DE", SystemColors.WindowTextBrush);
 
-        var card = Surface(new StackPanel { Children = { titleRow, price, subtitle, description } }, tinted: false);
+        var card = Surface(new StackPanel { Children = { title, price, subtitle, description } }, tinted: false);
         card.Margin = new Thickness(0);
         return card;
     }
@@ -1194,44 +1255,6 @@ public sealed class CommunityWindow : Window
         };
     }
 
-    private static Canvas BadgeIcon(CommunityBadge badge, double size)
-    {
-        double scale = size / 28.0;
-        var icon = new Canvas
-        {
-            Width = size,
-            Height = size,
-            RenderTransform = new ScaleTransform(scale, scale)
-        };
-        icon.Children.Add(new ShapePath
-        {
-            Data = Geometry.Parse(badge.Body),
-            Fill = PodiumBrush(badge.Color, SystemColors.HotTrackBrush)
-        });
-        icon.Children.Add(new ShapePath
-        {
-            Data = Geometry.Parse(badge.Detail),
-            Fill = PodiumBrush("#302241", SystemColors.ControlBrush)
-        });
-        return icon;
-    }
-
-    private static Border PillBadge(string text, string fill, string border, string ink) => new()
-    {
-        Background = PodiumBrush(fill, SystemColors.ControlBrush),
-        BorderBrush = PodiumBrush(border, SystemColors.WindowTextBrush),
-        BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(6),
-        Padding = new Thickness(8, 3, 8, 3),
-        Child = new TextBlock
-        {
-            Text = text,
-            FontSize = 11.5,
-            FontWeight = FontWeights.SemiBold,
-            Foreground = PodiumBrush(ink, SystemColors.ControlTextBrush)
-        }
-    };
-
     private static DataGridTextColumn Column(string title, string path, double width, bool muted = false)
     {
         var text = new Style(typeof(TextBlock));
@@ -1302,8 +1325,8 @@ public sealed class CommunityWindow : Window
         Margin = new Thickness(0, 0, 0, 8),
         CornerRadius = new CornerRadius(12),
         BorderThickness = new Thickness(1),
-        Background = PodiumBrush(tinted ? CommunityPodium.StageFill : "#24242C", SystemColors.WindowBrush),
-        BorderBrush = PodiumBrush(tinted ? CommunityPodium.StageOutline : "#383844", SystemColors.WindowTextBrush)
+        Background = PodiumBrush(tinted ? "#161B26" : "#18181F", SystemColors.WindowBrush),
+        BorderBrush = PodiumBrush(tinted ? "#2B3A55" : "#2D2D3A", SystemColors.WindowTextBrush)
     };
 
     private static TextBlock Heading(string text, double size, double bottom = 4)
@@ -1416,22 +1439,6 @@ public sealed class CommunityWindow : Window
               </Trigger>
               <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Opacity" Value="0.45"/>
-              </Trigger>
-            </Style.Triggers>
-          </Style>
-
-          <Style x:Key="CommunityBadgeTile" TargetType="Button" BasedOn="{StaticResource CommunityButton}">
-            <Setter Property="Background" Value="#382E4C"/>
-            <Setter Property="Foreground" Value="#F3E9FF"/>
-            <Setter Property="BorderBrush" Value="#5C4B78"/>
-            <Setter Property="Padding" Value="10,6"/>
-            <Style.Triggers>
-              <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="#46395F"/>
-                <Setter Property="BorderBrush" Value="#7A659E"/>
-              </Trigger>
-              <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="#2F2540"/>
               </Trigger>
             </Style.Triggers>
           </Style>

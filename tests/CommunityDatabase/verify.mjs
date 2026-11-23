@@ -27,6 +27,7 @@ try {
   await db.exec(await readFile(new URL('../../supabase/migrations/20261123120000_account_login_donations_and_tiers.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(new URL('../../supabase/migrations/20261123180000_guest_donations_hwid_and_antiabuse.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(new URL('../../supabase/migrations/20261123210000_owner_grants_and_private_beta.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../../supabase/migrations/20261123220000_enable_authenticated_rankings.sql', import.meta.url), 'utf8'));
   const board = async (kind, search = '', offset = 0) =>
     (await db.query('select public.lt_community_board($1, $2, $3) as board', [kind, search, offset])).rows[0].board;
 
@@ -261,8 +262,62 @@ try {
   assert.equal(grantedGuest.status, 'verified');
   assert.equal(grantedGuest.guestTag, expectedGuest3Tag);
 
+  // Authenticated rankings, profile RPCs, HWID segment binding, and admin rankings toggle checks (v1.1.3)
+  await db.exec('set role anon');
+  await assert.rejects(db.query('select public.lt_my_profile()'), { code: '42501' });
+  await assert.rejects(db.query("select public.lt_save_profile('AnonUser', true, true, false, false)"), { code: '42501' });
+  const cSegT0 = new Date(Date.now() - 45000).toISOString();
+  const cSegT1 = new Date(Date.now() - 35000).toISOString();
+  const hwidCharlie = '01234567' + 'c'.repeat(56);
+  await assert.rejects(
+    db.query("select public.lt_submit_usage_segment('00000000-0000-4000-8000-000000000061', $1, $2, $3)", [cSegT0, cSegT1, hwidCharlie]),
+    { code: '42501' });
+  await assert.rejects(db.query('select public.lt_admin_set_rankings_open(true)'), { code: '42501' });
+  await db.exec('reset role');
+
+  const dave = '00000000-0000-4000-8000-000000000006';
+  await db.query('insert into auth.users values ($1, $2, now())', [dave, `${dave}@example.test`]);
+  await setUser(dave);
+  await db.exec('set role authenticated');
+  const initialDaveProfile = (await db.query('select public.lt_my_profile() as res')).rows[0].res;
+  assert.equal(initialDaveProfile.configured, false);
+
+  await setUser(charlie);
+  await db.exec('set role authenticated');
+  const existingCharlieProfile = (await db.query('select public.lt_my_profile() as res')).rows[0].res;
+  assert.equal(existingCharlieProfile.configured, true);
+  const savedCharlieProfile = (await db.query("select public.lt_save_profile('CharlieOpt', true, true, false, false) as res")).rows[0].res;
+  assert.equal(savedCharlieProfile.configured, true);
+  assert.equal(savedCharlieProfile.nickname, 'CharlieOpt');
+  assert.equal(savedCharlieProfile.syncUsage, true);
+  assert.equal(savedCharlieProfile.publicUsage, true);
+  const reloadedCharlieProfile = (await db.query('select public.lt_my_profile() as res')).rows[0].res;
+  assert.equal(reloadedCharlieProfile.nickname, 'CharlieOpt');
+  await db.query("select public.lt_submit_usage_segment('00000000-0000-4000-8000-000000000061', $1, $2, $3)", [cSegT0, cSegT1, hwidCharlie]);
+
+  // Different authenticated account on same device & overlapping time window must be rejected
+  await setUser(alice);
+  await assert.rejects(
+    db.query("select public.lt_submit_usage_segment('00000000-0000-4000-8000-000000000062', $1, $2, $3)", [cSegT0, cSegT1, hwidCharlie]),
+    { code: '42501' });
+  await db.exec('reset role');
+
+  // Admin toggle for global rankings visibility
+  const closedToggle = (await db.query('select public.lt_admin_set_rankings_open(false) as res')).rows[0].res;
+  assert.equal(closedToggle.rankingsOpen, false);
+  await db.exec('set role anon');
+  assert.deepEqual(await board('all'), { open: false, entries: [] });
+  await db.exec('reset role');
+  const reopenedToggle = (await db.query('select public.lt_admin_set_rankings_open(true) as res')).rows[0].res;
+  assert.equal(reopenedToggle.rankingsOpen, true);
+  await db.exec('set role anon');
+  const openAgain = await board('all');
+  assert.equal(openAgain.open, true);
+  await db.exec('reset role');
+
   console.log('Community SQL passed: consent, closed defaults, overlap, UTC boundaries, ties, pagination, refunds, and private access.');
   console.log('Manual purchase preview & account tracking passed: verified accounts, tier/donation validation, private ledger, and summary projection.');
   console.log('Guest donations & HWID anti-abuse passed: User#XXXXX parity, 5/24h anon rate limit, supporter rank ordering, and cross-account Sybil guard.');
   console.log('Owner 1-by-1 grants & private beta metadata passed: admin RLS, support+beta unlock, revocation, and guest verification.');
+  console.log('Authenticated rankings & profile RPCs passed: lt_my_profile, lt_save_profile, lt_submit_usage_segment HWID guard, and rankings toggle.');
 } finally { await db.close(); }

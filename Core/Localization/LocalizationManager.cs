@@ -73,30 +73,30 @@ namespace LiveTranslatorOverlay.Core.Localization
             _strings["en"]["SpeakerEstimateLabel"] = "Speaker {0} (estimate)";
             _strings["en"]["SpeakerPreview"] = "Speaking…";
             _strings["en"]["WhisperSpeakerHint"] = "Groq Whisper active. Speaker labels are estimates. For word-level speaker separation, select Deepgram streaming and supply its API key.";
-            _strings["en"]["SttGroq"] = "Groq Whisper (estimated speakers)";
+            _strings["en"]["SttGroq"] = "Groq Whisper (Cloud)";
             _strings["id"]["SpeakerUnknown"] = "Pembicara belum jelas / campuran";
             _strings["id"]["SpeakerEstimateLabel"] = "Pembicara {0} (perkiraan)";
             _strings["id"]["SpeakerPreview"] = "Sedang berbicara…";
-            _strings["id"]["WhisperSpeakerHint"] = "Groq Whisper aktif. Label pembicara berupa perkiraan. Untuk pemisahan pembicara per kata, pilih Deepgram streaming dan masukkan kunci API-nya.";
-            _strings["id"]["SttGroq"] = "Groq Whisper (perkiraan pembicara)";
+            _strings["id"]["WhisperSpeakerHint"] = "Groq Whisper aktif. Label pembicara berupa perkiraan. Untuk pemisahan pembicara per kata, pilih Deepgram dan masukkan API key-nya.";
+            _strings["id"]["SttGroq"] = "Groq Whisper (Cloud)";
             _strings["ru"]["SpeakerUnknown"] = "Говорящий не определён / несколько голосов";
             _strings["ru"]["SpeakerEstimateLabel"] = "Говорящий {0} (оценка)";
             _strings["ru"]["SpeakerPreview"] = "Речь…";
-            _strings["ru"]["WhisperSpeakerHint"] = "Groq Whisper активен. Метки говорящих приблизительные. Для разделения речи по словам выберите Deepgram и укажите его API-ключ.";
-            _strings["ru"]["SttGroq"] = "Groq Whisper (оценка говорящих)";
+            _strings["ru"]["WhisperSpeakerHint"] = "Groq Whisper активен. Метки говорящих приблизительные. Для пословного разделения речи выберите Deepgram и укажите API-ключ.";
+            _strings["ru"]["SttGroq"] = "Groq Whisper (Cloud)";
             _strings["es"]["SpeakerUnknown"] = "Hablante incierto / varios";
             _strings["es"]["SpeakerEstimateLabel"] = "Hablante {0} (estimado)";
             _strings["es"]["SpeakerPreview"] = "Hablando…";
             _strings["es"]["WhisperSpeakerHint"] = "Groq Whisper activo. Las etiquetas son estimaciones. Para separar hablantes por palabra, selecciona Deepgram e introduce su clave API.";
-            _strings["es"]["SttGroq"] = "Groq Whisper (hablantes estimados)";
+            _strings["es"]["SttGroq"] = "Groq Whisper (Cloud)";
             _strings["en"]["ReleaseNotes211"] = "Live Translator Overlay v2.1.1\n\nNO KEY OR GPU REQUIRED\nLocal multilingual speech now runs on the CPU. Choose Balanced (148 MB) or Larger model (488 MB). The first start downloads and verifies the model automatically. No Python or developer setup. Auto-detect is supported.\n\nTRANSLATION\nGoogle translation is key-free and requires internet. Speech stays on your computer with the local engine. Cloud providers are optional.\n\nCOMPATIBILITY\nThe Windows x64 download bundles .NET and the native runtime, including an older-CPU fallback. Windows 10/11 is required.\n\nACCURACY\nChoose the spoken language for best results. The larger model can help, but runs more slowly. Accuracy varies by language, recording and hardware; these models do not inherit the previous English/Russian research scores.";
             _strings["id"]["ReleaseNotes211"] = "Live Translator Overlay v2.1.1\n\nTANPA KUNCI ATAU GPU\nPengenalan suara multibahasa lokal berjalan di CPU. Pilih model seimbang (148 MB) atau lebih besar (488 MB). Model diunduh dan diverifikasi otomatis saat pertama dipakai. Tidak perlu Python atau pengaturan pengembang. Deteksi bahasa otomatis tersedia.\n\nTerjemahan Google tanpa kunci memerlukan internet. Suara tetap di komputer dengan mesin lokal. Penyedia cloud opsional. Paket Windows x64 menyertakan .NET dan runtime CPU, termasuk CPU lama. Memerlukan Windows 10/11.\n\nPilih bahasa yang diucapkan untuk hasil terbaik. Model lebih besar lebih lambat. Akurasi berbeda menurut bahasa dan rekaman; skor riset Inggris/Rusia sebelumnya tidak berlaku untuk model ini.";
             _strings["es"]["ReleaseNotes211"] = "Live Translator Overlay v2.1.1\n\nSIN CLAVE NI GPU\nEl reconocimiento local multilingüe funciona en CPU. Elige el modelo equilibrado (148 MB) o el mayor (488 MB). Se descarga y verifica automáticamente al empezar. No requiere Python ni configuración de desarrollo. Incluye detección automática del idioma.\n\nGoogle traduce sin clave y requiere internet. El audio se procesa en tu equipo con el motor local. Los proveedores de nube son opcionales. El paquete Windows x64 incluye .NET y soporte para CPU antiguas. Requiere Windows 10/11.\n\nSelecciona el idioma hablado para mejores resultados. El modelo mayor es más lento. La precisión varía; las cifras anteriores de investigación en inglés/ruso no corresponden a estos modelos.";
             _strings["ru"]["ReleaseNotes211"] = "Live Translator Overlay v2.1.1\n\nБЕЗ КЛЮЧА И ВИДЕОКАРТЫ\nЛокальное многоязычное распознавание работает на CPU. Выберите обычную (148 МБ) или большую (488 МБ) модель. При первом запуске модель загружается и проверяется автоматически. Python и настройка разработчика не нужны. Есть автоопределение языка.\n\nПеревод Google не требует ключа, но нужен интернет. При локальном распознавании звук остаётся на компьютере. Облачные сервисы необязательны. Пакет Windows x64 включает .NET и поддержку старых CPU. Нужна Windows 10/11.\n\nДля лучшего результата выберите язык речи. Большая модель медленнее. Точность зависит от языка и записи; прошлые исследовательские оценки английской/русской речи к этим моделям не относятся.";
-            _strings["en"]["ReleaseNotes100"] = "Live Translator Overlay v1.1.2\n\nLOW-LATENCY WORD STREAMING (GPU + CPU)\nCross-vendor Vulkan (Windows) and Metal (macOS) GPU acceleration for Whisper large-v3-turbo (Q5_0, 574 MB) with automatic CPU fallback, 300 ms sliding-window Local Agreement-2 word-by-word captions, and a persistent CTranslate2 translation daemon.\n\nONE-CLICK INSTALLER, PRIVATE BETA & OPTIONAL LOGIN\nWindows releases now include a 1-click Setup wizard (.exe). Normal use and guest donations work without login (User#XXXXX on Supporters); email OTP login (livetranslator.app) unlocks Community Rankings and developer-verified Supporter (US$19.99) / private Beta Insider (US$100) access.";
-            _strings["id"]["ReleaseNotes100"] = "Live Translator Overlay v1.1.2\n\nSTREAMING PER KATA LATENSI RENDAH (GPU + CPU)\nAkselerasi GPU lintas vendor Vulkan (Windows) dan Metal (macOS) untuk Whisper large-v3-turbo (Q5_0, 574 MB) dengan fallback CPU otomatis, caption kata per kata Local Agreement-2 setiap 300 ms, serta worker terjemahan lokal persisten.\n\nINSTALLER 1-KLIK, BETA PRIVAT & LOGIN OPSIONAL\nRilis Windows kini menyediakan Setup installer (.exe) sekali klik. Terjemahan inti dan donasi tamu berjalan tanpa login (tampil User#XXXXX di Supporters); login email OTP (livetranslator.app) membuka Peringkat Komunitas dan akses terverifikasi developer untuk Supporter (US$19.99) / Beta privat Insider (US$100).";
-            _strings["es"]["ReleaseNotes100"] = "Live Translator Overlay v1.1.2\n\nSTREAMING POR PALABRAS DE BAJA LATENCIA (GPU + CPU)\nSoporte GPU multi-fabricante Vulkan (Windows) y Metal (macOS) para Whisper large-v3-turbo (Q5_0, 574 MB) con respaldo automático a CPU, subtítulos palabra por palabra Local Agreement-2 cada 300 ms y traductor local persistente.\n\nINSTALADOR 1-CLIC, BETA PRIVADA Y ACCESO OPCIONAL\nIncluye instalador asistente (.exe) para Windows, uso y donaciones sin registro (User#XXXXX), y acceso OTP (livetranslator.app) para Rankings e insignias verificadas por el desarrollador (Supporter US$19.99 / Beta privada Insider US$100).";
-            _strings["ru"]["ReleaseNotes100"] = "Live Translator Overlay v1.1.2\n\nПОТОКОВОЕ РАСПОЗНАВАНИЕ ПО СЛОВАМ (GPU + CPU)\nПоддержка GPU Vulkan (Windows) и Metal (macOS) для Whisper large-v3-turbo (Q5_0, 574 МБ) с автопереходом на CPU, пословная стабилизация Local Agreement-2 (шаг 300 мс) и постоянный локальный переводчик.\n\nУСТАНОВЩИК В 1 КЛИК, ПРИВАТНАЯ BETA И ВХОД ПО ЖЕЛАНИЮ\nДля Windows добавлен мастер установки (.exe). Перевод и донаты работают без входа (тег User#XXXXX); вход по email-коду (livetranslator.app) открывает рейтинг и подтверждённый разработчиком доступ Supporter (US$19.99) / приватная Beta Insider (US$100).";
+            _strings["en"]["ReleaseNotes100"] = "Live Translator Overlay v1.1.3\n\nCLEANER INTERFACE & WORKING RANKINGS\nRefined Windows and macOS layouts with native logo branding, concise speech engine names, slower smooth wheel scrolling in Community tabs, an interactive profile card for public rankings, and an owner-only dashboard for reviewing payments and beta grants.\n\nONE-CLICK INSTALLER & PRIVATE BETA\nWindows releases include a 1-click Setup wizard (.exe) alongside portable builds. Core translation and anonymous User#XXXXX donations stay login-free, while Community Rankings and developer-verified Beta access require email sign-in.";
+            _strings["id"]["ReleaseNotes100"] = "Live Translator Overlay v1.1.3\n\nANTARMUKA BERSIH & RANKING AKTIF\nPembaruan tampilan Windows dan macOS dengan ikon/logo resmi, nama mesin suara yang lebih ringkas, scroll roda mouse lebih halus di jendela Community, kartu profil untuk peringkat publik, serta panel khusus developer untuk verifikasi pembayaran dan akses Beta.\n\nINSTALLER 1-KLIK & BETA PRIVAT\nRilis Windows menyediakan Setup installer (.exe) sekali klik. Terjemahan inti dan donasi User#XXXXX tetap berjalan tanpa login, sementara Community Rankings dan akses Beta terverifikasi membutuhkan login email.";
+            _strings["es"]["ReleaseNotes100"] = "Live Translator Overlay v1.1.3\n\nINTERFAZ LIMPIA Y RANKINGS ACTIVOS\nDiseño renovado con el logotipo oficial, nombres de motor más concisos, desplazamiento suave en Comunidad, tarjeta de perfil para el ranking público y panel de administración para revisar pagos y accesos Beta.\n\nINSTALADOR 1-CLIC Y BETA PRIVADA\nIncluye instalador asistente (.exe) para Windows. El uso básico y donaciones User#XXXXX no requieren registro; Rankings y Beta verificada requieren acceso por correo.";
+            _strings["ru"]["ReleaseNotes100"] = "Live Translator Overlay v1.1.3\n\nЧИСТЫЙ ИНТЕРФЕЙС И РАБОЧИЙ РЕЙТИНГ\nОбновлён интерфейс с логотипом приложения, сокращены названия движков речи, замедлена плавная прокрутка в окне сообщества, добавлена карточка профиля для публичного рейтинга и панель разработчика для подтверждения оплат и Beta-доступа.\n\nУСТАНОВЩИК В 1 КЛИК И ПРИВАТНАЯ BETA\nВыпуск для Windows включает мастер установки (.exe). Перевод и донаты User#XXXXX работают без входа; рейтинг и Beta-канал требуют входа по email.";
             SetLanguage("en");
         }
 
@@ -222,8 +222,8 @@ namespace LiveTranslatorOverlay.Core.Localization
                 // Audio STT
                 ["TitleAudio"] = "Audio Transcription",
                 ["LblSttMode"] = "STT Mode:",
-                ["SttDeepgram"] = "Deepgram (Streaming + Speaker)",
-                ["SttGroq"] = "Groq Whisper (Batch + Speaker)",
+                ["SttDeepgram"] = "Deepgram (Cloud · Speakers)",
+                ["SttGroq"] = "Groq Whisper (Cloud)",
                 ["LblFontSize"] = "Subtitle Font Size:",
                 ["FontSmall"] = "Small (14px)",
                 ["FontMedium"] = "Medium (20px)",
@@ -415,8 +415,8 @@ namespace LiveTranslatorOverlay.Core.Localization
                 // Audio STT
                 ["TitleAudio"] = "Transkripsi Audio",
                 ["LblSttMode"] = "Mode STT:",
-                ["SttDeepgram"] = "Deepgram (Streaming + Speaker)",
-                ["SttGroq"] = "Groq Whisper (Batch + Speaker)",
+                ["SttDeepgram"] = "Deepgram (Cloud · Speakers)",
+                ["SttGroq"] = "Groq Whisper (Cloud)",
                 ["LblFontSize"] = "Ukuran Font Subtitle:",
                 ["FontSmall"] = "Kecil (14px)",
                 ["FontMedium"] = "Sedang (20px)",
@@ -609,8 +609,8 @@ namespace LiveTranslatorOverlay.Core.Localization
                 // Audio STT
                 ["TitleAudio"] = "Транскрипция аудио",
                 ["LblSttMode"] = "Режим STT:",
-                ["SttDeepgram"] = "Deepgram (Потоковый + Спикеры)",
-                ["SttGroq"] = "Groq Whisper (Пакетный + Спикеры)",
+                ["SttDeepgram"] = "Deepgram (Облако · Спикеры)",
+                ["SttGroq"] = "Groq Whisper (Облако)",
                 ["LblFontSize"] = "Размер шрифта субтитров:",
                 ["FontSmall"] = "Маленький (14px)",
                 ["FontMedium"] = "Средний (20px)",

@@ -1,3 +1,22 @@
+# Live Translator Overlay 1.1.3
+
+Open-source (MIT) UI refinement, app icon integration, smooth scrolling, authenticated Community Rankings & User Profile, and developer-only Owner Dashboard.
+
+## Highlights in v1.1.3
+
+- **Clean Zinc UI & App Branding (`Assets/app-icon.ico`, `Assets/app-logo.png`)**:
+  - Replaced repetitive `"live word-by-word"` dropdown labels with concise speech engine names (`Local · Balanced (CPU)`, `Local · Higher Accuracy (CPU)`, `Local · Auto (GPU / CPU)`, `Local · High Accuracy (GPU)`) and tightened localization copy across `en`, `id`, `es`, and `ru`.
+  - Applied the custom Live Translator symbol across the MainWindow header, Community window header, all dialog window icons, Windows desktop shortcuts, and the NSIS Setup installer (`MUI_ICON` / `MUI_UNICON`).
+  - Unified dark Zinc surfaces across `HistoryWindow`, `FeedbackWindow`, and `CommunityWindow`, removed all decorative pill badges from the Support tab and profile popups, and hid the owner-only `Dev` item from the Release Update Channel selector.
+- **Smooth Bounded Mouse-Wheel Scrolling (`Core/SmoothScrollBehavior.cs`)**:
+  - Added damped per-notch wheel step clamping (`±24 DIP`) on the Community Rankings, Support panels, and Feedback dialog so long scroll views no longer jump.
+- **Authenticated User Profile & Live Rankings (`20261123220000_enable_authenticated_rankings.sql`)**:
+  - Added `UserProfileCard` with nickname and privacy opt-ins (`lt_my_profile`, `lt_save_profile`, `lt_submit_usage_segment`) plus immediate local device rankings preview (`BuildLocalPreviewPage`) before global server publication.
+- **Developer-Only Owner Dashboard (`Core/OwnerGrantsWindow.cs`, `--developer`)**:
+  - Added an in-app **Payments & Beta Grants** window (visible only when launched with `--developer`) to inspect pending account requests, guest `User#XXXXX` donations, verified Beta Insiders, approve/revoke 1-by-1 grants, and toggle global Community Rankings (`lt_admin_set_rankings_open`), alongside `scripts/owner-grants.ps1 -Action open-rankings`.
+
+---
+
 # Live Translator Overlay 1.1.2
 
 Open-source (MIT) release introducing a one-click Windows Setup Wizard (`.exe`), server-gated private Beta access (`$100` Insiders verified 1-by-1 by the developer), and strict separation between public `origin` (`main`) and private `beta`/`dev` repositories.

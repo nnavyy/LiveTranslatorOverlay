@@ -15,6 +15,7 @@ namespace LiveTranslatorOverlay
         public HistoryWindow()
         {
             InitializeComponent();
+            if (LiveTranslatorOverlay.Core.AppBranding.LoadWindowIcon() is { } icon) Icon = icon;
             ApplyLocalization();
             TxtHistory.AddHandler(ScrollViewer.ScrollChangedEvent, new ScrollChangedEventHandler(OnHistoryScrollChanged));
             EventHandler onLanguageChanged = (s, e) => Dispatcher.Invoke(ApplyLocalization);

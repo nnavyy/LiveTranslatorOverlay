@@ -25,6 +25,9 @@ public partial class FeedbackWindow : Window
     public FeedbackWindow()
     {
         InitializeComponent();
+        if (LiveTranslatorOverlay.Core.AppBranding.LoadWindowIcon() is { } icon) Icon = icon;
+        SmoothScrollBehavior.Attach(SubmitScrollViewer);
+        SmoothScrollBehavior.Attach(HistoryScrollViewer);
         ApplyLocalization();
         EventHandler onLanguageChanged = (s, e) => Dispatcher.Invoke(ApplyLocalization);
         LocalizationManager.Instance.LanguageChanged += onLanguageChanged;

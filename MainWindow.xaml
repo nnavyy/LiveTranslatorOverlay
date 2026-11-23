@@ -391,8 +391,8 @@
                     </Thumb.Template>
                 </Thumb>
                 <Button x:Name="BtnTogglePanel" Content="Settings" Style="{StaticResource ModernButton}" Click="BtnTogglePanel_Click" Padding="14,6" FontSize="12.5"/>
-                <Border x:Name="DeveloperBadge" Visibility="Collapsed" Background="#E5243651" BorderBrush="#779FC7EF" BorderThickness="1" CornerRadius="8" Padding="9,5" Margin="6,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="Developer mode" Foreground="#EDF6FF" FontSize="11" FontWeight="SemiBold"/>
+                <Border x:Name="DeveloperBadge" Visibility="Collapsed" Background="#1D1D24" BorderBrush="#363645" BorderThickness="1" CornerRadius="6" Padding="8,4" Margin="6,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="Developer" Foreground="#B4B4C2" FontSize="11" FontWeight="SemiBold"/>
                 </Border>
             </StackPanel>
             
@@ -403,9 +403,14 @@
                 </Border.Effect>
                 <ScrollViewer x:Name="SettingsScrollViewer" VerticalScrollBarVisibility="Auto" CanContentScroll="False"
                               PanningMode="VerticalOnly" PreviewMouseWheel="SmoothScrollViewer_PreviewMouseWheel">
-                    <StackPanel Margin="18,18,16,18">
-                        <TextBlock x:Name="TxtAppTitle" Text="Live Translator" Foreground="#F2F2F7" FontFamily="Segoe UI Variable Display Semibold, Segoe UI Semibold" FontSize="20" Margin="0,0,0,3"/>
-                        <TextBlock x:Name="TxtInstalledVersion" Foreground="#AEAEB2" FontSize="11" Margin="0,0,0,14"/>
+                    <StackPanel Margin="16,16,16,16">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,16">
+                            <Image x:Name="ImgHeaderLogo" Width="28" Height="28" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality" VerticalAlignment="Center"/>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock x:Name="TxtAppTitle" Text="Live Translator" Foreground="#F2F2F7" FontFamily="Segoe UI Variable Display Semibold, Segoe UI Semibold" FontSize="18"/>
+                                <TextBlock x:Name="TxtInstalledVersion" Foreground="#8E8E9A" FontSize="11"/>
+                            </StackPanel>
+                        </StackPanel>
 
                         <!-- Update Banner -->
                         <Border x:Name="BannerUpdateReady" Visibility="Collapsed" Background="#16253B" BorderBrush="#0A84FF" BorderThickness="1" CornerRadius="10" Padding="12,10" Margin="0,0,0,12">
@@ -517,9 +522,9 @@
                         <!-- Engine Settings -->
                         <TextBlock x:Name="LblEngine" Text="Translation Engine:" Foreground="#AEAEB2" FontSize="11.5" Margin="2,0,0,5"/>
                         <ComboBox x:Name="CmbEngine" SelectedIndex="0" Margin="0,0,0,10" SelectionChanged="CmbEngine_SelectionChanged">
-                            <ComboBoxItem x:Name="ItemEngineGoogle" Content="Google Translate (Free &amp; Fast, No Quota)" Tag="google"/>
-                            <ComboBoxItem x:Name="ItemEngineGroq" Content="Groq AI (Requires API Key, Limited Quota)" Tag="groq"/>
-                            <ComboBoxItem x:Name="ItemLocalTranslation" Content="Local translation (advanced setup)" Tag="local" ToolTip="Optional offline text translation requires separately prepared models. Google translation needs no setup or key."/>
+                            <ComboBoxItem x:Name="ItemEngineGoogle" Content="Google Translate (Key-free)" Tag="google"/>
+                            <ComboBoxItem x:Name="ItemEngineGroq" Content="Groq AI (API key)" Tag="groq"/>
+                            <ComboBoxItem x:Name="ItemLocalTranslation" Content="Offline Local (Advanced)" Tag="local" ToolTip="Optional offline text translation requires separately prepared models. Google translation needs no setup or key."/>
                         </ComboBox>
                         
                         <StackPanel x:Name="GroqModelSettings" Visibility="Collapsed">
@@ -548,12 +553,12 @@
 
                         <TextBlock x:Name="LblSttMode" Text="STT Mode:" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,4"/>
                         <ComboBox x:Name="CmbSttMode" Margin="0,0,0,10" SelectedIndex="2" SelectionChanged="CmbSttMode_SelectionChanged">
-                            <ComboBoxItem x:Name="ItemSttDeepgram" Content="Deepgram (Streaming + Speaker)" Tag="deepgram"/>
-                            <ComboBoxItem x:Name="ItemSttGroq" Content="Groq Whisper (Batch + Speaker)" Tag="groq"/>
-                            <ComboBoxItem Content="Local multilingual — balanced, no key" Tag="local" ToolTip="Runs on CPU. Automatically downloads a 148 MB speech model once. Supports auto-detect. No NVIDIA card or Python needed."/>
-                            <ComboBoxItem Content="Local multilingual — larger model, no key" Tag="local-small" ToolTip="Runs on CPU with a larger 488 MB model. May improve recognition, but is slower. Accuracy varies by language and audio."/>
-                            <ComboBoxItem Content="Local multilingual — live word-by-word (Auto GPU/CPU), no key" Tag="local-auto" ToolTip="Low-latency word-by-word local streaming. Uses Vulkan GPU (AMD/Intel/NVIDIA) with Whisper large-v3-turbo (Q5_0, 574 MB) when available, or CPU Whisper base (148 MB)."/>
-                            <ComboBoxItem Content="Local multilingual — live word-by-word High Accuracy GPU, no key" Tag="local-turbo" ToolTip="Low-latency word-by-word streaming using Whisper large-v3-turbo (Q5_0, 574 MB) on Vulkan GPU with automatic CPU fallback."/>
+                            <ComboBoxItem x:Name="ItemSttDeepgram" Content="Deepgram (Cloud · Speakers)" Tag="deepgram"/>
+                            <ComboBoxItem x:Name="ItemSttGroq" Content="Groq Whisper (Cloud)" Tag="groq"/>
+                            <ComboBoxItem Content="Local · Balanced (CPU)" Tag="local" ToolTip="Runs on CPU. Downloads the 148 MB speech model on first use. Key-free with auto-detect."/>
+                            <ComboBoxItem Content="Local · Higher Accuracy (CPU)" Tag="local-small" ToolTip="Runs on CPU with a 488 MB speech model. Better accuracy at slower speed."/>
+                            <ComboBoxItem Content="Local · Auto (GPU / CPU)" Tag="local-auto" ToolTip="Uses Whisper large-v3-turbo (574 MB) on Vulkan GPU when available, or Whisper base on CPU."/>
+                            <ComboBoxItem Content="Local · High Accuracy (GPU)" Tag="local-turbo" ToolTip="Uses Whisper large-v3-turbo (574 MB) on Vulkan GPU with automatic CPU fallback."/>
                         </ComboBox>
                         <TextBlock x:Name="TxtSpeechSelection" TextWrapping="Wrap" Foreground="#AEAEB2" FontSize="11" Margin="2,0,0,10"/>
                         <StackPanel x:Name="GroqKeySettings" Visibility="Collapsed">
@@ -634,6 +639,7 @@
                                 <Button x:Name="BtnReleaseNotes" Content="What’s new" Click="BtnReleaseNotes_Click" Style="{StaticResource ModernButton}" Margin="0,6,0,2" Padding="6,5"/>
                                 <Button Content="Privacy and terms" Click="BtnPrivacy_Click" Style="{StaticResource ModernButton}" Margin="0,4,0,2" Padding="6,5"/>
                                 <Button x:Name="BtnDeveloper" Content="Developer tools" Visibility="Collapsed" Click="BtnDeveloper_Click" Style="{StaticResource ModernButton}" Margin="0,4,0,2" Padding="6,5"/>
+                                <Button x:Name="BtnOwnerGrants" Content="Payments &amp; Beta Grants" Visibility="Collapsed" Click="BtnOwnerGrants_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,4,0,2" Padding="6,5"/>
                                 <Button x:Name="BtnApplyUpdateNow" Visibility="Collapsed" Content="Restart to Apply Update" Click="BtnApplyUpdateNow_Click" Style="{StaticResource ActionPrimaryButton}" Margin="0,4,0,2" Padding="6,5"/>
                             </StackPanel>
                         </Border>

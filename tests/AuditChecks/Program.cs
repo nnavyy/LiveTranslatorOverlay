@@ -234,6 +234,29 @@ try
         !signedOutBeta.Allowed && freeLogin.Success && !freeBeta.Allowed
         && insiderLogin.Success && insiderBeta.Allowed && parsedBeta != null && parsedBeta.Version == new Version(1, 1, 2),
         $"freeAllowed={freeBeta.Allowed}; insiderAllowed={insiderBeta.Allowed}; betaVer={parsedBeta?.Version}");
+
+    var localProfile = new UserProfileState("AkungTester", true, true, true, false, DateTimeOffset.UtcNow);
+    UserProfileStore.Save(acctRoot, localProfile);
+    var reloadedProfile = UserProfileStore.Load(acctRoot);
+    var previewAll = communityClient.BuildLocalPreviewPage(CommunityBoard.AllTime, TimeSpan.FromMinutes(12));
+    var previewSupporters = communityClient.BuildLocalPreviewPage(CommunityBoard.Supporters, TimeSpan.Zero, "AkungTester");
+    UserProfileStore.Clear(acctRoot);
+    var clearedProfile = UserProfileStore.Load(acctRoot);
+    Check("User profile store and local preview rankings work offline across All and Supporters boards",
+        reloadedProfile != null && reloadedProfile.Nickname == "AkungTester" && reloadedProfile.SyncUsage
+        && previewAll.Available && previewAll.Entries is [{ Nickname: "AkungTester", Score: 720 }]
+        && previewSupporters.Available && previewSupporters.Entries is [{ Nickname: "AkungTester", SupportCents: 12000 }]
+        && clearedProfile == null,
+        $"allScore={previewAll.Entries.FirstOrDefault()?.Score}; supCents={previewSupporters.Entries.FirstOrDefault()?.SupportCents}");
+
+    OwnerAdminConfigStore.Save(acctRoot, new OwnerAdminConfig("https://example.supabase.co/", "service_role_test"));
+    var ownerCfg = OwnerAdminConfigStore.Load(acctRoot);
+    OwnerAdminConfigStore.Clear(acctRoot);
+    var clearedOwnerCfg = OwnerAdminConfigStore.Load(acctRoot);
+    Check("Owner admin config store persists and clears encrypted Supabase credentials",
+        ownerCfg != null && ownerCfg.SupabaseUrl == "https://example.supabase.co/" && ownerCfg.ServiceRoleKey == "service_role_test"
+        && clearedOwnerCfg == null,
+        $"loadedUrl={ownerCfg?.SupabaseUrl}; cleared={clearedOwnerCfg == null}");
 }
 finally
 {
