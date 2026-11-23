@@ -1812,13 +1812,8 @@ public partial class MainWindow : Window
 
         if (localService != null)
         {
-            var agreement = new StreamingAgreement();
-            DateTime lastInterimTranslateUtc = DateTime.MinValue;
-            string lastQueuedInput = "";
-
             var mtLock = new object();
-            var finalQueue = new Queue<(string Text, string TargetLang, string SourceLang, string SpeakerLabel, long AsrMs, bool IsFinal)>();
-            (string Text, string TargetLang, string SourceLang, string SpeakerLabel, long AsrMs, bool IsFinal)? pendingInterim = null;
+            var finalQueue = new Queue<(string Text, string TargetLang, string SourceLang, string SpeakerLabel, string ColorHex, long AsrMs)>();
             var mtWake = new SemaphoreSlim(0);
 
             _ = Task.Run(async () =>
@@ -1830,22 +1825,12 @@ public partial class MainWindow : Window
                         await mtWake.WaitAsync(sessionToken);
                         while (!sessionToken.IsCancellationRequested)
                         {
-                            (string Text, string TargetLang, string SourceLang, string SpeakerLabel, long AsrMs, bool IsFinal) item;
+                            (string Text, string TargetLang, string SourceLang, string SpeakerLabel, string ColorHex, long AsrMs) item;
                             lock (mtLock)
                             {
-                                if (finalQueue.Count > 0)
-                                {
-                                    item = finalQueue.Dequeue();
-                                }
-                                else if (pendingInterim.HasValue)
-                                {
-                                    item = pendingInterim.Value;
-                                    pendingInterim = null;
-                                }
-                                else
-                                {
+                                if (finalQueue.Count == 0)
                                     break;
-                                }
+                                item = finalQueue.Dequeue();
                             }
 
                             var mtSw = System.Diagnostics.Stopwatch.StartNew();
@@ -1854,26 +1839,14 @@ public partial class MainWindow : Window
                             {
                                 if (_translationProvider is LocalTranslateProvider localMt)
                                 {
-                                    string raw = await localMt.TranslateAsync(item.Text, item.TargetLang, item.SourceLang, fastInterim: !item.IsFinal);
+                                    string raw = await localMt.TranslateAsync(item.Text, item.TargetLang, item.SourceLang, fastInterim: false);
                                     finalTranslation = HallucinationDetector.StripWhisperArtifacts(raw);
                                 }
                                 else
                                 {
                                     await _translationProvider.TranslateStreamAsync(item.Text, item.TargetLang, item.SourceLang, piece =>
                                     {
-                                        string cleanPiece = HallucinationDetector.StripWhisperArtifacts(piece);
-                                        finalTranslation = cleanPiece;
-                                        Dispatcher.Invoke(() =>
-                                        {
-                                            if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
-                                            if (string.IsNullOrWhiteSpace(cleanPiece) || IsWhisperHallucination(cleanPiece))
-                                            {
-                                                CaptionTranslated.Text = "";
-                                                return;
-                                            }
-                                            CaptionTranslated.Text = cleanPiece;
-                                            ShowSubtitleWithAnimation();
-                                        });
+                                        finalTranslation = HallucinationDetector.StripWhisperArtifacts(piece);
                                     });
                                 }
                                 mtSw.Stop();
@@ -1881,15 +1854,9 @@ public partial class MainWindow : Window
                                 if (sessionToken.IsCancellationRequested) break;
 
                                 if (string.IsNullOrWhiteSpace(finalTranslation) || IsWhisperHallucination(finalTranslation))
-                                {
-                                    Dispatcher.Invoke(() =>
-                                    {
-                                        if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
-                                        CaptionTranslated.Text = "";
-                                    });
                                     continue;
-                                }
 
+                                string displayOriginal = await FormatJapaneseTextIfNeededAsync(item.Text, item.SourceLang);
                                 if (JapaneseScriptConverter.IsMultiScriptLanguage(item.TargetLang) && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
                                 {
                                     string formatted = await FormatJapaneseTextIfNeededAsync(finalTranslation, item.TargetLang);
@@ -1897,16 +1864,20 @@ public partial class MainWindow : Window
                                         finalTranslation = formatted;
                                 }
 
+                                if (sessionToken.IsCancellationRequested) break;
+
                                 Dispatcher.Invoke(() =>
                                 {
                                     if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
+                                    CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(item.ColorHex));
+                                    CaptionSpeaker.Text = item.SpeakerLabel;
+                                    CaptionSpeaker.Visibility = Visibility.Visible;
+                                    CaptionOriginal.Text = displayOriginal;
+                                    CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(item.ColorHex));
                                     CaptionTranslated.Text = finalTranslation;
                                     ShowSubtitleWithAnimation();
-                                    TxtAudioStatus.Text = $"Streaming · {localService.ActiveModelLabel} ({localService.BackendLabel}) · ASR {item.AsrMs} ms · MT {mtSw.ElapsedMilliseconds} ms";
-                                    if (item.IsFinal && !string.IsNullOrWhiteSpace(finalTranslation))
-                                    {
-                                        AppendToHistory($"[{item.SpeakerLabel}] {item.Text}", finalTranslation);
-                                    }
+                                    TxtAudioStatus.Text = $"Sentence · {localService.ActiveModelLabel} ({localService.BackendLabel}) · ASR {item.AsrMs} ms · MT {mtSw.ElapsedMilliseconds} ms";
+                                    AppendToHistory($"[{item.SpeakerLabel}] {item.Text}", finalTranslation);
                                 });
                             }
                             catch (OperationCanceledException) when (sessionToken.IsCancellationRequested) { break; }
@@ -1922,21 +1893,15 @@ public partial class MainWindow : Window
             }, sessionToken);
 
             capture.EnableStreamingWindows = true;
-            capture.StreamingStepMs = localService.UsingGpu ? 250 : 400;
-            capture.StreamingMaxWindowMs = localService.UsingGpu ? 6500 : 7000;
-            capture.StreamingSilenceCommitMs = localService.UsingGpu ? 450 : 550;
+            capture.EmitInterimWindows = false;
+            capture.SentenceMinSpeechMs = 1200;
+            capture.StreamingMaxWindowMs = 8500;
+            capture.StreamingSilenceCommitMs = 700;
             capture.StreamingWindowHandler = async (chunk, isFinal) =>
             {
-                if (sessionToken.IsCancellationRequested) return;
-                if (isFinal)
-                {
-                    try { await _translateSemaphore.WaitAsync(sessionToken); }
-                    catch (OperationCanceledException) { return; }
-                }
-                else if (!_translateSemaphore.Wait(0))
-                {
-                    return;
-                }
+                if (!isFinal || sessionToken.IsCancellationRequested) return;
+                try { await _translateSemaphore.WaitAsync(sessionToken); }
+                catch (OperationCanceledException) { return; }
 
                 try
                 {
@@ -1944,33 +1909,13 @@ public partial class MainWindow : Window
                     Dispatcher.Invoke(() => { targetLang = GetTargetLanguage(); sourceLang = GetSourceLanguage(); });
 
                     var asrSw = System.Diagnostics.Stopwatch.StartNew();
-                    string transcribed = isFinal
-                        ? await localService.TranscribeAsync(chunk, sessionToken)
-                        : await localService.TranscribeStreamingStepAsync(chunk, sessionToken);
+                    string transcribed = await localService.TranscribeAsync(chunk, sessionToken);
                     asrSw.Stop();
 
                     if (sessionToken.IsCancellationRequested) return;
                     transcribed = HallucinationDetector.StripWhisperArtifacts(transcribed);
-                    if (!isFinal && (string.IsNullOrWhiteSpace(transcribed) || IsWhisperHallucination(transcribed) || HallucinationDetector.IsWhisperArtifact(transcribed)))
+                    if (string.IsNullOrWhiteSpace(transcribed) || IsWhisperHallucination(transcribed) || HallucinationDetector.IsWhisperArtifact(transcribed))
                         return;
-
-                    if (isFinal && (IsWhisperHallucination(transcribed) || HallucinationDetector.IsWhisperArtifact(transcribed)))
-                        transcribed = "";
-
-                    var state = isFinal
-                        ? agreement.FinalizeSegment(transcribed)
-                        : agreement.Observe(transcribed);
-
-                    string stableOrLive = HallucinationDetector.StripWhisperArtifacts(state.FullText);
-                    if (string.IsNullOrWhiteSpace(stableOrLive) || IsWhisperHallucination(stableOrLive))
-                    {
-                        if (isFinal)
-                        {
-                            agreement.Reset();
-                            lastQueuedInput = "";
-                        }
-                        return;
-                    }
 
                     var speaker = AcousticSpeakerDetector.DetectSpeaker(chunk, sessionToken);
                     if (sessionToken.IsCancellationRequested) return;
@@ -1978,51 +1923,14 @@ public partial class MainWindow : Window
                         ? LocalizationManager.Instance.Get("SpeakerEstimateLabel", speaker.SpeakerIndex + 1)
                         : LocalizationManager.Instance.Get("SpeakerUnknown");
 
-                    string displayOriginal = await FormatJapaneseTextIfNeededAsync(stableOrLive, sourceLang);
-                    Dispatcher.Invoke(() =>
+                    lock (mtLock)
                     {
-                        if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
-                        CaptionSpeaker.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(speaker.ColorHex));
-                        CaptionSpeaker.Text = speakerLabel;
-                        CaptionSpeaker.Visibility = Visibility.Visible;
-                        CaptionOriginal.Text = isFinal ? displayOriginal : displayOriginal + " …";
-                        CaptionTranslated.Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(speaker.ColorHex));
-                        ShowSubtitleWithAnimation();
-                    });
-
-                    bool shouldQueueMt = isFinal
-                        || (!string.Equals(stableOrLive, lastQueuedInput, StringComparison.Ordinal)
-                            && (!string.IsNullOrWhiteSpace(state.NewlyCommittedText)
-                                || string.IsNullOrEmpty(lastQueuedInput)
-                                || (DateTime.UtcNow - lastInterimTranslateUtc).TotalMilliseconds >= 250));
-
-                    if (shouldQueueMt && !sessionToken.IsCancellationRequested)
-                    {
-                        lastQueuedInput = stableOrLive;
-                        lastInterimTranslateUtc = DateTime.UtcNow;
-                        lock (mtLock)
+                        if (!sessionToken.IsCancellationRequested)
                         {
-                            if (!sessionToken.IsCancellationRequested)
-                            {
-                                if (isFinal)
-                                {
-                                    pendingInterim = null;
-                                    finalQueue.Enqueue((stableOrLive, targetLang, sourceLang, speakerLabel, asrSw.ElapsedMilliseconds, true));
-                                }
-                                else
-                                {
-                                    pendingInterim = (stableOrLive, targetLang, sourceLang, speakerLabel, asrSw.ElapsedMilliseconds, false);
-                                }
-                                try { mtWake.Release(); }
-                                catch (ObjectDisposedException) { }
-                            }
+                            finalQueue.Enqueue((transcribed, targetLang, sourceLang, speakerLabel, speaker.ColorHex, asrSw.ElapsedMilliseconds));
+                            try { mtWake.Release(); }
+                            catch (ObjectDisposedException) { }
                         }
-                    }
-
-                    if (isFinal)
-                    {
-                        agreement.Reset();
-                        lastQueuedInput = "";
                     }
                 }
                 catch (OperationCanceledException) when (sessionToken.IsCancellationRequested) { }
@@ -2036,7 +1944,7 @@ public partial class MainWindow : Window
             await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId(), sessionToken);
             if (sessionToken.IsCancellationRequested) { capture.Dispose(); return; }
             StartUsageClock(capture);
-            TxtAudioStatus.Text = $"Active live streaming: {localService.ActiveModelLabel} ({localService.BackendLabel}) · {capture.StreamingStepMs} ms sliding window.";
+            TxtAudioStatus.Text = $"Active: {localService.ActiveModelLabel} ({localService.BackendLabel}) · Per-sentence mode.";
             CaptionTranslated.Text = "[Waiting for audio...]";
             return;
         }

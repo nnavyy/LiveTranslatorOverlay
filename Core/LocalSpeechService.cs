@@ -121,6 +121,8 @@ public sealed class LocalSpeechService : IAsyncDisposable
                 await Task.Run(async () =>
                 {
                     var warmupAudio = new float[8000];
+                    if (_processor != null)
+                        await foreach (var _ in _processor.ProcessAsync(warmupAudio, token)) { }
                     if (_streamingShortProcessor != null)
                         await foreach (var _ in _streamingShortProcessor.ProcessAsync(warmupAudio, token)) { }
                     if (_streamingMediumProcessor != null)

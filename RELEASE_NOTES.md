@@ -1,3 +1,17 @@
+# Live Translator Overlay 1.1.5
+
+Open-source (MIT) calm per-sentence local speech captions update.
+
+## Highlights in v1.1.5
+
+- **Per-Sentence Readable Captions (`AudioCaptureService`, `MainWindow`)**:
+  - Added `EmitInterimWindows = false` and `SentenceMinSpeechMs = 1200` on `AudioCaptureService.StreamingWindowEmitterLoop` so local speech waits for natural `700 ms` pauses (`8.5 s` cap) and emits complete phrases/sentences without flickering partial word rewrites.
+  - Added GPU full-context warmup (`_processor`) at startup in `LocalSpeechService.InitializeAsync` so the very first completed sentence decodes without cold SPIR-V shader delay.
+  - Updated `MainWindow` local mode to run background FIFO sentence translation and update `CaptionOriginal` + `CaptionTranslated` atomically once per completed sentence, keeping the previous caption readable until the next full sentence is ready.
+  - Retains all `v1.1.4` anti-hallucination and throughput improvements (Silero VAD speech-span trimming, zero-temperature retry guards, `StripWhisperArtifacts` watermark filtering, Vulkan FlashAttention, and CUDA M2M-100 discovery).
+
+---
+
 # Live Translator Overlay 1.1.4
 
 Open-source (MIT) streaming latency reduction, CUDA CTranslate2 auto-discovery, and Whisper fansub hallucination elimination update.

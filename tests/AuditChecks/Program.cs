@@ -271,6 +271,42 @@ try
     Check("LocalSpeechService trims pure silence and collapses long internal dead gaps while padding speech onsets",
         silentTrimmed.Length == 0 && trimmedSpans.Length == 48000 && trimmedSpans.Any(s => s > 0.2f),
         $"silentLen={silentTrimmed.Length}; trimmedLen={trimmedSpans.Length}");
+
+    var sentenceAudio = new AudioCaptureService
+    {
+        EnableStreamingWindows = true,
+        EmitInterimWindows = false,
+        SentenceMinSpeechMs = 400,
+        StreamingSilenceCommitMs = 300
+    };
+    var sentenceQueue = Get<ConcurrentQueue<float>>(sentenceAudio, "_audioBuffer");
+    int interimCount = 0;
+    int finalCount = 0;
+    using var sentenceDone = new SemaphoreSlim(0);
+    sentenceAudio.StreamingWindowHandler = (_, isFinal) =>
+    {
+        if (isFinal)
+        {
+            Interlocked.Increment(ref finalCount);
+            sentenceDone.Release();
+        }
+        else
+        {
+            Interlocked.Increment(ref interimCount);
+        }
+        return Task.CompletedTask;
+    };
+    Set(sentenceAudio, "_isCapturing", true);
+    for (int i = 0; i < 8000; i++) sentenceQueue.Enqueue((float)(0.1 * Math.Sin(i * 0.1)));
+    for (int i = 0; i < 8000; i++) sentenceQueue.Enqueue(0f);
+    var sentenceLoop = (Task)typeof(AudioCaptureService).GetMethod("ChunkEmitterLoop", Fields)!.Invoke(sentenceAudio, null)!;
+    bool gotFinalSentence = await sentenceDone.WaitAsync(TimeSpan.FromSeconds(5));
+    await Task.Delay(150);
+    sentenceAudio.Stop();
+    await sentenceLoop.WaitAsync(TimeSpan.FromSeconds(2));
+    Check("AudioCaptureService sentence mode suppresses interim updates and emits one finalized sentence on pause",
+        gotFinalSentence && interimCount == 0 && finalCount == 1,
+        $"interim={interimCount}; final={finalCount}");
 }
 finally
 {

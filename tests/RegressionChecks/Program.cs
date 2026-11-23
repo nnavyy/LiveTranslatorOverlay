@@ -129,22 +129,22 @@ var assemblyVersion = typeof(GroqTranslateProvider).Assembly.GetName().Version!;
 Confirm("Compiled version and release notes agree", assemblyVersion.Major == AppVersion.Current.Major
     && assemblyVersion.Minor == AppVersion.Current.Minor && assemblyVersion.Build == AppVersion.Current.Build
     && ReleaseNotes.Text.Contains(AppVersion.DisplayString), $"assembly={assemblyVersion}; notes={AppVersion.DisplayString}");
-Confirm("Machine-learning edition reports 1.1.4 and can advance to 1.1.5",
-    AppVersion.Current == new Version(1, 1, 4) && AppVersion.IsNewerThanCurrent("1.1.5"),
-    $"installed={AppVersion.DisplayString}; next=1.1.5");
+Confirm("Machine-learning edition reports 1.1.5 and can advance to 1.1.6",
+    AppVersion.Current == new Version(1, 1, 5) && AppVersion.IsNewerThanCurrent("1.1.6"),
+    $"installed={AppVersion.DisplayString}; next=1.1.6");
 var payload = Encoding.UTF8.GetBytes("stable update test fixture");
 var checksum = Convert.ToHexString(SHA256.HashData(payload));
 string manifest = $$"""
-    {"line":"ml","channel":"stable","version":"1.1.5","packages":{
-      "win-x64":{"url":"https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.1.5-ml/LiveTranslatorOverlay-Windows-x64.zip",
+    {"line":"ml","channel":"stable","version":"1.1.6","packages":{
+      "win-x64":{"url":"https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.1.6-ml/LiveTranslatorOverlay-Windows-x64.zip",
       "size":{{payload.Length}},"sha256":"{{checksum}}"}
     }
     }
     """;
 var nextRelease = StableRelease.Read(manifest, "win-x64")!;
 string betaManifest = $$"""
-    {"line":"ml","channel":"beta","version":"1.1.5","packages":{
-      "win-x64":{"url":"https://example.supabase.co/storage/v1/object/sign/beta-releases/v1.1.5/win-x64/LiveTranslatorOverlay-Windows-x64.zip?token=sig123",
+    {"line":"ml","channel":"beta","version":"1.1.6","packages":{
+      "win-x64":{"url":"https://example.supabase.co/storage/v1/object/sign/beta-releases/v1.1.6/win-x64/LiveTranslatorOverlay-Windows-x64.zip?token=sig123",
       "size":{{payload.Length}},"sha256":"{{checksum}}"}
     }
     }
@@ -154,7 +154,7 @@ bool publicBetaUrlRejected = false;
 try { StableRelease.Read(manifest.Replace("\"stable\"", "\"beta\""), "win-x64", "beta"); }
 catch (InvalidDataException) { publicBetaUrlRejected = true; }
 string devManifest = $$"""
-    {"line":"ml","channel":"dev","version":"1.1.5","packages":{
+    {"line":"ml","channel":"dev","version":"1.1.6","packages":{
       "win-x64":{"url":"file:///C:/temp/LiveTranslatorOverlay-Windows-x64.zip","size":{{payload.Length}},"sha256":"{{checksum}}"}
     }
     }
@@ -200,7 +200,7 @@ try
         Set(updater, "_httpClient", client);
         bool staged = await updater.CheckAndDownloadAsync();
         Confirm("Update stages the verified 1.x package without replacing user configuration", staged && updater.IsUpdateReady
-            && updater.PendingVersion == "v1.1.5" && File.Exists(Path.Combine(updater.StagedDirectory, "LiveTranslatorOverlay.exe"))
+            && updater.PendingVersion == "v1.1.6" && File.Exists(Path.Combine(updater.StagedDirectory, "LiveTranslatorOverlay.exe"))
             && !File.Exists(Path.Combine(updater.StagedDirectory, "appsettings.json")), $"pending={updater.PendingVersion}");
 
         var unpublished = new AutoUpdaterService();

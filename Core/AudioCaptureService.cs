@@ -28,11 +28,13 @@ namespace LiveTranslatorOverlay.Core
         private readonly SemaphoreSlim _chunkQueue = new SemaphoreSlim(2, 2);
         private readonly SemaphoreSlim _streamingGate = new SemaphoreSlim(1, 1);
 
-        /// <summary>When enabled with StreamingWindowHandler, emits sliding audio snapshots every ~250 ms instead of waiting 4-12 s.</summary>
+        /// <summary>When enabled with StreamingWindowHandler, commits sentence buffers on natural speech pauses (or optional interim steps when EmitInterimWindows is true).</summary>
         public bool EnableStreamingWindows { get; set; }
+        public bool EmitInterimWindows { get; set; } = false;
         public int StreamingStepMs { get; set; } = 250;
-        public int StreamingMaxWindowMs { get; set; } = 6500;
-        public int StreamingSilenceCommitMs { get; set; } = 450;
+        public int StreamingMaxWindowMs { get; set; } = 8500;
+        public int StreamingSilenceCommitMs { get; set; } = 700;
+        public int SentenceMinSpeechMs { get; set; } = 1200;
         public Func<float[], bool, Task>? StreamingWindowHandler { get; set; }
 
         // VAD settings
@@ -332,13 +334,16 @@ namespace LiveTranslatorOverlay.Core
             const int sampleRate = 16000;
             int stepSamples = sampleRate * Math.Clamp(StreamingStepMs, 150, 2000) / 1000;
             int maxWindowSamples = sampleRate * Math.Clamp(StreamingMaxWindowMs, 3000, 18000) / 1000;
-            int minSpeechForSilenceCommit = sampleRate * 550 / 1000;
-            int silenceWindowSamples = sampleRate * Math.Clamp(StreamingSilenceCommitMs, 250, 1500) / 1000;
-            int overlapSamples = sampleRate * 400 / 1000;
+            int minSentenceSamples = sampleRate * Math.Clamp(EmitInterimWindows ? 550 : SentenceMinSpeechMs, 400, 4000) / 1000;
+            int silenceWindowSamples = sampleRate * Math.Clamp(StreamingSilenceCommitMs, 250, 2000) / 1000;
+            int overlapSamples = sampleRate * 450 / 1000;
+            int stagnantCommitLoops = EmitInterimWindows ? 16 : 24;
+            int shortPhraseMinSamples = sampleRate * 450 / 1000;
 
             var currentWindow = new List<float>(maxWindowSamples);
             int samplesSinceEmit = 0;
             int stagnantLoops = 0;
+            bool speechSeenInWindow = false;
             bool emittedPartialInUtterance = false;
 
             while (_isCapturing)
@@ -361,7 +366,7 @@ namespace LiveTranslatorOverlay.Core
                     shouldFinalize = true;
                     hitMaxWindow = true;
                 }
-                else if (currentWindow.Count >= minSpeechForSilenceCommit)
+                else if (speechSeenInWindow && currentWindow.Count >= minSentenceSamples)
                 {
                     int checkFrom = Math.Max(0, currentWindow.Count - silenceWindowSamples);
                     float tailEnergy = 0;
@@ -369,10 +374,10 @@ namespace LiveTranslatorOverlay.Core
                         tailEnergy += Math.Abs(currentWindow[i]);
                     float avgTail = tailEnergy / (currentWindow.Count - checkFrom);
 
-                    if (avgTail < SilenceThreshold || stagnantLoops > 16)
+                    if (avgTail < SilenceThreshold || stagnantLoops > stagnantCommitLoops)
                         shouldFinalize = true;
                 }
-                else if (emittedPartialInUtterance && stagnantLoops > 16 && currentWindow.Count >= stepSamples)
+                else if (speechSeenInWindow && stagnantLoops > stagnantCommitLoops && currentWindow.Count >= shortPhraseMinSamples)
                 {
                     shouldFinalize = true;
                 }
@@ -403,6 +408,7 @@ namespace LiveTranslatorOverlay.Core
                             });
                         }
                     }
+                    speechSeenInWindow = hitMaxWindow && HasWindowSpeech(currentWindow);
                     emittedPartialInUtterance = false;
                 }
                 else if (samplesSinceEmit >= stepSamples && currentWindow.Count >= stepSamples)
@@ -411,18 +417,22 @@ namespace LiveTranslatorOverlay.Core
                     samplesSinceEmit = 0;
                     if (HasWindowSpeech(snapshot))
                     {
-                        emittedPartialInUtterance = true;
-                        var handler = StreamingWindowHandler;
-                        if (handler != null && _streamingGate.Wait(0))
+                        speechSeenInWindow = true;
+                        if (EmitInterimWindows)
                         {
-                            _ = Task.Run(async () =>
+                            emittedPartialInUtterance = true;
+                            var handler = StreamingWindowHandler;
+                            if (handler != null && _streamingGate.Wait(0))
                             {
-                                try { await handler(snapshot, false); }
-                                finally { _streamingGate.Release(); }
-                            });
+                                _ = Task.Run(async () =>
+                                {
+                                    try { await handler(snapshot, false); }
+                                    finally { _streamingGate.Release(); }
+                                });
+                            }
                         }
                     }
-                    else if (!emittedPartialInUtterance && currentWindow.Count > silenceWindowSamples)
+                    else if (!speechSeenInWindow && !emittedPartialInUtterance && currentWindow.Count > silenceWindowSamples)
                     {
                         // Drop leading pure silence while preserving a tiny pre-roll.
                         int removeCount = currentWindow.Count - (sampleRate / 4);

@@ -1,4 +1,8 @@
-# Mac release notes — v1.1.4
+# Mac release notes — v1.1.5
+
+## What's new in v1.1.5
+
+- **Version Parity & Sentence Stability**: Synchronized `1.1.5` release parity alongside Windows per-sentence caption smoothing while retaining shared `LocalSpeechService` VAD speech-span trimming and `HallucinationDetector` watermark filtering.
 
 ## What's new in v1.1.4
 
