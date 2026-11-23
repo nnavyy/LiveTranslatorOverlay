@@ -257,6 +257,20 @@ try
         ownerCfg != null && ownerCfg.SupabaseUrl == "https://example.supabase.co/" && ownerCfg.ServiceRoleKey == "service_role_test"
         && clearedOwnerCfg == null,
         $"loadedUrl={ownerCfg?.SupabaseUrl}; cleared={clearedOwnerCfg == null}");
+
+    var silentTrimmed = LocalSpeechService.TrimToSpeechSpan(new float[32000], Array.Empty<Whisper.net.VadSegmentData>());
+    var voicedBuffer = new float[96000];
+    for (int i = 8000; i < 24000; i++) voicedBuffer[i] = 0.25f;
+    for (int i = 56000; i < 72000; i++) voicedBuffer[i] = 0.35f;
+    var trimmedSpans = LocalSpeechService.TrimToSpeechSpan(
+        voicedBuffer,
+        [
+            new Whisper.net.VadSegmentData(TimeSpan.FromSeconds(0.5), TimeSpan.FromSeconds(1.5)),
+            new Whisper.net.VadSegmentData(TimeSpan.FromSeconds(3.5), TimeSpan.FromSeconds(4.5))
+        ]);
+    Check("LocalSpeechService trims pure silence and collapses long internal dead gaps while padding speech onsets",
+        silentTrimmed.Length == 0 && trimmedSpans.Length == 48000 && trimmedSpans.Any(s => s > 0.2f),
+        $"silentLen={silentTrimmed.Length}; trimmedLen={trimmedSpans.Length}");
 }
 finally
 {

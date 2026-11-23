@@ -1,3 +1,23 @@
+# Live Translator Overlay 1.1.4
+
+Open-source (MIT) streaming latency reduction, CUDA CTranslate2 auto-discovery, and Whisper fansub hallucination elimination update.
+
+## Highlights in v1.1.4
+
+- **Root-Cause Elimination of Fansub Hallucinations (`LocalSpeechService`, `HallucinationDetector`)**:
+  - Added `LocalSpeechService.TrimToSpeechSpan` using Silero VAD timestamps (`250 ms` speech onset/offset padding, `700 ms` gap merge) to strip dead air before Whisper runs instead of passing raw silence frames.
+  - Configured native decoding guards (`WithTemperature(0f)`, `WithTemperatureInc(0f)`, `WithEntropyThreshold(2.4f)`, `WithLogProbThreshold(-1.0f)`, `WithNoSpeechThreshold(0.60f)`, `WithProbabilities()`), filtering segments with high `NoSpeechProbability` and preventing repeated identical multi-segment loops.
+  - Activated `HallucinationDetector.StripWhisperArtifacts` and `StandaloneClichéSet` so subtitle watermarks (`"Subtitle by DimaTorzok"`, `"Subtitles by DimaTorzok"`, `"Редактор субтитров ..."`, `"Amara.org"`) and end-screen clichés are removed cleanly without rejecting real conversational phrases.
+- **Faster Decoupled Streaming & GPU Inference (`MainWindow`, `AudioCaptureService`, `translation_worker.py`)**:
+  - Enabled incremental sliding-window streaming across **all local speech engines** (`250 ms` GPU step / `6.5 s` cap, `400 ms` CPU step) with `UseFlashAttention = true` fallback safety and dual adaptive streaming contexts (`256` / `448` frames) plus full `1500`-frame final decoding.
+  - Decoupled translation into a background latest-wins worker so slow or remote MT requests never block ASR capture, with interim fast decoding (`beam=1` offline MT) and bounded caches (`translation_worker.py` + `GoogleFreeTranslateProvider`).
+  - Added automatic Windows CUDA library discovery (`torch\lib`, `nvidia\cublas\bin`) in `runtime/translation_worker.py` so `Offline Local (Advanced)` M2M-100 runs on GPU when present (still falling back safely to multi-threaded `int8` CPU).
+- **Measured RTX 2050 Held-Out FLEURS Streaming Benchmark (`v1.1.4` vs `v1.1.0`)**:
+  - ASR step latency dropped **`818.0 ms` -> `536.1 ms` mean** and **`2,288.8 ms` -> `919.6 ms` P95** (`2.49x` faster tail); first-word compute dropped **`880.4 ms` -> `501.7 ms`**; final RTF dropped **`0.186x` -> `0.101x`** (`9.9x` faster than real time).
+  - Held-out error improved from **`7.74%` -> `6.42%` mixed mean** (`9.71%` EN WER, `7.62%` ID WER, `3.33%` JA CER, `5.00%` RU WER), while warm CUDA M2M-100 translation dropped **`892.5 ms` -> `337.3 ms` mean** (**`297.8 ms` P50** vs `912.0 ms` P50, **`3.06x` faster** median).
+
+---
+
 # Live Translator Overlay 1.1.3
 
 Open-source (MIT) UI refinement, app icon integration, smooth scrolling, authenticated Community Rankings & User Profile, and developer-only Owner Dashboard.

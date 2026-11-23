@@ -12,7 +12,10 @@ namespace LiveTranslatorOverlay.Core.Translation
 
         public JapaneseScriptStyle ScriptStyle { get; set; } = JapaneseScriptStyle.Standard;
 
-        // Simple cache
+        // Simple cache + bounded recent translation cache for live interim phrase reuse
+        private readonly object _cacheLock = new();
+        private readonly Queue<string> _lruOrder = new();
+        private readonly Dictionary<string, string> _lruCache = new(StringComparer.Ordinal);
         private string _cachedInput = "";
         private string _cachedTarget = "";
         private string _cachedSource = "";
@@ -27,12 +30,43 @@ namespace LiveTranslatorOverlay.Core.Translation
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36");
         }
 
+        private void CacheTranslation(string text, string targetLanguage, string sourceLanguage, string result)
+        {
+            _cachedInput = text;
+            _cachedTarget = targetLanguage;
+            _cachedSource = sourceLanguage;
+            _cachedStyle = ScriptStyle;
+            _cachedResult = result;
+
+            string key = $"{sourceLanguage}|{targetLanguage}|{(int)ScriptStyle}|{text}";
+            lock (_cacheLock)
+            {
+                if (_lruCache.TryAdd(key, result))
+                {
+                    _lruOrder.Enqueue(key);
+                    while (_lruOrder.Count > 128 && _lruOrder.TryDequeue(out string? oldest))
+                        _lruCache.Remove(oldest);
+                }
+                else
+                {
+                    _lruCache[key] = result;
+                }
+            }
+        }
+
         public async Task<string> TranslateAsync(string text, string targetLanguage = "id", string sourceLanguage = "auto")
         {
             if (string.IsNullOrWhiteSpace(text)) return string.Empty;
 
             if (text == _cachedInput && targetLanguage == _cachedTarget && sourceLanguage == _cachedSource && ScriptStyle == _cachedStyle && !string.IsNullOrEmpty(_cachedResult))
                 return _cachedResult;
+
+            string cacheKey = $"{sourceLanguage}|{targetLanguage}|{(int)ScriptStyle}|{text}";
+            lock (_cacheLock)
+            {
+                if (_lruCache.TryGetValue(cacheKey, out string? cached) && !string.IsNullOrEmpty(cached))
+                    return cached;
+            }
 
             string effectiveTarget = ResolveGoogleLanguageCode(targetLanguage, isTarget: true);
             string effectiveSource = ResolveGoogleLanguageCode(sourceLanguage, isTarget: false);
@@ -42,11 +76,7 @@ namespace LiveTranslatorOverlay.Core.Translation
 
             if (!string.IsNullOrWhiteSpace(result))
             {
-                _cachedInput = text;
-                _cachedTarget = targetLanguage;
-                _cachedSource = sourceLanguage;
-                _cachedStyle = ScriptStyle;
-                _cachedResult = result;
+                CacheTranslation(text, targetLanguage, sourceLanguage, result);
                 return result;
             }
 
@@ -54,11 +84,7 @@ namespace LiveTranslatorOverlay.Core.Translation
             result = await TryMyMemoryAsync(text, effectiveTarget, effectiveSource);
             if (!string.IsNullOrWhiteSpace(result))
             {
-                _cachedInput = text;
-                _cachedTarget = targetLanguage;
-                _cachedSource = sourceLanguage;
-                _cachedStyle = ScriptStyle;
-                _cachedResult = result;
+                CacheTranslation(text, targetLanguage, sourceLanguage, result);
                 return result;
             }
 

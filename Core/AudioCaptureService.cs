@@ -28,10 +28,11 @@ namespace LiveTranslatorOverlay.Core
         private readonly SemaphoreSlim _chunkQueue = new SemaphoreSlim(2, 2);
         private readonly SemaphoreSlim _streamingGate = new SemaphoreSlim(1, 1);
 
-        /// <summary>When enabled with StreamingWindowHandler, emits sliding audio snapshots every ~300 ms instead of waiting 4-12 s.</summary>
+        /// <summary>When enabled with StreamingWindowHandler, emits sliding audio snapshots every ~250 ms instead of waiting 4-12 s.</summary>
         public bool EnableStreamingWindows { get; set; }
-        public int StreamingStepMs { get; set; } = 300;
-        public int StreamingMaxWindowMs { get; set; } = 10000;
+        public int StreamingStepMs { get; set; } = 250;
+        public int StreamingMaxWindowMs { get; set; } = 6500;
+        public int StreamingSilenceCommitMs { get; set; } = 450;
         public Func<float[], bool, Task>? StreamingWindowHandler { get; set; }
 
         // VAD settings
@@ -331,9 +332,9 @@ namespace LiveTranslatorOverlay.Core
             const int sampleRate = 16000;
             int stepSamples = sampleRate * Math.Clamp(StreamingStepMs, 150, 2000) / 1000;
             int maxWindowSamples = sampleRate * Math.Clamp(StreamingMaxWindowMs, 3000, 18000) / 1000;
-            int minSpeechForSilenceCommit = sampleRate * 900 / 1000;
-            int silenceWindowSamples = sampleRate * SilenceWindowMs / 1000;
-            int overlapSamples = sampleRate * OverlapMs / 1000;
+            int minSpeechForSilenceCommit = sampleRate * 550 / 1000;
+            int silenceWindowSamples = sampleRate * Math.Clamp(StreamingSilenceCommitMs, 250, 1500) / 1000;
+            int overlapSamples = sampleRate * 400 / 1000;
 
             var currentWindow = new List<float>(maxWindowSamples);
             int samplesSinceEmit = 0;
@@ -368,10 +369,10 @@ namespace LiveTranslatorOverlay.Core
                         tailEnergy += Math.Abs(currentWindow[i]);
                     float avgTail = tailEnergy / (currentWindow.Count - checkFrom);
 
-                    if (avgTail < SilenceThreshold || stagnantLoops > 14)
+                    if (avgTail < SilenceThreshold || stagnantLoops > 16)
                         shouldFinalize = true;
                 }
-                else if (emittedPartialInUtterance && stagnantLoops > 14 && currentWindow.Count >= stepSamples)
+                else if (emittedPartialInUtterance && stagnantLoops > 16 && currentWindow.Count >= stepSamples)
                 {
                     shouldFinalize = true;
                 }
@@ -430,7 +431,7 @@ namespace LiveTranslatorOverlay.Core
                     }
                 }
 
-                await Task.Delay(40);
+                await Task.Delay(25);
             }
         }
 

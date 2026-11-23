@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11%20%7C%20macOS%2014%2B-0078D6?style=for-the-badge" alt="Windows and macOS" />
   <img src="https://img.shields.io/badge/GPU-Vulkan%20%7C%20Metal%20%7C%20CPU-blueviolet?style=for-the-badge" alt="Vulkan Metal CPU" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License" />
-  <img src="https://img.shields.io/badge/Version-1.1.3-brightgreen?style=for-the-badge" alt="v1.1.3" />
+  <img src="https://img.shields.io/badge/Version-1.1.4-brightgreen?style=for-the-badge" alt="v1.1.4" />
 </p>
 
 <p align="center">
@@ -23,10 +23,10 @@
 
 Live Translator Overlay is an open-source project licensed under the [MIT License](LICENSE). All core translation, OCR, and speech recognition features are free under MIT.
 
-With **v1.1.3**, local speech recognition automatically adapts to your device while delivering a branded Windows Setup wizard (`.exe`), clean Zinc UI with smooth scrolling, working User Profile & Community Rankings, a developer-only Owner Dashboard (`--developer`), and `livetranslator.app` email identity:
-- **Universal Cross-Vendor GPU Acceleration (No CUDA / Python Needed)**: Uses `Whisper.net.Runtime.Vulkan` on Windows (works across NVIDIA, AMD, and Intel GPUs) and `Whisper.net.Runtime.Metal` on Apple Silicon macOS to run **Whisper `large-v3-turbo` (`Q5_0`, `574 MB`)** with automatic fallback to CPU (`ggml-base.bin` `148 MB` or `NoAvx` x64 CPU) on machines without a compatible GPU.
-- **Local Agreement-2 Incremental Streaming (`300 ms` Sliding Windows)**: Select **Local · Auto (GPU / CPU)** or **Local · High Accuracy (GPU)** to display words incrementally as they stabilize (both space-delimited languages and CJK ideographs/kana) without waiting for 4–12 second pauses.
-- **Persistent Warm Local Translation (`--daemon`)**: Optionally run offline M2M-100 (`418M` `int8`) via `runtime/translation_worker.py --daemon` with a kernel-guarded process tree and zero cold Python restarts per caption (alongside default key-free Google Translate and optional Groq/Deepgram cloud engines).
+With **v1.1.4**, speech decoding and local translation run substantially faster with zero fansub watermark hallucinations (`Subtitle by DimaTorzok`, `Amara.org`, etc.) alongside the branded Windows Setup wizard (`.exe`), clean Zinc UI, User Profile & Community Rankings, and owner-only Dashboard (`--developer`):
+- **Universal Cross-Vendor GPU Acceleration (No CUDA / Python Needed for ASR)**: Uses `Whisper.net.Runtime.Vulkan` (with FlashAttention enabled and safe fallback) on Windows across NVIDIA, AMD, and Intel GPUs, plus `Whisper.net.Runtime.Metal` on Apple Silicon macOS to run **Whisper `large-v3-turbo` (`Q5_0`, `574 MB`)** or fall back to CPU (`ggml-base.bin` / `NoAvx`).
+- **VAD-Trimmed, Decoupled Local Agreement-2 Streaming (`250 ms` GPU / `400 ms` CPU)**: All local tiers stream incrementally, trim silence spans from Silero VAD before decoding, reject high `no_speech_prob` / fansub watermark outputs, and run translation asynchronously in a latest-wins background worker so MT never blocks ASR.
+- **Persistent Warm Local Translation (`--daemon` + CUDA Auto-Discovery)**: Optionally run offline M2M-100 (`418M` `int8` / `int8_float16`) via `runtime/translation_worker.py --daemon` with automatic CUDA `cublas64_12` discovery (cutting warm MT latency to `337.3 ms` mean / `297.8 ms` P50 on RTX 2050) or multi-threaded `int8` CPU fallback, plus default key-free Google Translate with bounded caching.
 - **Empirical Research & Novelty Paper**: See **[research/speech/paper/PAPER_NOVELTY_AND_RESEARCH_GAP.md](research/speech/paper/PAPER_NOVELTY_AND_RESEARCH_GAP.md)** for our full comparative study explaining why consumer Whisper `small` fine-tuning hits a `~10.6%` plateau and documenting measured v1.1.0 Vulkan vs. CPU latency & accuracy benchmarks (`5.00%` RU WER, `4.92%` JA CER, `0.186x` final RTF).
 
 ---
@@ -53,7 +53,7 @@ With **v1.1.3**, local speech recognition automatically adapts to your device wh
 - **Current macOS limits**: Screen OCR and automatic in-app self-updater remain Windows-only; prebuilt Mac archives are ad-hoc signed ([MacApp/INSTALL.md](MacApp/INSTALL.md)).
 
 ### Accuracy & Latency Notes
-- Speech recognition and translation remain approximate. On an RTX 2050 laptop running cross-vendor Vulkan (`Q5_0`), `300 ms` sliding-window step inference averages `818 ms` (first-word compute `880 ms`, final utterance `0.186x` RTF — `5.4x` faster than real time), and warm offline M2M-100 CPU translation averages `892.5 ms`. True wall-clock time per word update depends on host GPU/CPU speed and selected translation engine.
+- Speech recognition and translation remain approximate. On an RTX 2050 laptop running cross-vendor Vulkan (`Q5_0`), `v1.1.4` averages `536.1 ms` per ASR streaming step (`919.6 ms` P95, `501.7 ms` 1st-word compute, `0.101x` final RTF — `9.9x` faster than real time) with `6.42%` mixed held-out FLEURS error (`9.71%` EN, `7.62%` ID, `3.33%` JA CER, `5.00%` RU), and `337.3 ms` warm M2M-100 CUDA translation (`297.8 ms` P50 vs `912.0 ms` P50 CPU baseline; `250 ms` GPU / `400 ms` CPU sliding windows, asynchronous MT worker). True wall-clock time depends on host GPU/CPU speed and selected translation engine.
 
 ---
 
@@ -106,7 +106,7 @@ node tests/CommunityDatabase/verify.mjs "$env:TEMP\pglite-verify\node_modules"
 ## Downloads & Configuration
 
 Prebuilt binaries are published on [GitHub Releases](https://github.com/nnavyy/LiveTranslatorOverlay/releases):
-- **Windows 10/11 x64 Setup Wizard (Recommended)**: `LiveTranslatorOverlay-Setup-1.1.3.exe` (one-click per-user installer — extracts binaries, installs Start Menu & Desktop shortcuts, and prepares speech models).
+- **Windows 10/11 x64 Setup Wizard (Recommended)**: `LiveTranslatorOverlay-Setup-1.1.4.exe` (one-click per-user installer — extracts binaries, installs Start Menu & Desktop shortcuts, and prepares speech models).
 - **Windows 10/11 x64 Portable Archive**: `LiveTranslatorOverlay-Windows-x64.zip` (self-contained .NET + CRT + Vulkan + CPU/NoAvx).
 - **macOS 14+ (`osx-arm64` / `osx-x64`)**: `LiveTranslatorOverlay-Mac-preview-*.zip` (Metal + CPU).
 

@@ -1,141 +1,127 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace LiveTranslatorOverlay.Core
 {
     public static class HallucinationDetector
     {
-        private static readonly string[] SubstringBlacklist =
+        private static readonly RegexOptions RxOpts =
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled;
+
+        private static readonly Regex WatermarkClauseRegex = new(
+            @"(?:(?:subtitles?|captions?|transcript|translated|translation|synced(?:\s+and\s+corrected)?)\s+(?:made\s+)?by\b|субтитр\w*\s+(?:сделал|создавал|подогнал|добавил|подготовил|предоставил|от)\b|редактор\s+субтитр\w*|корректор\b|перевод\s+субтитр\w*|субтитри\s+зробив|редактор\s+субтитрів|subtitrare\s+realizată|ترجمة\s+نانسي|terjemahan\s+oleh|diterjemahkan\s+oleh|subtitel\s+oleh)[^\r\n]*?(?=$|[\r\n]|[.!?](?:\s|$)|♪)",
+            RxOpts);
+
+        private static readonly Regex KnownWatermarkRegex = new(
+            @"[^.!?\r\n]*\b(?:dima\s*torzok|дима\s*торзок|amara\.org|opensubtitles(?:\.org)?|subscene)\b[^\r\n]*?(?=$|[\r\n]|[.!?](?:\s|$)|♪)",
+            RxOpts);
+
+        private static readonly Regex NonSpeechTagRegex = new(
+            @"\[(?:blank_audio|music|silence|noise|inaudible|singing|instrumental|applause|音楽|bgm|歌)\]|\((?:music|applause|singing|instrumental|音楽|bgm|歌)\)|【音楽】|[\u2669-\u266F]+",
+            RxOpts);
+
+        private static readonly HashSet<string> StandaloneClichéSet = new(StringComparer.Ordinal)
         {
-            // Subtitle credits & author tags
-            "dimatorzok", "dima torzok", "amara.org", "opensubtitles", "subscene",
-            "subtitles by", "subtitle by", "translated by", "translation by",
-            "captions by", "transcript by", "sync and", "encoded by",
-            "created by", "produced by", "presented by",
-            "terjemahan oleh", "diterjemahkan oleh", "subtitel oleh",
-            "\u0441\u0443\u0431\u0442\u0438\u0442\u0440",         // субтитр (субтитры, субтитров, etc.)
-            "\u0440\u0435\u0434\u0430\u043a\u0442\u043e\u0440 \u0441\u0443\u0431\u0442\u0438\u0442\u0440", // редактор субтитр
-            "\u043a\u043e\u0440\u0440\u0435\u043a\u0442\u043e\u0440",         // корректор
-            "\u043f\u0435\u0440\u0435\u0432\u043e\u0434 \u0441\u0443\u0431\u0442\u0438\u0442\u0440", // перевод субтитр
-            "\u5b57\u5e55",                           // 字幕 (Chinese: subtitles)
-
-            // Continuation & endings (hallucinated on pauses)
-            "\u043f\u0440\u043e\u0434\u043e\u043b\u0436\u0435\u043d\u0438\u0435 \u0441\u043b\u0435\u0434\u0443\u0435\u0442", // продолжение следует (to be continued)
-            "to be continued", "the end",
-            "\u043a\u043e\u043d\u0435\u0446", // конец (the end)
-            "\u5b8c",                                 // 完 (Chinese: the end)
-            "\u7d42\u308f\u308a",                     // 終わり (Japanese: the end)
-
-            // Thanks for watching / Subscribe hallucinations
-            "thank you for watching", "thanks for watching",
-            "thanks for listening", "thank you for listening",
+            "thank you for watching",
+            "thanks for watching",
+            "thanks for listening",
+            "thank you for listening",
             "thanks for the attention",
-            "\u0441\u043f\u0430\u0441\u0438\u0431\u043e \u0437\u0430 \u0432\u043d\u0438\u043c\u0430\u043d\u0438\u0435", // спасибо за внимание
-            "\u0441\u043f\u0430\u0441\u0438\u0431\u043e \u0437\u0430 \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440", // спасибо за просмотр
-            "please subscribe", "subscribe to my channel", "like and subscribe",
-            "\u043f\u043e\u0434\u043f\u0438\u0441\u044b\u0432\u0430\u0439\u0442\u0435\u0441\u044c", // подписывайтесь
-            "\u043f\u043e\u0434\u043f\u0438\u0441\u044b\u0432\u0430", // подписыва
-            "terima kasih telah menonton", "terima kasih sudah menonton", "jangan lupa subscribe",
-            "\u611f\u8c22\u89c2\u770b",               // 感谢观看 (Chinese: thanks for watching)
-            "\u8acb\u8a02\u95b1",                     // 請訂閱 (Chinese Traditional: subscribe)
-            "\u8bf7\u8ba2\u9605",                     // 请订阅 (Chinese Simplified: subscribe)
-
-            // Prompt & instruction echoes (Whisper hallucinating instructions during songs/music)
-            "日本語の会話を正確に書き起こしてください",
-            "会話の書き起こし",
-            "書き起こし",
-            "正確に書き起こして",
+            "please subscribe",
+            "subscribe to my channel",
+            "like and subscribe",
+            "to be continued",
+            "the end",
+            "продолжение следует",
+            "спасибо за просмотр",
+            "спасибо за внимание",
+            "подписывайтесь на канал",
+            "подписывайтесь",
+            "terima kasih telah menonton",
+            "terima kasih sudah menonton",
+            "jangan lupa subscribe",
+            "ご視聴ありがとうございました",
+            "ご視聴ありがとうございます",
+            "チャンネル登録",
+            "チャンネル登録お願いします",
+            "感谢观看",
+            "请订阅",
+            "請訂閱",
+            "시청해주셔서 감사합니다",
+            "구독과 좋아요",
+            "дякую за перегляд",
+            "дякуємо за перегляд",
+            "підписуйтесь на канал",
+            "підпишіться на канал",
+            "izlədiyiniz üçün təşəkkürlər",
+            "tomosha qilganingiz uchun rahmat",
+            "here is the translation",
+            "as an ai language model",
+            "i cannot translate",
+            "no text to translate",
+            "please provide the text",
             "transcribe spoken conversation directly",
             "accurate transcription of spoken conversation",
             "please transcribe the japanese conversation accurately",
-            "please transcribe",
-            "accurate transcription",
-            "transcribe the conversation",
-            "transcribe spoken conversation",
-            "transkripsikan percakapan",
-            "точная транскрипция",
-            "请准确转录",
-            "대화를 정확하게",
-            "نسخ المحادثة",
-
-            // Noise tags, music, and song markers
-            "[blank_audio]", "[music]", "(music)", "music playing", "applause",
-            "[silence]", "[noise]", "(applause)", "[inaudible]",
-            "[singing]", "(singing)", "[instrumental]", "(instrumental)",
-            "[音楽]", "(音楽)", "【音楽】", "[bgm]", "(bgm)",
-            "[歌]", "(歌)", "歌唱", "演奏", "効果音", "歓声",
-
-            // Musical note hallucinations (common Whisper artifact on background music)
-            "\u266a", "\u266b", "\u266c", "\u266d", "\u266e", "\u266f",
-            "\u2669",
-
-            // Japanese & Korean common hallucinations
-            "\u3054\u8996\u8074",                     // ご視聴 (watching)
-            "\u30c1\u30e3\u30f3\u30cd\u30eb\u767b\u9332", // チャンネル登録 (subscribe)
-            "\u3064\u3065\u304f",                     // つづく (to be continued)
-            "\u304a\u75b2\u308c\u69d8",               // お疲れ様 (otsukaresama - common hallucination)
-            "\uc2dc\uccad",                           // 시청 (viewing)
-            "\uad6c\ub3c5",                           // 구독 (subscribe)
-            "\uac10\uc0ac\ud569\ub2c8\ub2e4",         // 감사합니다 (thank you - Korean)
-
-            // Thai common hallucinations
-            "\u0e02\u0e2d\u0e1a\u0e04\u0e38\u0e13",   // ขอบคุณ (thank you - Thai)
-            "\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21",   // ติดตาม (follow/subscribe - Thai)
-
-            // Arabic common hallucinations
-            "\u0634\u0643\u0631\u0627 \u0644\u0643\u0645",   // شكرا لكم (thank you - Arabic)
-            "\u0627\u0634\u062a\u0631\u0643 \u0641\u064a \u0627\u0644\u0642\u0646\u0627\u0629", // اشترك في القناة (subscribe - Arabic)
-            "\u062a\u0631\u062c\u0645\u0629 \u0646\u0627\u0646\u0633\u064a", // ترجمة نانسي
-
-            // Ukrainian common hallucinations
-            "дякую за перегляд", "дякуємо за перегляд", "підписуйтесь на канал",
-            "підпишіться на канал", "далі буде", "субтитри зробив", "редактор субтитрів",
-
-            // Azerbaijani & Uzbek common hallucinations
-            "izlədiyiniz üçün təşəkkürlər", "kanala abunə olun", "altyazı",
-            "tomosha qilganingiz uchun rahmat", "obuna bo'ling",
-
-            // Georgian & Mongolian common hallucinations
-            "მადლობა ყურებისთვის", "გამოიწერეთ არხი", "სუბტიტრები",
-            "үзсэнд баярлалаа", "хадмал орчуулга",
-
-            // Balkan languages common hallucinations (Serbian, Croatian, Bosnian, Bulgarian, Romanian, Greek, Albanian, Macedonian, Slovenian)
-            "hvala na gledanju", "хвала на гледању", "pretplatite se", "претплатите се",
-            "благодаря за гледането", "абонирайте се",
-            "mulțumesc pentru vizionare", "abonați-vă", "subtitrare realizată",
-            "ευχαριστώ για την παρακολούθηση", "εγγραφείτε στο κανάλι", "υπότιτλοι",
-            "faleminderit për shikimin", "abonohuni në kanal",
-            "ви благодариме за гледањето", "претплатете се",
-            "hvala za ogled", "naročite se na kanal",
-
-            // LLM meta-commentary hallucinations
-            "here is the translation", "as an ai language model", "i cannot translate",
-            "no text to translate", "please provide the text"
+            "日本語の会話を正確に書き起こしてください",
+            "会話の書き起こし"
         };
 
-        public static bool IsWhisperArtifact(string text) =>
-            System.Text.RegularExpressions.Regex.IsMatch(text,
-                @"^\s*[\p{P}\s]*(?:субтитры\s+сделал|subtitles\s+made\s+by)\s+dima\s*torzok[\p{P}\s]*$",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        public static string StripWhisperArtifacts(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+            string cleaned = WatermarkClauseRegex.Replace(text, "");
+            cleaned = KnownWatermarkRegex.Replace(cleaned, "");
+            cleaned = NonSpeechTagRegex.Replace(cleaned, "");
+            cleaned = Regex.Replace(cleaned, @"[ \t]+", " ");
+            cleaned = Regex.Replace(cleaned, @"\s*[,;:\-]+\s*$", "");
+            cleaned = Regex.Replace(cleaned, @"(?<=[.!?])\s*[.!?]+\s*$", "");
+            cleaned = cleaned.Trim();
+
+            return cleaned.Any(char.IsLetterOrDigit) ? cleaned : string.Empty;
+        }
+
+        public static bool IsWhisperArtifact(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            return WatermarkClauseRegex.IsMatch(text) || KnownWatermarkRegex.IsMatch(text);
+        }
+
+        private static string NormalizeForComparison(string text)
+        {
+            var sb = new System.Text.StringBuilder(text.Length);
+            bool lastWasSpace = true;
+            foreach (char c in text)
+            {
+                if (char.IsLetterOrDigit(c))
+                {
+                    sb.Append(char.ToLowerInvariant(c));
+                    lastWasSpace = false;
+                }
+                else if (char.IsWhiteSpace(c) && !lastWasSpace)
+                {
+                    sb.Append(' ');
+                    lastWasSpace = true;
+                }
+            }
+            return sb.ToString().Trim();
+        }
 
         public static bool IsHallucination(string? text)
         {
             if (string.IsNullOrWhiteSpace(text)) return true;
 
             string trimmed = text.Trim();
-            string lower = trimmed.ToLowerInvariant();
+            string cleaned = StripWhisperArtifacts(trimmed);
+            if (string.IsNullOrWhiteSpace(cleaned)) return true;
 
-            // Punctuation and whitespace stripping for exact comparison
-            string stripped = new string(lower.Where(c => !char.IsPunctuation(c) && c != '\u266a' && c != '\u266b').ToArray()).Trim();
+            string stripped = NormalizeForComparison(cleaned);
             if (stripped.Length == 0) return true;
 
-            // Reject explicit non-speech tags; natural phrases alone do not prove hallucination.
-            foreach (var kw in SubstringBlacklist)
-            {
-                if (lower == kw && (kw.StartsWith("[") || kw.StartsWith("(")))
-                    return true;
-            }
+            if (StandaloneClichéSet.Contains(stripped)) return true;
 
             // Repeated characters check (e.g. "ааааааа", "......", "------")
             if (stripped.Length > 3)

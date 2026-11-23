@@ -1810,15 +1810,121 @@ public partial class MainWindow : Window
         var capture = new AudioCaptureService();
         _audioCaptureService = capture;
 
-        if (localService != null && mode is "local-auto" or "local-turbo")
+        if (localService != null)
         {
             var agreement = new StreamingAgreement();
             DateTime lastInterimTranslateUtc = DateTime.MinValue;
-            string lastTranslatedInput = "";
+            string lastQueuedInput = "";
+
+            var mtLock = new object();
+            var finalQueue = new Queue<(string Text, string TargetLang, string SourceLang, string SpeakerLabel, long AsrMs, bool IsFinal)>();
+            (string Text, string TargetLang, string SourceLang, string SpeakerLabel, long AsrMs, bool IsFinal)? pendingInterim = null;
+            var mtWake = new SemaphoreSlim(0);
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    while (!sessionToken.IsCancellationRequested)
+                    {
+                        await mtWake.WaitAsync(sessionToken);
+                        while (!sessionToken.IsCancellationRequested)
+                        {
+                            (string Text, string TargetLang, string SourceLang, string SpeakerLabel, long AsrMs, bool IsFinal) item;
+                            lock (mtLock)
+                            {
+                                if (finalQueue.Count > 0)
+                                {
+                                    item = finalQueue.Dequeue();
+                                }
+                                else if (pendingInterim.HasValue)
+                                {
+                                    item = pendingInterim.Value;
+                                    pendingInterim = null;
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+
+                            var mtSw = System.Diagnostics.Stopwatch.StartNew();
+                            string finalTranslation = "";
+                            try
+                            {
+                                if (_translationProvider is LocalTranslateProvider localMt)
+                                {
+                                    string raw = await localMt.TranslateAsync(item.Text, item.TargetLang, item.SourceLang, fastInterim: !item.IsFinal);
+                                    finalTranslation = HallucinationDetector.StripWhisperArtifacts(raw);
+                                }
+                                else
+                                {
+                                    await _translationProvider.TranslateStreamAsync(item.Text, item.TargetLang, item.SourceLang, piece =>
+                                    {
+                                        string cleanPiece = HallucinationDetector.StripWhisperArtifacts(piece);
+                                        finalTranslation = cleanPiece;
+                                        Dispatcher.Invoke(() =>
+                                        {
+                                            if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
+                                            if (string.IsNullOrWhiteSpace(cleanPiece) || IsWhisperHallucination(cleanPiece))
+                                            {
+                                                CaptionTranslated.Text = "";
+                                                return;
+                                            }
+                                            CaptionTranslated.Text = cleanPiece;
+                                            ShowSubtitleWithAnimation();
+                                        });
+                                    });
+                                }
+                                mtSw.Stop();
+
+                                if (sessionToken.IsCancellationRequested) break;
+
+                                if (string.IsNullOrWhiteSpace(finalTranslation) || IsWhisperHallucination(finalTranslation))
+                                {
+                                    Dispatcher.Invoke(() =>
+                                    {
+                                        if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
+                                        CaptionTranslated.Text = "";
+                                    });
+                                    continue;
+                                }
+
+                                if (JapaneseScriptConverter.IsMultiScriptLanguage(item.TargetLang) && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
+                                {
+                                    string formatted = await FormatJapaneseTextIfNeededAsync(finalTranslation, item.TargetLang);
+                                    if (!string.IsNullOrWhiteSpace(formatted))
+                                        finalTranslation = formatted;
+                                }
+
+                                Dispatcher.Invoke(() =>
+                                {
+                                    if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
+                                    CaptionTranslated.Text = finalTranslation;
+                                    ShowSubtitleWithAnimation();
+                                    TxtAudioStatus.Text = $"Streaming · {localService.ActiveModelLabel} ({localService.BackendLabel}) · ASR {item.AsrMs} ms · MT {mtSw.ElapsedMilliseconds} ms";
+                                    if (item.IsFinal && !string.IsNullOrWhiteSpace(finalTranslation))
+                                    {
+                                        AppendToHistory($"[{item.SpeakerLabel}] {item.Text}", finalTranslation);
+                                    }
+                                });
+                            }
+                            catch (OperationCanceledException) when (sessionToken.IsCancellationRequested) { break; }
+                            catch (Exception ex)
+                            {
+                                Dispatcher.Invoke(() => { if (!sessionToken.IsCancellationRequested) CaptionTranslated.Text = $"[Error: {ex.Message}]"; });
+                            }
+                        }
+                    }
+                }
+                catch (OperationCanceledException) when (sessionToken.IsCancellationRequested) { }
+                finally { mtWake.Dispose(); }
+            }, sessionToken);
 
             capture.EnableStreamingWindows = true;
-            capture.StreamingStepMs = 300;
-            capture.StreamingMaxWindowMs = 10000;
+            capture.StreamingStepMs = localService.UsingGpu ? 250 : 400;
+            capture.StreamingMaxWindowMs = localService.UsingGpu ? 6500 : 7000;
+            capture.StreamingSilenceCommitMs = localService.UsingGpu ? 450 : 550;
             capture.StreamingWindowHandler = async (chunk, isFinal) =>
             {
                 if (sessionToken.IsCancellationRequested) return;
@@ -1844,6 +1950,7 @@ public partial class MainWindow : Window
                     asrSw.Stop();
 
                     if (sessionToken.IsCancellationRequested) return;
+                    transcribed = HallucinationDetector.StripWhisperArtifacts(transcribed);
                     if (!isFinal && (string.IsNullOrWhiteSpace(transcribed) || IsWhisperHallucination(transcribed) || HallucinationDetector.IsWhisperArtifact(transcribed)))
                         return;
 
@@ -1854,13 +1961,13 @@ public partial class MainWindow : Window
                         ? agreement.FinalizeSegment(transcribed)
                         : agreement.Observe(transcribed);
 
-                    string stableOrLive = state.FullText;
-                    if (string.IsNullOrWhiteSpace(stableOrLive))
+                    string stableOrLive = HallucinationDetector.StripWhisperArtifacts(state.FullText);
+                    if (string.IsNullOrWhiteSpace(stableOrLive) || IsWhisperHallucination(stableOrLive))
                     {
                         if (isFinal)
                         {
                             agreement.Reset();
-                            lastTranslatedInput = "";
+                            lastQueuedInput = "";
                         }
                         return;
                     }
@@ -1883,63 +1990,39 @@ public partial class MainWindow : Window
                         ShowSubtitleWithAnimation();
                     });
 
-                    bool shouldTranslate = isFinal
-                        || (!string.IsNullOrWhiteSpace(state.FullText)
-                            && !string.Equals(state.FullText, lastTranslatedInput, StringComparison.Ordinal)
-                            && (DateTime.UtcNow - lastInterimTranslateUtc).TotalMilliseconds >= 600);
+                    bool shouldQueueMt = isFinal
+                        || (!string.Equals(stableOrLive, lastQueuedInput, StringComparison.Ordinal)
+                            && (!string.IsNullOrWhiteSpace(state.NewlyCommittedText)
+                                || string.IsNullOrEmpty(lastQueuedInput)
+                                || (DateTime.UtcNow - lastInterimTranslateUtc).TotalMilliseconds >= 250));
 
-                    if (shouldTranslate && !sessionToken.IsCancellationRequested)
+                    if (shouldQueueMt && !sessionToken.IsCancellationRequested)
                     {
-                        lastTranslatedInput = state.FullText;
+                        lastQueuedInput = stableOrLive;
                         lastInterimTranslateUtc = DateTime.UtcNow;
-                        var mtSw = System.Diagnostics.Stopwatch.StartNew();
-                        string finalTranslation = "";
-                        await _translationProvider.TranslateStreamAsync(state.FullText, targetLang, sourceLang, piece =>
+                        lock (mtLock)
                         {
-                            finalTranslation = piece;
-                            Dispatcher.Invoke(() =>
+                            if (!sessionToken.IsCancellationRequested)
                             {
-                                if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
-                                if (IsWhisperHallucination(piece))
+                                if (isFinal)
                                 {
-                                    CaptionTranslated.Text = "";
-                                    return;
+                                    pendingInterim = null;
+                                    finalQueue.Enqueue((stableOrLive, targetLang, sourceLang, speakerLabel, asrSw.ElapsedMilliseconds, true));
                                 }
-                                CaptionTranslated.Text = piece;
-                                ShowSubtitleWithAnimation();
-                            });
-                        });
-                        mtSw.Stop();
-
-                        if (JapaneseScriptConverter.IsMultiScriptLanguage(targetLang) && GetSelectedJapaneseScriptStyle() != JapaneseScriptStyle.Standard)
-                        {
-                            string formatted = await FormatJapaneseTextIfNeededAsync(finalTranslation, targetLang);
-                            if (!string.IsNullOrWhiteSpace(formatted) && formatted != finalTranslation)
-                            {
-                                finalTranslation = formatted;
-                                Dispatcher.Invoke(() =>
+                                else
                                 {
-                                    if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
-                                    CaptionTranslated.Text = finalTranslation;
-                                });
+                                    pendingInterim = (stableOrLive, targetLang, sourceLang, speakerLabel, asrSw.ElapsedMilliseconds, false);
+                                }
+                                try { mtWake.Release(); }
+                                catch (ObjectDisposedException) { }
                             }
                         }
-
-                        Dispatcher.Invoke(() =>
-                        {
-                            if (!_isAudioMode || sessionToken.IsCancellationRequested) return;
-                            TxtAudioStatus.Text = $"Streaming · {localService.ActiveModelLabel} ({localService.BackendLabel}) · ASR {asrSw.ElapsedMilliseconds} ms · MT {mtSw.ElapsedMilliseconds} ms";
-                            if (isFinal && !string.IsNullOrWhiteSpace(finalTranslation))
-                            {
-                                AppendToHistory($"[{speakerLabel}] {state.FullText}", finalTranslation);
-                            }
-                        });
                     }
 
                     if (isFinal)
                     {
                         agreement.Reset();
-                        lastTranslatedInput = "";
+                        lastQueuedInput = "";
                     }
                 }
                 catch (OperationCanceledException) when (sessionToken.IsCancellationRequested) { }
@@ -1953,7 +2036,7 @@ public partial class MainWindow : Window
             await capture.StartAsync(GetSelectedDeviceId(), GetSelectedProcessId(), sessionToken);
             if (sessionToken.IsCancellationRequested) { capture.Dispose(); return; }
             StartUsageClock(capture);
-            TxtAudioStatus.Text = $"Active live streaming: {localService.ActiveModelLabel} ({localService.BackendLabel}) · 300 ms sliding window.";
+            TxtAudioStatus.Text = $"Active live streaming: {localService.ActiveModelLabel} ({localService.BackendLabel}) · {capture.StreamingStepMs} ms sliding window.";
             CaptionTranslated.Text = "[Waiting for audio...]";
             return;
         }

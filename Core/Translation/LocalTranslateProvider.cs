@@ -35,7 +35,10 @@ public sealed class LocalTranslateProvider : ITranslationProvider, IDisposable
         finally { _serial.Release(); }
     }
 
-    public async Task<string> TranslateAsync(string text, string targetLanguage = "id", string sourceLanguage = "auto")
+    public Task<string> TranslateAsync(string text, string targetLanguage = "id", string sourceLanguage = "auto") =>
+        TranslateAsync(text, targetLanguage, sourceLanguage, fastInterim: false);
+
+    public async Task<string> TranslateAsync(string text, string targetLanguage, string sourceLanguage, bool fastInterim)
     {
         if (string.IsNullOrWhiteSpace(text)) return "";
         if (sourceLanguage == "auto" || targetLanguage == "auto")
@@ -60,7 +63,7 @@ public sealed class LocalTranslateProvider : ITranslationProvider, IDisposable
             {
                 await EnsureDaemonStartedAsync(configPath, stamp, timeout.Token);
                 var process = _daemonProcess!;
-                string payload = JsonSerializer.Serialize(new { text, source = sourceLanguage, target = targetLanguage });
+                string payload = JsonSerializer.Serialize(new { text, source = sourceLanguage, target = targetLanguage, fast = fastInterim });
                 await process.StandardInput.WriteLineAsync(payload.AsMemory(), timeout.Token);
                 await process.StandardInput.FlushAsync(timeout.Token);
 

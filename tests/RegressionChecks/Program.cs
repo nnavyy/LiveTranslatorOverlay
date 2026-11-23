@@ -94,6 +94,20 @@ Confirm("Silence and repetition stay filtered",
     && HallucinationDetector.IsHallucination("hello hello hello hello")
     && !WhisperSttService.HasSustainedVoiceActivity(new float[32000]), "noise controls");
 
+string strippedSpeech = HallucinationDetector.StripWhisperArtifacts("Привет мир. Subtitles by DimaTorzok");
+Confirm("Fansub watermarks and end-screen clichés are rejected while preserving real speech",
+    HallucinationDetector.IsHallucination("Subtitle by DimaTorzok")
+    && HallucinationDetector.IsHallucination("Subtitles by DimaTorzok")
+    && HallucinationDetector.IsHallucination("Субтитры сделал DimaTorzok")
+    && HallucinationDetector.IsHallucination("Редактор субтитров А.Синецкая Корректор А.Егорова")
+    && HallucinationDetector.IsHallucination("Subtitles by the Amara.org community")
+    && HallucinationDetector.IsHallucination("Thank you for watching")
+    && strippedSpeech == "Привет мир."
+    && !HallucinationDetector.IsHallucination("thank you")
+    && !HallucinationDetector.IsHallucination("спасибо")
+    && !HallucinationDetector.IsHallucination("terima kasih"),
+    $"stripped='{strippedSpeech}'");
+
 var loc = LocalizationManager.Instance;
 var strings = Get<Dictionary<string, Dictionary<string, string>>>(loc, "_strings");
 var missing = strings["en"].Keys.Where(k => !strings["es"].ContainsKey(k)).ToArray();
@@ -115,22 +129,22 @@ var assemblyVersion = typeof(GroqTranslateProvider).Assembly.GetName().Version!;
 Confirm("Compiled version and release notes agree", assemblyVersion.Major == AppVersion.Current.Major
     && assemblyVersion.Minor == AppVersion.Current.Minor && assemblyVersion.Build == AppVersion.Current.Build
     && ReleaseNotes.Text.Contains(AppVersion.DisplayString), $"assembly={assemblyVersion}; notes={AppVersion.DisplayString}");
-Confirm("Machine-learning edition reports 1.1.3 and can advance to 1.1.4",
-    AppVersion.Current == new Version(1, 1, 3) && AppVersion.IsNewerThanCurrent("1.1.4"),
-    $"installed={AppVersion.DisplayString}; next=1.1.4");
+Confirm("Machine-learning edition reports 1.1.4 and can advance to 1.1.5",
+    AppVersion.Current == new Version(1, 1, 4) && AppVersion.IsNewerThanCurrent("1.1.5"),
+    $"installed={AppVersion.DisplayString}; next=1.1.5");
 var payload = Encoding.UTF8.GetBytes("stable update test fixture");
 var checksum = Convert.ToHexString(SHA256.HashData(payload));
 string manifest = $$"""
-    {"line":"ml","channel":"stable","version":"1.1.4","packages":{
-      "win-x64":{"url":"https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.1.4-ml/LiveTranslatorOverlay-Windows-x64.zip",
+    {"line":"ml","channel":"stable","version":"1.1.5","packages":{
+      "win-x64":{"url":"https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/v1.1.5-ml/LiveTranslatorOverlay-Windows-x64.zip",
       "size":{{payload.Length}},"sha256":"{{checksum}}"}
     }
     }
     """;
 var nextRelease = StableRelease.Read(manifest, "win-x64")!;
 string betaManifest = $$"""
-    {"line":"ml","channel":"beta","version":"1.1.4","packages":{
-      "win-x64":{"url":"https://example.supabase.co/storage/v1/object/sign/beta-releases/v1.1.4/win-x64/LiveTranslatorOverlay-Windows-x64.zip?token=sig123",
+    {"line":"ml","channel":"beta","version":"1.1.5","packages":{
+      "win-x64":{"url":"https://example.supabase.co/storage/v1/object/sign/beta-releases/v1.1.5/win-x64/LiveTranslatorOverlay-Windows-x64.zip?token=sig123",
       "size":{{payload.Length}},"sha256":"{{checksum}}"}
     }
     }
@@ -140,7 +154,7 @@ bool publicBetaUrlRejected = false;
 try { StableRelease.Read(manifest.Replace("\"stable\"", "\"beta\""), "win-x64", "beta"); }
 catch (InvalidDataException) { publicBetaUrlRejected = true; }
 string devManifest = $$"""
-    {"line":"ml","channel":"dev","version":"1.1.4","packages":{
+    {"line":"ml","channel":"dev","version":"1.1.5","packages":{
       "win-x64":{"url":"file:///C:/temp/LiveTranslatorOverlay-Windows-x64.zip","size":{{payload.Length}},"sha256":"{{checksum}}"}
     }
     }
@@ -186,7 +200,7 @@ try
         Set(updater, "_httpClient", client);
         bool staged = await updater.CheckAndDownloadAsync();
         Confirm("Update stages the verified 1.x package without replacing user configuration", staged && updater.IsUpdateReady
-            && updater.PendingVersion == "v1.1.4" && File.Exists(Path.Combine(updater.StagedDirectory, "LiveTranslatorOverlay.exe"))
+            && updater.PendingVersion == "v1.1.5" && File.Exists(Path.Combine(updater.StagedDirectory, "LiveTranslatorOverlay.exe"))
             && !File.Exists(Path.Combine(updater.StagedDirectory, "appsettings.json")), $"pending={updater.PendingVersion}");
 
         var unpublished = new AutoUpdaterService();
@@ -293,7 +307,7 @@ Confirm("Only explicit report mappings change resolution", keptPending && record
 
 int historyFailures = HistoryChecks.Run();
 int termsFailures = TermsChecks.Run();
-Console.WriteLine($"Regression result: {observed}/24 passed"); Environment.ExitCode = observed == 24 && historyFailures == 0 && termsFailures == 0 ? 0 : 1;
+Console.WriteLine($"Regression result: {observed}/25 passed"); Environment.ExitCode = observed == 25 && historyFailures == 0 && termsFailures == 0 ? 0 : 1;
 sealed class PurchasePreviewHandler : HttpMessageHandler
 {
     public const string Receipt = "00000000-0000-4000-8000-000000000099";
