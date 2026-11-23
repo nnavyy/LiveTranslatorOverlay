@@ -864,28 +864,30 @@ internal sealed class CommunityWindow : Window
         var codeBox = new TextBox { MaxLength = 6, Padding = new Thickness(10, 6), Margin = new Thickness(0, 0, 0, 8), Classes = { "community-input" } };
         var sendCodeBtn = ActionButton("Send login code");
         var verifyBtn = ActionButton("Sign in", primary: true);
+        var refreshBtn = ActionButton("Refresh access status");
         var signOutBtn = ActionButton("Sign out");
         var authStatus = MutedLine("", size: 12.5, bottom: 8);
         authStatus.Foreground = SolidBrush("#B8F2D0");
 
+        var settings = AppSettings.Load();
+        bool showDevChannel = Array.Exists(Environment.GetCommandLineArgs(), arg => string.Equals(arg, "--developer", StringComparison.Ordinal))
+            || string.Equals(settings.UpdateChannel, "dev", StringComparison.OrdinalIgnoreCase);
+        var channelOptions = new List<(string Key, string Label)>
+        {
+            ("stable", "Stable (Public · Free & US$19.99 Supporter)"),
+            ("beta", "Beta (Early access · Developer-granted US$100 Insider)")
+        };
+        if (showDevChannel)
+            channelOptions.Add(("dev", "Dev (Owner local feed)"));
+
         var channelCombo = new ComboBox
         {
-            ItemsSource = new[]
-            {
-                "Main / Stable (Free & US$19.99 Supporter)",
-                "Beta (Early access · US$100 Insider)",
-                "Dev (Owner workspace local feed)"
-            },
+            ItemsSource = channelOptions.Select(o => o.Label).ToArray(),
             Margin = new Thickness(0, 0, 0, 6),
             Classes = { "community-combo" }
         };
-        var settings = AppSettings.Load();
-        channelCombo.SelectedIndex = settings.UpdateChannel switch
-        {
-            "beta" => 1,
-            "dev" => 2,
-            _ => 0
-        };
+        int initialIdx = channelOptions.FindIndex(o => string.Equals(o.Key, settings.UpdateChannel, StringComparison.OrdinalIgnoreCase));
+        channelCombo.SelectedIndex = initialIdx >= 0 ? initialIdx : 0;
         var channelHint = MutedLine("", size: 12, bottom: 0);
 
         void RefreshView()
@@ -897,7 +899,7 @@ internal sealed class CommunityWindow : Window
                     ? $"Not signed in. Login is optional for translation & guest donations (shown as {hw.GuestDisplayTag}), and required for Community Rankings or badges. OTP emails send from {ProjectDomainConfig.NoReplyAddress}."
                     : $"Not signed in (local staging ready). Login is optional for guest donations ({hw.GuestDisplayTag}); enter email + any 6 digits (e.g. 123456) to sign in for rankings & badges.";
                 emailBox.IsVisible = codeBox.IsVisible = sendCodeBtn.IsVisible = verifyBtn.IsVisible = true;
-                signOutBtn.IsVisible = false;
+                refreshBtn.IsVisible = signOutBtn.IsVisible = false;
                 historyList.Children.Clear();
                 var guestLedger = client.GetGuestDonations();
                 if (guestLedger?.History is { Length: > 0 })
@@ -918,7 +920,7 @@ internal sealed class CommunityWindow : Window
                 string entitlementSuffix = session.Entitlement != null ? " · ECDSA signed" : "";
                 accountSummaryText.Text = $"Signed in: {session.Email} ({modeLabel}{entitlementSuffix})\nActive tier: {session.TierDisplayName}\nTracked donations & support: {AccountSessionStore.FormatUsd(session.TotalDonatedCents)} · Device: {hwidLabel}";
                 emailBox.IsVisible = codeBox.IsVisible = sendCodeBtn.IsVisible = verifyBtn.IsVisible = false;
-                signOutBtn.IsVisible = true;
+                refreshBtn.IsVisible = signOutBtn.IsVisible = true;
                 historyList.Children.Clear();
                 if (session.History is { Length: > 0 })
                 {
@@ -930,13 +932,13 @@ internal sealed class CommunityWindow : Window
                 }
             }
 
-            string ch = channelCombo.SelectedIndex switch { 1 => "beta", 2 => "dev", _ => "stable" };
+            string ch = channelOptions[Math.Max(0, channelCombo.SelectedIndex)].Key;
             channelHint.Text = ch switch
             {
                 "beta" => session?.BetaAccessUnlocked == true
-                    ? "Beta channel unlocked on your Insider account (updates/ml-beta.json)."
-                    : "Beta builds belong to US$100 Lifetime Insiders (tracks updates/ml-beta.json).",
-                "dev" => "Dev channel checks your local owner build feed when configured.",
+                    ? "Beta channel unlocked on your Insider account (authenticated private server feed)."
+                    : "Locked — requires developer-verified US$100 Lifetime Insider grant. Sign in and click 'Refresh access status' after approval.",
+                "dev" => "Dev channel checks your owner local build feed when configured.",
                 _ => "Stable channel receives verified public releases from updates/ml-stable.json."
             };
         }
@@ -946,9 +948,21 @@ internal sealed class CommunityWindow : Window
 
         channelCombo.SelectionChanged += (_, _) =>
         {
+            string selectedKey = channelOptions[Math.Max(0, channelCombo.SelectedIndex)].Key;
             var current = AppSettings.Load();
-            current.UpdateChannel = channelCombo.SelectedIndex switch { 1 => "beta", 2 => "dev", _ => "stable" };
-            current.Save();
+            if (selectedKey == "beta" && client.GetCachedSession()?.BetaAccessUnlocked != true)
+            {
+                if (!string.Equals(current.UpdateChannel, "stable", StringComparison.OrdinalIgnoreCase))
+                {
+                    current.UpdateChannel = "stable";
+                    current.Save();
+                }
+            }
+            else
+            {
+                current.UpdateChannel = selectedKey;
+                current.Save();
+            }
             RefreshView();
         };
 
@@ -985,6 +999,28 @@ internal sealed class CommunityWindow : Window
             }
         };
 
+        refreshBtn.Click += async (_, _) =>
+        {
+            refreshBtn.IsEnabled = signOutBtn.IsEnabled = false;
+            try
+            {
+                var res = await client.RefreshAccountStatusAsync(_lifetime.Token);
+                authStatus.Text = res.Message;
+                if (res.Success && res.Session?.BetaAccessUnlocked == true &&
+                    channelOptions[Math.Max(0, channelCombo.SelectedIndex)].Key == "beta")
+                {
+                    var current = AppSettings.Load();
+                    current.UpdateChannel = "beta";
+                    current.Save();
+                }
+                NotifyAccountChanged();
+            }
+            finally
+            {
+                if (!_lifetime.IsCancellationRequested) refreshBtn.IsEnabled = signOutBtn.IsEnabled = true;
+            }
+        };
+
         signOutBtn.Click += (_, _) =>
         {
             client.SignOut();
@@ -1001,7 +1037,7 @@ internal sealed class CommunityWindow : Window
                 accountSummaryText,
                 emailBox,
                 codeBox,
-                new WrapPanel { ItemSpacing = 8, Margin = new Thickness(0, 0, 0, 6), Children = { sendCodeBtn, verifyBtn, signOutBtn } },
+                new WrapPanel { ItemSpacing = 8, Margin = new Thickness(0, 0, 0, 6), Children = { sendCodeBtn, verifyBtn, refreshBtn, signOutBtn } },
                 authStatus,
                 historyList,
                 MutedLine("Release update channel", size: 12, bottom: 4, semiBold: true),

@@ -7,11 +7,10 @@ public sealed record StableRelease(Version Version, Uri DownloadUri, long Size, 
 {
     private const string Downloads = "https://github.com/nnavyy/LiveTranslatorOverlay/releases/download/";
     public const string ManifestUrl = "https://raw.githubusercontent.com/nnavyy/LiveTranslatorOverlay/main/updates/ml-stable.json";
-    public const string BetaManifestUrl = "https://raw.githubusercontent.com/nnavyy/LiveTranslatorOverlay/beta/updates/ml-beta.json";
 
     public static string GetManifestUrl(string channel) => channel?.Trim().ToLowerInvariant() switch
     {
-        "beta" => BetaManifestUrl,
+        "beta" => "",
         _ => ManifestUrl
     };
 
@@ -61,11 +60,17 @@ public sealed record StableRelease(Version Version, Uri DownloadUri, long Size, 
         }
         else if (normalizedChannel == "beta")
         {
-            var mlUrl = $"{Downloads}v{version}-ml/{fileName}";
-            var betaUrl = $"{Downloads}v{version}-ml-beta/{fileName}";
-            if (rawUrl != mlUrl && rawUrl != betaUrl)
-                throw new InvalidDataException("The beta package metadata is invalid.");
-            resolvedUri = new Uri(rawUrl);
+            if (!Uri.TryCreate(rawUrl, UriKind.Absolute, out var parsed) ||
+                !parsed.AbsolutePath.EndsWith("/" + fileName, StringComparison.OrdinalIgnoreCase) ||
+                !(parsed.Scheme == Uri.UriSchemeHttp && parsed.IsLoopback ||
+                  parsed.Scheme == Uri.UriSchemeHttps &&
+                  (parsed.AbsolutePath.Contains("/storage/v1/object/sign/", StringComparison.OrdinalIgnoreCase) ||
+                   parsed.Host.EndsWith(".supabase.co", StringComparison.OrdinalIgnoreCase) ||
+                   parsed.Host.Equals("livetranslator.app", StringComparison.OrdinalIgnoreCase))))
+            {
+                throw new InvalidDataException("The beta package metadata must use a server-authorized URL.");
+            }
+            resolvedUri = parsed;
         }
         else
         {

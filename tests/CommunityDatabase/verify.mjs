@@ -26,6 +26,7 @@ try {
   await db.exec(await readFile(new URL('../../supabase/migrations/20261111210000_public_profile_support.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(new URL('../../supabase/migrations/20261123120000_account_login_donations_and_tiers.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(new URL('../../supabase/migrations/20261123180000_guest_donations_hwid_and_antiabuse.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../../supabase/migrations/20261123210000_owner_grants_and_private_beta.sql', import.meta.url), 'utf8'));
   const board = async (kind, search = '', offset = 0) =>
     (await db.query('select public.lt_community_board($1, $2, $3) as board', [kind, search, offset])).rows[0].board;
 
@@ -190,9 +191,78 @@ try {
     db.query('select community_private.submit_usage_with_device($1, $2, $3, $4)',
       ['00000000-0000-4000-8000-000000000052', segT0, segT1, hwid2]),
     { code: '42501' });
+  await db.exec('reset role');
+
+  // Owner 1-by-1 grants & authenticated private beta gating checks
+  const charlie = '00000000-0000-4000-8000-000000000005';
+  await db.query('insert into auth.users values ($1, $2, now())', [charlie, `${charlie}@example.test`]);
+
+  await db.exec('set role anon');
+  await assert.rejects(db.query("select public.lt_get_beta_release_metadata('win-x64')"), { code: '42501' });
+  await assert.rejects(db.query("select public.lt_admin_list_requests('all', 10)"), { code: '42501' });
+  await assert.rejects(db.query("select public.lt_admin_grant_support($1)", [charlie]), { code: '42501' });
+  await assert.rejects(db.query("select public.lt_admin_revoke_support($1)", [charlie]), { code: '42501' });
+  await assert.rejects(db.query("select public.lt_admin_grant_guest_donation($1)", [charlie]), { code: '42501' });
+  await assert.rejects(db.query("select public.lt_admin_set_beta_access($1, true)", [charlie]), { code: '42501' });
+  await assert.rejects(db.query("select public.lt_admin_register_beta_release('1.1.2', 'win-x64', 'v1.1.2/win-x64/LiveTranslatorOverlay-Windows-x64.zip', 123, repeat('a', 64), '')"), { code: '42501' });
+  await db.exec('reset role');
+
+  await setUser(charlie);
+  await db.exec('set role authenticated');
+  await assert.rejects(db.query("select public.lt_get_beta_release_metadata('win-x64')"), { code: '42501' });
+  await assert.rejects(db.query("select public.lt_admin_list_requests('all', 10)"), { code: '42501' });
+  const charlieReq = (await db.query("select public.lt_submit_support_request('insider', 10000, 'Beta access please') as res")).rows[0].res;
+  const charlieReqId = charlieReq.requestId;
+  await db.exec('reset role');
+
+  await db.query("select public.lt_admin_register_beta_release('1.1.2', 'win-x64', 'v1.1.2/win-x64/LiveTranslatorOverlay-Windows-x64.zip', 654321, $1, 'Private beta build')", ['a'.repeat(64)]);
+  const adminPending = (await db.query("select public.lt_admin_list_requests('pending', 50) as res")).rows[0].res;
+  assert(adminPending.accountRequests.some((r) => r.requestId === charlieReqId && r.email === `${charlie}@example.test` && r.offer === 'insider'));
+
+  const granted = (await db.query("select public.lt_admin_grant_support($1, null, 'Verified payment') as res", [charlieReqId])).rows[0].res;
+  assert.equal(granted.status, 'verified');
+  assert.equal(granted.betaAccessUnlocked, true);
+
+  await setUser(charlie);
+  await db.exec('set role authenticated');
+  const charlieSummary = (await db.query('select public.lt_my_account_summary() as res')).rows[0].res;
+  assert.equal(charlieSummary.activeTier, 'insider');
+  assert.equal(charlieSummary.verifiedTotalCents, 10000);
+  assert.equal(charlieSummary.betaAccessUnlocked, true);
+  const betaMeta = (await db.query("select public.lt_get_beta_release_metadata('win-x64') as res")).rows[0].res;
+  assert.equal(betaMeta.available, true);
+  assert.equal(betaMeta.version, '1.1.2');
+  assert.equal(betaMeta.size, 654321);
+  assert.equal(betaMeta.sha256, 'A'.repeat(64));
+  await db.exec('reset role');
+
+  const revoked = (await db.query("select public.lt_admin_revoke_support($1, 'Refund issued') as res", [charlieReqId])).rows[0].res;
+  assert.equal(revoked.status, 'cancelled');
+  assert.equal(revoked.betaAccessUnlocked, false);
+  await setUser(charlie);
+  await db.exec('set role authenticated');
+  await assert.rejects(db.query("select public.lt_get_beta_release_metadata('win-x64')"), { code: '42501' });
+  assert.equal((await db.query('select public.lt_my_account_summary() as res')).rows[0].res.betaAccessUnlocked, false);
+  await db.exec('reset role');
+
+  await db.query("select public.lt_admin_set_beta_access($1, true, 'Invited beta tester')", [charlie]);
+  await setUser(charlie);
+  await db.exec('set role authenticated');
+  assert.equal((await db.query("select public.lt_get_beta_release_metadata('win-x64') as res")).rows[0].res.available, true);
+  await db.exec('reset role');
+  await db.query("select public.lt_admin_set_beta_access($1, false, 'Removed')", [charlie]);
+
+  const hwidGuest3 = 'feedface' + '2'.repeat(56);
+  const expectedGuest3Tag = 'User#' + String(((parseInt(hwidGuest3.slice(0, 8), 16) >>> 0) % 90000) + 10000).padStart(5, '0');
+  await db.exec('set role anon');
+  const guest3Req = (await db.query("select public.lt_submit_guest_donation(2500, $1, 'Guest donation') as res", [hwidGuest3])).rows[0].res;
+  await db.exec('reset role');
+  const grantedGuest = (await db.query("select public.lt_admin_grant_guest_donation($1, 'Confirmed') as res", [guest3Req.requestId])).rows[0].res;
+  assert.equal(grantedGuest.status, 'verified');
+  assert.equal(grantedGuest.guestTag, expectedGuest3Tag);
 
   console.log('Community SQL passed: consent, closed defaults, overlap, UTC boundaries, ties, pagination, refunds, and private access.');
   console.log('Manual purchase preview & account tracking passed: verified accounts, tier/donation validation, private ledger, and summary projection.');
   console.log('Guest donations & HWID anti-abuse passed: User#XXXXX parity, 5/24h anon rate limit, supporter rank ordering, and cross-account Sybil guard.');
-  console.log('Guest User#XXXXX donations, unsigned HWID tag parity, per-device rate limit, and Sybil usage blocking passed.');
+  console.log('Owner 1-by-1 grants & private beta metadata passed: admin RLS, support+beta unlock, revocation, and guest verification.');
 } finally { await db.close(); }

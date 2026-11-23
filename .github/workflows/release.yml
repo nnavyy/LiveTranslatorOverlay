@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - beta
       - 'release/ml-1.0'
     tags:
       - 'v*'
@@ -62,10 +61,26 @@ jobs:
         run: |
           Compress-Archive -Path ./publish/* -DestinationPath ./LiveTranslatorOverlay-Windows-x64.zip -Force
 
+      - name: Build Windows Setup Installer (.exe)
+        run: |
+          $makensis = Get-Command makensis.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+          if (-not $makensis -and (Test-Path 'C:\Program Files (x86)\NSIS\makensis.exe')) {
+            $makensis = 'C:\Program Files (x86)\NSIS\makensis.exe'
+          }
+          if (-not $makensis) {
+            choco install nsis -y --no-progress
+            $makensis = 'C:\Program Files (x86)\NSIS\makensis.exe'
+          }
+          [xml]$project = Get-Content LiveTranslatorOverlay.csproj
+          $ver = [string]$project.Project.PropertyGroup.Version
+          ./scripts/build-setup.ps1 -PublishDirectory ./publish -SetupFile "./LiveTranslatorOverlay-Setup-$ver.exe" -Compiler $makensis
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-release
-          path: LiveTranslatorOverlay-Windows-x64.zip
+          path: |
+            LiveTranslatorOverlay-Windows-x64.zip
+            LiveTranslatorOverlay-Setup-*.exe
 
   mac-preview:
     strategy:
@@ -116,7 +131,9 @@ jobs:
           draft: false
           prerelease: ${{ contains(github.ref_name, '-beta') }}
           body_path: RELEASE_NOTES.md
-          files: release-assets/LiveTranslatorOverlay-Windows-x64.zip
+          files: |
+            release-assets/LiveTranslatorOverlay-Setup-*.exe
+            release-assets/LiveTranslatorOverlay-Windows-x64.zip
       - name: Publish separate Mac developer preview
         uses: softprops/action-gh-release@v2
         with:

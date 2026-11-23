@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/Platform-Windows%2010%2F11%20%7C%20macOS%2014%2B-0078D6?style=for-the-badge" alt="Windows and macOS" />
   <img src="https://img.shields.io/badge/GPU-Vulkan%20%7C%20Metal%20%7C%20CPU-blueviolet?style=for-the-badge" alt="Vulkan Metal CPU" />
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License" />
-  <img src="https://img.shields.io/badge/Version-1.1.1-brightgreen?style=for-the-badge" alt="v1.1.1" />
+  <img src="https://img.shields.io/badge/Version-1.1.2-brightgreen?style=for-the-badge" alt="v1.1.2" />
 </p>
 
 <p align="center">
@@ -23,7 +23,7 @@
 
 Live Translator Overlay is an open-source project licensed under the [MIT License](LICENSE). All core translation, OCR, and speech recognition features are free under MIT.
 
-With **v1.1.1**, local speech recognition automatically adapts to your device while adding optional login rules, `livetranslator.app` email identity, and hardware-bound anti-abuse protections:
+With **v1.1.2**, local speech recognition automatically adapts to your device while delivering a single-click Windows Setup wizard (`.exe`), server-gated private Beta access, and `livetranslator.app` email identity:
 - **Universal Cross-Vendor GPU Acceleration (No CUDA / Python Needed)**: Uses `Whisper.net.Runtime.Vulkan` on Windows (works across NVIDIA, AMD, and Intel GPUs) and `Whisper.net.Runtime.Metal` on Apple Silicon macOS to run **Whisper `large-v3-turbo` (`Q5_0`, `574 MB`)** with automatic fallback to CPU (`ggml-base.bin` `148 MB` or `NoAvx` x64 CPU) on machines without a compatible GPU.
 - **Word-by-Word Local Agreement-2 Streaming (`300 ms` Sliding Windows)**: Select **Local multilingual — live word-by-word (Auto GPU/CPU)** to display words incrementally as they stabilize (both space-delimited languages and CJK ideographs/kana) without waiting for 4–12 second pauses.
 - **Persistent Warm Local Translation (`--daemon`)**: Optionally run offline M2M-100 (`418M` `int8`) via `runtime/translation_worker.py --daemon` with a kernel-guarded process tree and zero cold Python restarts per caption (alongside default key-free Google Translate and optional Groq/Deepgram cloud engines).
@@ -43,7 +43,7 @@ With **v1.1.1**, local speech recognition automatically adapts to your device wh
 - **Live Screen OCR Translation**: Draw any screen region to translate game dialogue or UI text locally via `Windows.Media.Ocr`.
 - **Privacy-First Floating Overlay**: Draggable always-on-top captions with `WDA_EXCLUDEFROMCAPTURE` capture exclusion for OBS/Discord/Zoom.
 - **Japanese & Multi-Script Rendering + 4 UI Languages**: Standard, Hiragana, Furigana, Romaji, or Katakana output across a 100-language catalog, localized in English, Indonesian, Russian, and Spanish.
-- **3-Channel Auto-Updater (`main` / `beta` / `dev`)**: Verifies SHA-256 package hashes before staging across `updates/ml-stable.json` (`main`), `updates/ml-beta.json` (`beta`), and local `channel.json` (`dev`).
+- **One-Click Windows Setup Wizard & Authenticated Update Channels (`main` / private `beta` / owner `dev`)**: Verifies SHA-256 package hashes across `updates/ml-stable.json` (`main`), server-gated private Supabase Storage signed URLs (`beta`, requiring a developer-verified `US$100` Lifetime Insider grant), and local `DevFeed\ml-dev.json` (`dev`). Windows releases publish both `LiveTranslatorOverlay-Setup-<ver>.exe` (NSIS 1-click installer) and `LiveTranslatorOverlay-Windows-x64.zip`.
 - **Login-Optional Donations (`User#XXXXX`), Salted HWID & ECDSA Provenance (`ml-3`)**: Core translation and custom donations work **without login** (appearing deterministically as `User#10000`–`User#99999` on Supporters, protected locally in `guest-donations.dat`). Joining **Community Rankings** or claiming **Lifetime Supporter (`US$19.99`)** / **Lifetime Insider (`US$100`)** badges requires email OTP sign-in (`noreply@livetranslator.app`). Anti-spoofing and device rate limits use a one-way salted SHA-256 hardware fingerprint (`HardwareFingerprint`), ECDSA P-256 entitlements (`EntitlementSignature`), and Supabase RLS (`20261123180000_guest_donations_hwid_and_antiabuse.sql`) without ever transmitting raw serial numbers.
 - **Account Login, Selectable Tiers & Donation Tracking**: Built-in **Community & Account** dialog supporting email OTP sign-in (`livetranslator.app` via Supabase Auth when `community.json` is configured, or encrypted local staging ledger offline), guest & signed-in donation history, selectable **Lifetime Supporter (`US$19.99`)**, **Lifetime Insider (`US$100` Beta access)**, or custom `User#XXXXX` donations, and solo-developer gratitude messages. Core MIT functionality remains free and public checkout remains staged (`SupportCatalog.Closed`).
 
@@ -59,11 +59,11 @@ With **v1.1.1**, local speech recognition automatically adapts to your device wh
 
 ## 3-Branch Release Channels (`dev`, `beta`, `main`)
 
-| Branch / Channel | Manifest Feed | Intended Audience | Notes |
+| Branch / Channel | Repository & Feed | Intended Audience | Notes |
 |---|---|---|---|
-| **`main` (`stable`)** | `updates/ml-stable.json` | Free MIT users & **Lifetime Supporters (`US$19.99`)** | Verified public Windows & Mac preview releases. |
-| **`beta`** | `updates/ml-beta.json` | **Lifetime Insiders (`US$100`)** & early testers | Early builds of new runtime/model improvements. |
-| **`dev`** | Local `DevFeed\ml-dev.json` (`channel.json`) | Owner / local contributor testing | Syncs directly to `%LOCALAPPDATA%\LiveTranslatorOverlay\DevApp` via `scripts/publish-channel.ps1 -Channel dev`. |
+| **`main` (`stable`)** | Public `origin` (`updates/ml-stable.json`) | Free MIT users & **Lifetime Supporters (`US$19.99`)** | Verified public Windows (`.exe` Setup + `.zip`) & Mac releases. |
+| **`beta`** | Private repo `private` + authenticated Supabase Edge Function `beta-release` | **Developer-verified Lifetime Insiders (`US$100`)** | Locked in app until the developer verifies your payment (`lt_admin_grant_support` / `Refresh access status`); downloads via time-limited signed Storage URLs. |
+| **`dev`** | Owner local workspace (`DevFeed\ml-dev.json`) & `private` repo | Repository owner only | Syncs to `%LOCALAPPDATA%\LiveTranslatorOverlay\DevApp` and refreshes desktop/workspace shortcut via `scripts/publish-channel.ps1 -Channel dev`. |
 
 ---
 
@@ -106,7 +106,8 @@ node tests/CommunityDatabase/verify.mjs "$env:TEMP\pglite-verify\node_modules"
 ## Downloads & Configuration
 
 Prebuilt binaries are published on [GitHub Releases](https://github.com/nnavyy/LiveTranslatorOverlay/releases):
-- **Windows 10/11 x64**: `LiveTranslatorOverlay-Windows-x64.zip` (self-contained .NET + CRT + Vulkan + CPU/NoAvx).
+- **Windows 10/11 x64 Setup Wizard (Recommended)**: `LiveTranslatorOverlay-Setup-1.1.2.exe` (one-click per-user installer — extracts binaries, installs Start Menu & Desktop shortcuts, and prepares speech models).
+- **Windows 10/11 x64 Portable Archive**: `LiveTranslatorOverlay-Windows-x64.zip` (self-contained .NET + CRT + Vulkan + CPU/NoAvx).
 - **macOS 14+ (`osx-arm64` / `osx-x64`)**: `LiveTranslatorOverlay-Mac-preview-*.zip` (Metal + CPU).
 
 Optional keys persist under `%LOCALAPPDATA%\LiveTranslatorOverlay\appsettings.json` (DPAPI encrypted on Windows; never commit `appsettings.json` or `community.json`).

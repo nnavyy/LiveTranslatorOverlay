@@ -64,6 +64,7 @@ Section "Install"
   File /r /x appsettings.json "${PUBLISH_DIR}\*"
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   CreateShortcut "$SMPROGRAMS\Live Translator Overlay.lnk" "$INSTDIR\LiveTranslatorOverlay.exe"
+  CreateShortcut "$DESKTOP\Live Translator Overlay.lnk" "$INSTDIR\LiveTranslatorOverlay.exe"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LiveTranslatorOverlay" "DisplayName" "Live Translator Overlay"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LiveTranslatorOverlay" "DisplayVersion" "${APP_VERSION}"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LiveTranslatorOverlay" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
@@ -93,6 +94,7 @@ SectionEnd
 Section "Uninstall"
   SetShellVarContext current
   Delete "$SMPROGRAMS\Live Translator Overlay.lnk"
+  Delete "$DESKTOP\Live Translator Overlay.lnk"
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\LiveTranslatorOverlay"
   RMDir /r "$LOCALAPPDATA\Programs\LiveTranslatorOverlay"
 SectionEnd

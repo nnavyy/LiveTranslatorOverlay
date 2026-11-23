@@ -40,3 +40,28 @@ For an offline migration check, install `@electric-sql/pglite` in a scratch dire
      powershell -NoProfile -ExecutionPolicy Bypass -File .\supabase\email\configure-supabase-smtp.ps1 -DryRun
      ```
    - Apply to your live Supabase project by setting `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_REF`, and `RESEND_API_KEY` environment variables, then re-running without `-DryRun` (configured templates live in `supabase/email/templates/`).
+
+## `v1.1.2`: Owner 1-by-1 Grants & Private Server-Gated Beta (`supabase/migrations/20261123210000_owner_grants_and_private_beta.sql`)
+
+Beta (`$100` Insider) and `dev` branches live only on the private repository (`private`), not on public `origin`. Approved Beta binaries are served through a private Supabase Storage bucket (`beta-releases`) + Edge Function (`supabase/functions/beta-release/index.ts`), never via public GitHub URLs.
+
+1. Apply `migrations/20261123210000_owner_grants_and_private_beta.sql` and create a **private** Supabase Storage bucket named `beta-releases`.
+2. Deploy the Edge Function (`supabase functions deploy beta-release`).
+3. Manage requests and grants 1-by-1 using `scripts/owner-grants.ps1` (requires `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in environment variables; never commit keys):
+   ```powershell
+   # List pending requests (accounts + guest donations) and verified Insiders
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\owner-grants.ps1 -Action list -Status pending
+
+   # Approve a paid user request and unlock Beta access
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\owner-grants.ps1 -Action grant -RequestId "<uuid>" -GrantBeta -Note "Verified payment"
+
+   # Revoke support & deactivate Beta access
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\owner-grants.ps1 -Action revoke -RequestId "<uuid>" -Note "Refunded"
+
+   # Verify a guest User#XXXXX donation so it appears on Supporters
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\owner-grants.ps1 -Action grant-guest -RequestId "<uuid>"
+
+   # Build & publish a private Beta archive (outputs outside git under publish-beta/)
+   .\scripts\publish-channel.ps1 -Channel beta
+   powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\owner-grants.ps1 -Action publish-beta -Version 1.1.2 -Runtime win-x64 -ZipPath .\publish-beta\LiveTranslatorOverlay-Windows-x64.zip
+   ```

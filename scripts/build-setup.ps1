@@ -4,7 +4,23 @@ param(
     [string]$Compiler = 'makensis.exe'
 )
 
-$ErrorActionPreference = 'Stop'
+    $ErrorActionPreference = 'Stop'
+$resolvedCompiler = $Compiler
+if ($resolvedCompiler -eq 'makensis.exe' -and -not (Get-Command $resolvedCompiler -ErrorAction SilentlyContinue)) {
+    foreach ($candidate in @(
+        'C:\Program Files (x86)\NSIS\makensis.exe',
+        'C:\Program Files\NSIS\makensis.exe',
+        (Join-Path $env:LOCALAPPDATA 'Programs\NSIS\makensis.exe')
+    )) {
+        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+            $resolvedCompiler = $candidate
+            break
+        }
+    }
+}
+if (-not (Get-Command $resolvedCompiler -ErrorAction SilentlyContinue) -and -not (Test-Path -LiteralPath $resolvedCompiler -PathType Leaf)) {
+    throw "NSIS compiler not found ($resolvedCompiler). Install NSIS or pass -Compiler."
+}
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $publishPath = (Resolve-Path -LiteralPath $PublishDirectory).Path
 $setupPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($SetupFile)
@@ -36,7 +52,7 @@ try {
     $privacy = ConvertTo-PlainNotice (Get-Content -LiteralPath (Join-Path $publishPath 'PRIVACY.md') -Raw)
     $setupNotice = 'Setup downloads missing local speech files (about 149 MB for the default model and detector). You can skip the download and prepare speech later.'
     [IO.File]::WriteAllText($termsPath, (@($setupNotice, $license, $privacy) -join "`r`n`r`n"), [Text.UTF8Encoding]::new($true))
-    & $Compiler "/DAPP_VERSION=$version" "/DPUBLISH_DIR=$publishPath" "/DSETUP_FILE=$setupPath" "/DSETUP_TERMS=$termsPath" "/DTERMS_REVISION=$termsRevision" (Join-Path $PSScriptRoot 'windows-setup.nsi')
+    & $resolvedCompiler "/DAPP_VERSION=$version" "/DPUBLISH_DIR=$publishPath" "/DSETUP_FILE=$setupPath" "/DSETUP_TERMS=$termsPath" "/DTERMS_REVISION=$termsRevision" (Join-Path $PSScriptRoot 'windows-setup.nsi')
     if ($LASTEXITCODE -ne 0) { throw "NSIS failed with exit code $LASTEXITCODE" }
 }
 finally {

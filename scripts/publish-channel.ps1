@@ -49,14 +49,36 @@ if ($Channel -eq 'dev') {
         manifestUrl = ([Uri]$devManifestPath).AbsoluteUri
     }
     $channelCfg | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $storage 'channel.json') -Encoding UTF8
-    Write-Output "DevApp synced to $devApp and DevFeed manifest written to $devManifestPath"
+
+    $workspaceParent = Split-Path $projectRoot -Parent
+    $shortcutPath = Join-Path $workspaceParent 'Live Translator Overlay (Dev).lnk'
+    $devExePath = Join-Path $devApp 'LiveTranslatorOverlay.exe'
+    $wsh = New-Object -ComObject WScript.Shell
+    $sc = $wsh.CreateShortcut($shortcutPath)
+    $sc.TargetPath = $devExePath
+    $sc.WorkingDirectory = $devApp
+    $sc.Arguments = '--developer'
+    $sc.Description = "Launch Live Translator Overlay v$version (Developer mode)"
+    $sc.Save()
+
+    Write-Output "DevApp synced to $devApp, DevFeed written to $devManifestPath, and shortcut updated at $shortcutPath"
+    return
+}
+
+if ($Channel -eq 'beta') {
+    $betaDir = Join-Path $projectRoot 'publish-beta'
+    New-Item -ItemType Directory -Force -Path $betaDir | Out-Null
+    $betaArchive = Join-Path $betaDir 'LiveTranslatorOverlay-Windows-x64.zip'
+    Copy-Item -LiteralPath $zipPath -Destination $betaArchive -Force
+    Write-Output "Built private Beta archive: $betaArchive | size=$($zipInfo.Length) | sha256=$zipHash"
+    Write-Output "Next: powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\owner-grants.ps1 -Action publish-beta -Version $version -Runtime win-x64 -ZipPath `"$betaArchive`""
     return
 }
 
 $updatesDir = Join-Path $projectRoot 'updates'
 New-Item -ItemType Directory -Force -Path $updatesDir | Out-Null
 $tag = "v$version-ml"
-$manifestFile = if ($Channel -eq 'beta') { 'ml-beta.json' } else { 'ml-stable.json' }
+$manifestFile = 'ml-stable.json'
 
 $manifest = [ordered]@{
     line = 'ml'

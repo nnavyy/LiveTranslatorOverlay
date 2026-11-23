@@ -98,7 +98,24 @@ namespace LiveTranslatorOverlay.Core.Update
 
                 var (channel, manifestUri) = ResolveChannelAndManifest();
                 string manifestJson;
-                if (manifestUri.IsFile)
+                if (channel == "beta" && manifestUri == null)
+                {
+                    var communityClient = new CommunityClient(AppSettings.DataDirectory, _httpClient);
+                    var (allowed, gatedJson, message) = await communityClient.FetchGatedBetaManifestAsync("win-x64", CancellationToken.None).ConfigureAwait(false);
+                    if (!allowed || string.IsNullOrWhiteSpace(gatedJson))
+                    {
+                        bool isErr = message.Contains("HTTP", StringComparison.Ordinal) || message.Contains("reach", StringComparison.OrdinalIgnoreCase);
+                        StatusChanged?.Invoke(this, new UpdateStatusEventArgs(message, isErr ? 0 : 100, isError: isErr));
+                        return false;
+                    }
+                    manifestJson = gatedJson;
+                }
+                else if (manifestUri == null)
+                {
+                    StatusChanged?.Invoke(this, new UpdateStatusEventArgs($"No {channel} feed configured.", 100));
+                    return false;
+                }
+                else if (manifestUri.IsFile)
                 {
                     if (!File.Exists(manifestUri.LocalPath))
                     {
@@ -335,7 +352,7 @@ exit /b 0
             }
         }
 
-        private static (string Channel, Uri ManifestUri) ResolveChannelAndManifest()
+        private static (string Channel, Uri? ManifestUri) ResolveChannelAndManifest()
         {
             string localAppData = AppSettings.DataDirectory;
             string overridePath = Path.Combine(localAppData, "channel.json");
@@ -353,7 +370,8 @@ exit /b 0
                     {
                         return (channel, customUri);
                     }
-                    return (channel, new Uri(StableRelease.GetManifestUrl(channel)));
+                    string fallbackUrl = StableRelease.GetManifestUrl(channel);
+                    return (channel, string.IsNullOrWhiteSpace(fallbackUrl) ? null : new Uri(fallbackUrl));
                 }
                 catch { }
             }
@@ -365,7 +383,7 @@ exit /b 0
                 return ("dev", new Uri(defaultDevManifest));
             }
             if (settingsChannel == "beta")
-                return ("beta", new Uri(StableRelease.BetaManifestUrl));
+                return ("beta", null);
             return ("stable", new Uri(StableRelease.ManifestUrl));
         }
     }

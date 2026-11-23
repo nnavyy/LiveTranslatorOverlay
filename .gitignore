@@ -5,8 +5,10 @@ obj/
 PublishOutput/
 publish-release/
 publish/
+publish-beta/
 publish-verify/
 *.zip
+LiveTranslatorOverlay-Setup-*.exe
 *.user
 *.suo
 .vs/

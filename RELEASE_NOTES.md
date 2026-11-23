@@ -1,3 +1,20 @@
+# Live Translator Overlay 1.1.2
+
+Open-source (MIT) release introducing a one-click Windows Setup Wizard (`.exe`), server-gated private Beta access (`$100` Insiders verified 1-by-1 by the developer), and strict separation between public `origin` (`main`) and private `beta`/`dev` repositories.
+
+## Highlights in v1.1.2
+
+- **One-Click Windows Setup Installer (`LiveTranslatorOverlay-Setup-1.1.2.exe`)**:
+  - Updated [windows-setup.nsi](scripts/windows-setup.nsi), [build-setup.ps1](scripts/build-setup.ps1), and [release.yml](.github/workflows/release.yml) so GitHub Releases publish a per-user NSIS Setup Wizard (no admin prompt required) with Start Menu + Desktop shortcuts, uninstaller, and speech model setup alongside the portable `.zip`.
+- **Developer-Granted Private Beta Access & 1-by-1 Verification**:
+  - Removed public `updates/ml-beta.json` from `origin` and moved `beta` / `dev` branches exclusively to the private repository (`private`).
+  - Added migration `20261123210000_owner_grants_and_private_beta.sql`, Supabase Edge Function `supabase/functions/beta-release/index.ts`, and [scripts/owner-grants.ps1](scripts/owner-grants.ps1) so the developer can list pending requests, verify/revoke users 1-by-1 (`grant`, `revoke`, `grant-guest`, `set-beta`), and serve private Beta downloads over time-limited signed Storage URLs.
+  - Added **Refresh access status** in Community & Support (`Core` & `MacApp`), locked the Beta channel option until verified, and restricted `Dev` channel visibility to owner/dev mode.
+- **Owner Quick Launch Shortcut**:
+  - `scripts/publish-channel.ps1 -Channel dev` now creates/updates `Live Translator Overlay (Dev).lnk` directly in the parent workspace folder alongside syncing `DevApp`.
+
+---
+
 # Live Translator Overlay 1.1.1
 
 Open-source (MIT) security, `livetranslator.app` email identity, and login-optional guest donation update on the 1.x machine-learning line.

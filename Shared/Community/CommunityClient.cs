@@ -61,6 +61,7 @@ public sealed class CommunityClient
     private static readonly HttpClient DefaultHttp = new(new HttpClientHandler { AllowAutoRedirect = false }) { Timeout = TimeSpan.FromSeconds(12) };
     private readonly string _dataDirectory;
     private readonly HttpClient _http;
+    private readonly Uri? _supabaseOrigin;
     private readonly Uri? _rpcBase;
     private readonly string? _key;
     private readonly Uri? _authBase;
@@ -83,6 +84,7 @@ public sealed class CommunityClient
                 !Uri.TryCreate(endpoint.Url, UriKind.Absolute, out var url) || url.UserInfo.Length > 0 ||
                 url.AbsolutePath != "/" || url.Query.Length > 0 || url.Fragment.Length > 0 ||
                 !(url.Scheme == Uri.UriSchemeHttps || url.Scheme == Uri.UriSchemeHttp && url.IsLoopback)) return;
+            _supabaseOrigin = url;
             _rpcBase = new Uri(url, "rest/v1/rpc/");
             _key = key;
             if (endpoint.PreviewManualRequests) _authBase = new Uri(url, "auth/v1/");
@@ -274,7 +276,7 @@ public sealed class CommunityClient
             $"Guest donation recorded ({AccountSessionStore.FormatUsd(cents)}) as {hw.GuestDisplayTag} [{localId}]. No login required · no real payment charged. {SupportCatalog.SoloDeveloperNote}");
     }
 
-    private async Task<AccountSessionState> FetchRemoteAccountStateAsync(string email, string displayName, string accessToken, string hwHash, CancellationToken token)
+    private async Task<AccountSessionState?> TryFetchRemoteAccountStateAsync(string email, string displayName, string accessToken, string hwHash, CancellationToken token)
     {
         try
         {
@@ -308,8 +310,78 @@ public sealed class CommunityClient
             }
         }
         catch { }
+        return null;
+    }
 
-        return new AccountSessionState(email, displayName, accessToken, "free", 0, false, false, DateTimeOffset.UtcNow, [], hwHash);
+    private async Task<AccountSessionState> FetchRemoteAccountStateAsync(string email, string displayName, string accessToken, string hwHash, CancellationToken token) =>
+        await TryFetchRemoteAccountStateAsync(email, displayName, accessToken, hwHash, token).ConfigureAwait(false)
+        ?? new AccountSessionState(email, displayName, accessToken, "free", 0, false, false, DateTimeOffset.UtcNow, [], hwHash);
+
+    public async Task<AccountActionResult> RefreshAccountStatusAsync(CancellationToken token)
+    {
+        var session = AccountSessionStore.Load(_dataDirectory);
+        if (session == null)
+            return new(false, "Sign in first to check your developer-verified access status.");
+
+        if (!HasOnlineAccountService || session.IsLocalStaging)
+            return new(true, $"Local staging account ({session.TierDisplayName}). Beta channel {(session.BetaAccessUnlocked ? "unlocked" : "locked")}.", session);
+
+        var hw = GetDeviceIdentity();
+        var updated = await TryFetchRemoteAccountStateAsync(session.Email, session.DisplayName, session.AccessToken, hw.FingerprintHash, token).ConfigureAwait(false);
+        if (updated == null)
+            return new(false, "Could not refresh account status right now (check connection or sign in again).", session);
+
+        AccountSessionStore.Save(_dataDirectory, updated);
+        return new(
+            true,
+            $"Account refreshed: {updated.TierDisplayName} · Beta access {(updated.BetaAccessUnlocked ? "unlocked" : "pending developer verification")}.",
+            updated);
+    }
+
+    public async Task<(bool Allowed, string? ManifestJson, string Message)> FetchGatedBetaManifestAsync(string runtime, CancellationToken token)
+    {
+        var session = AccountSessionStore.Load(_dataDirectory);
+        if (session == null)
+            return (false, null, "Sign in with a developer-verified US$100 Lifetime Insider account to access Beta builds.");
+
+        if (!session.BetaAccessUnlocked)
+            return (false, null, "Beta channel is locked until the developer verifies your US$100 Lifetime Insider grant. Click 'Refresh access status' after approval.");
+
+        if (_supabaseOrigin == null || string.IsNullOrWhiteSpace(_key))
+            return (false, null, "Beta download server is not configured on this device (community.json missing).");
+
+        if (session.IsLocalStaging || string.IsNullOrWhiteSpace(session.AccessToken) || session.AccessToken == "local-staging-session")
+            return (false, null, "Sign in to an online community account to download private Beta builds.");
+
+        try
+        {
+            var hw = GetDeviceIdentity();
+            using var response = await PostPurchaseAsync(
+                new Uri(_supabaseOrigin, "functions/v1/beta-release"),
+                new { runtime, hwidHash = hw.FingerprintHash },
+                session.AccessToken,
+                token).ConfigureAwait(false);
+
+            if (response == null)
+                return (false, null, "Could not reach the Beta download server.");
+
+            if (response.StatusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+                return (false, null, "Beta access denied by server (verified US$100 Lifetime Insider grant required).");
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return (false, null, "No beta 1.x release published for this platform yet.");
+
+            if (!response.IsSuccessStatusCode)
+                return (false, null, $"Beta server returned HTTP {(int)response.StatusCode}.");
+
+            string body = await response.Content.ReadAsStringAsync(token).ConfigureAwait(false);
+            return (true, body, "Beta release verified.");
+        }
+        catch (Exception error) when (error is HttpRequestException or IOException ||
+                                      error is OperationCanceledException && !token.IsCancellationRequested)
+        {
+            return (false, null, "Could not reach the Beta download server.");
+        }
     }
 
     public async Task<CommunityPage> ReadAsync(CommunityBoard board, string search = "", int offset = 0, CancellationToken token = default)

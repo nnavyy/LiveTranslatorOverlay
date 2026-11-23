@@ -1,4 +1,8 @@
-# Mac release notes — v1.1.1
+# Mac release notes — v1.1.2
+
+## What's new in v1.1.2
+
+- **Developer-Gated Beta Access & Refresh Status**: Added **Refresh access status** to the Community & Support window, restricted the `Beta` channel toggle to developer-verified `$100` Lifetime Insider accounts (`lt_my_account_summary` / `beta_grants`), and hid the owner-only `Dev` channel from standard builds.
 
 ## What's new in v1.1.1
 

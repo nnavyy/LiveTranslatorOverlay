@@ -216,6 +216,24 @@ try
         && reloaded.HardwareFingerprintHash == hwA1.FingerprintHash
         && reloaded.History.Length == 2,
         $"tier={reloaded?.ActiveTier}; total={reloaded?.TotalDonatedCents}; history={reloaded?.History.Length}");
+
+    string onlineRoot = Path.Combine(acctRoot, "online-beta-gate");
+    Directory.CreateDirectory(onlineRoot);
+    File.WriteAllText(Path.Combine(onlineRoot, "community.json"), """{"url":"https://example.supabase.co/","publishableKey":"sb_publishable_testkey","previewManualRequests":true}""");
+    using var mockHttp = new HttpClient(new GatedBetaMockHandler());
+    var gatedClient = new CommunityClient(onlineRoot, mockHttp);
+    var signedOutBeta = await gatedClient.FetchGatedBetaManifestAsync("win-x64", CancellationToken.None);
+    var freeLogin = await gatedClient.VerifyLoginOtpAsync("free@example.test", "123456", CancellationToken.None);
+    var freeBeta = await gatedClient.FetchGatedBetaManifestAsync("win-x64", CancellationToken.None);
+    var insiderLogin = await gatedClient.VerifyLoginOtpAsync("insider@example.test", "123456", CancellationToken.None);
+    var insiderBeta = await gatedClient.FetchGatedBetaManifestAsync("win-x64", CancellationToken.None);
+    var parsedBeta = insiderBeta.Allowed && insiderBeta.ManifestJson != null
+        ? LiveTranslatorOverlay.Core.Update.StableRelease.Read(insiderBeta.ManifestJson, "win-x64", "beta")
+        : null;
+    Check("Private beta feed denies signed-out and free users and serves signed manifest to verified Insider",
+        !signedOutBeta.Allowed && freeLogin.Success && !freeBeta.Allowed
+        && insiderLogin.Success && insiderBeta.Allowed && parsedBeta != null && parsedBeta.Version == new Version(1, 1, 2),
+        $"freeAllowed={freeBeta.Allowed}; insiderAllowed={insiderBeta.Allowed}; betaVer={parsedBeta?.Version}");
 }
 finally
 {
@@ -234,5 +252,40 @@ sealed class JsonHandler(string body) : HttpMessageHandler
     {
         Calls++;
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
+    }
+}
+
+sealed class GatedBetaMockHandler : HttpMessageHandler
+{
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
+    {
+        string path = request.RequestUri?.AbsolutePath ?? "";
+        string reqBody = request.Content != null ? await request.Content.ReadAsStringAsync(token) : "";
+        if (path.EndsWith("/auth/v1/verify", StringComparison.Ordinal))
+        {
+            string tok = reqBody.Contains("insider@example.test", StringComparison.Ordinal) ? "tok-insider" : "tok-free";
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent($$"""{"access_token":"{{tok}}"}""") };
+        }
+        string auth = request.Headers.Authorization?.Parameter ?? "";
+        if (path.EndsWith("/rest/v1/rpc/lt_my_account_summary", StringComparison.Ordinal))
+        {
+            if (auth == "tok-insider")
+            {
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"email":"insider@example.test","activeTier":"insider","verifiedTotalCents":10000,"betaAccessUnlocked":true,"history":[]}""") };
+            }
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"email":"free@example.test","activeTier":"free","verifiedTotalCents":0,"betaAccessUnlocked":false,"history":[]}""") };
+        }
+        if (path.EndsWith("/functions/v1/beta-release", StringComparison.Ordinal))
+        {
+            if (auth != "tok-insider")
+                return new HttpResponseMessage(HttpStatusCode.Forbidden) { Content = new StringContent("""{"error":"Beta access denied."}""") };
+            string manifestJson = ("""
+                {"line":"ml","channel":"beta","version":"1.1.2","packages":{
+                  "win-x64":{"url":"https://example.supabase.co/storage/v1/object/sign/beta-releases/v1.1.2/win-x64/LiveTranslatorOverlay-Windows-x64.zip?token=abc","size":4096,"sha256":"__HASH__"}
+                }}
+                """).Replace("__HASH__", new string('A', 64));
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(manifestJson) };
+        }
+        return new HttpResponseMessage(HttpStatusCode.NotFound);
     }
 }
