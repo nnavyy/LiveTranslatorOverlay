@@ -555,8 +555,8 @@
                         <ComboBox x:Name="CmbSttMode" Margin="0,0,0,10" SelectedIndex="2" SelectionChanged="CmbSttMode_SelectionChanged">
                             <ComboBoxItem x:Name="ItemSttDeepgram" Content="Deepgram (Cloud · Speakers)" Tag="deepgram"/>
                             <ComboBoxItem x:Name="ItemSttGroq" Content="Groq Whisper (Cloud)" Tag="groq"/>
-                            <ComboBoxItem Content="Local · Balanced (CPU)" Tag="local" ToolTip="Runs on CPU. Downloads the 148 MB speech model on first use. Key-free with auto-detect."/>
-                            <ComboBoxItem Content="Local · Higher Accuracy (CPU)" Tag="local-small" ToolTip="Runs on CPU with a 488 MB speech model. Better accuracy at slower speed."/>
+                            <ComboBoxItem Content="Local · Balanced (GPU / CPU)" Tag="local" ToolTip="Uses Vulkan GPU when available or CPU fallback. Downloads the 148 MB speech model on first use."/>
+                            <ComboBoxItem Content="Local · Higher Accuracy (GPU / CPU)" Tag="local-small" ToolTip="Uses Vulkan GPU when available or CPU fallback with the 488 MB Whisper small model."/>
                             <ComboBoxItem Content="Local · Auto (GPU / CPU)" Tag="local-auto" ToolTip="Uses Whisper large-v3-turbo (574 MB) on Vulkan GPU when available, or Whisper base on CPU."/>
                             <ComboBoxItem Content="Local · High Accuracy (GPU)" Tag="local-turbo" ToolTip="Uses Whisper large-v3-turbo (574 MB) on Vulkan GPU with automatic CPU fallback."/>
                         </ComboBox>

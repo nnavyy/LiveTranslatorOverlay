@@ -1,3 +1,24 @@
+# Live Translator Overlay 1.1.6
+
+Open-source (MIT) continuous nonstop speech tracking and dual-model (ASR + MT) accuracy and throughput update.
+
+## Highlights in v1.1.6
+
+- **3-Tier Continuous Nonstop Speech Segmentation (`Core/AudioCaptureService.cs`, `Shared/SentenceBoundaryDeduplicator.cs`)**:
+  - Eliminates the previous `8.5 s` blind stall when a speaker talks continuously without taking a `700 ms` silence pause, while preserving calm per-sentence/per-clause caption replacement (zero word-by-word flicker).
+  - Introduces speaker-relative silence detection (`avgTail < SilenceThreshold && avgTail < windowAvg * 0.16f`) so quiet speakers (`maxAmp >= 0.0008f`) are neither prematurely chopped nor dropped before Silero Neural VAD.
+  - Adds micro-breath valley detection at `4.2 s` (`ContinuousClauseMs`) and `FindLowestEnergySplitSample` (`80 ms` sliding energy scan) at `6.6 s` (`StreamingMaxWindowMs`) with whole-word valley overlap, non-blocking bounded FIFO channel dispatch, and `SentenceBoundaryDeduplicator.StripOverlapPrefix` across Latin, Cyrillic (`ё`/`е`), and CJK/Kana scripts.
+- **All-Tier GPU Acceleration & Beam-2 ASR Accuracy (`Core/LocalSpeechService.cs`)**:
+  - Unlocks cross-vendor Vulkan (Windows) and Metal (macOS) GPU acceleration + FlashAttention across **all** local speech tiers (`Base`, `Small`, `LargeTurbo`, and `Auto`), accelerating `Whisper small` (`488 MB`) to `1,042.6 ms` mean / `0.116x` RTF (`8.6x` faster than real time) on an RTX 2050 laptop.
+  - Enables `BeamSearchSamplingStrategy(beamSize = 2)` on full `1500`-frame GPU decoding, lowering held-out FLEURS 4-language mixed error on `large-v3-turbo (Q5_0)` from **`7.74%` (`v1.1.0`) -> `6.42%` (`v1.1.4`) -> `5.73%` (`v1.1.6`)** (`6.95%` EN WER, `7.62%` ID WER, `3.33%` JA CER, `5.00%` RU WER) at `0.127x` RTF (`7.9x` faster than real time).
+- **Batched Anti-Repetition Local Translation & HTTP/2 Connection Pooling (`runtime/translation_worker.py`, `GoogleFreeTranslateProvider`, `GroqTranslateProvider`)**:
+  - Upgrades persistent CTranslate2 M2M-100 decoding with abbreviation-safe multi-sentence batching (`_split_sentences`), dynamic `max_decoding_length`, `repetition_penalty=1.15`, and `no_repeat_ngram_size=3`, eliminating long-clause phrase loops and cutting continuous-stream clause translation latency to **`164.3 ms` mean** (`288.9 ms` for a 3-sentence batch).
+  - Configures `SocketsHttpHandler` HTTP/2 connection pooling, keep-alive pings, and automatic response decompression on `GoogleFreeTranslateProvider` and `GroqTranslateProvider`.
+- **Measured Continuous Nonstop Stream Benchmark (`research/speech/paper/continuous-dual-model-benchmark-v116.json`)**:
+  - Across `21.8–26.6 s` unbroken 3-sentence speech streams (zero `700 ms` pauses), `AudioCaptureService` + `LargeTurbo` + `LocalTranslateProvider` emitted **`5.0` calm clauses per stream** (`5.09 s` mean window, `1,120.6 ms` mean ASR, `164.3 ms` mean MT) with `10.64%` RU WER, `13.70%` EN WER, and `14.63%` ID WER.
+
+---
+
 # Live Translator Overlay 1.1.5
 
 Open-source (MIT) calm per-sentence local speech captions update.

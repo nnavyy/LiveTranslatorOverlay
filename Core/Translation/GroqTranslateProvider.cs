@@ -45,8 +45,17 @@ namespace LiveTranslatorOverlay.Core.Translation
         public GroqTranslateProvider(string apiKey)
         {
             _apiKey = apiKey;
-            _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromSeconds(20);
+            _httpClient = new HttpClient(new SocketsHttpHandler
+            {
+                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+                KeepAlivePingDelay = TimeSpan.FromSeconds(30),
+                KeepAlivePingTimeout = TimeSpan.FromSeconds(15),
+                EnableMultipleHttp2Connections = true,
+                AutomaticDecompression = System.Net.DecompressionMethods.All
+            })
+            {
+                Timeout = TimeSpan.FromSeconds(20)
+            };
         }
 
         private void ResetTranslationCache()

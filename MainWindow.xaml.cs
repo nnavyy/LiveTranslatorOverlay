@@ -1124,10 +1124,10 @@ public partial class MainWindow : Window
         {
             "deepgram" => $"Deepgram · {DiarizedSttService.ModelName}",
             "groq" => $"Groq · {WhisperSttService.ModelName}",
-            "local-small" => "Local small · CPU",
+            "local-small" => "Whisper small · Vulkan GPU / CPU",
             "local-auto" => "Auto · Vulkan GPU or CPU",
             "local-turbo" => "Large-v3-turbo · Vulkan GPU / CPU",
-            _ => "Local base · CPU"
+            _ => "Whisper base · Vulkan GPU / CPU"
         };
         TxtSpeechSelection.Text = _isAudioMode
             ? $"{model} · Stop audio to change speech settings."
@@ -1894,9 +1894,11 @@ public partial class MainWindow : Window
 
             capture.EnableStreamingWindows = true;
             capture.EmitInterimWindows = false;
-            capture.SentenceMinSpeechMs = 1200;
-            capture.StreamingMaxWindowMs = 8500;
-            capture.StreamingSilenceCommitMs = 700;
+            capture.SentenceMinSpeechMs = 1500;
+            capture.StreamingSilenceCommitMs = 520;
+            capture.ContinuousClauseMs = 4200;
+            capture.StreamingMaxWindowMs = 6600;
+            string previousClauseOriginal = "";
             capture.StreamingWindowHandler = async (chunk, isFinal) =>
             {
                 if (!isFinal || sessionToken.IsCancellationRequested) return;
@@ -1914,6 +1916,12 @@ public partial class MainWindow : Window
 
                     if (sessionToken.IsCancellationRequested) return;
                     transcribed = HallucinationDetector.StripWhisperArtifacts(transcribed);
+                    if (string.IsNullOrWhiteSpace(transcribed))
+                        return;
+
+                    string rawClause = transcribed;
+                    transcribed = SentenceBoundaryDeduplicator.StripOverlapPrefix(previousClauseOriginal, transcribed);
+                    previousClauseOriginal = rawClause;
                     if (string.IsNullOrWhiteSpace(transcribed) || IsWhisperHallucination(transcribed) || HallucinationDetector.IsWhisperArtifact(transcribed))
                         return;
 
@@ -1949,6 +1957,7 @@ public partial class MainWindow : Window
             return;
         }
 
+        string previousCloudClause = "";
         capture.AudioChunkHandler = async chunk =>
         {
             if (sessionToken.IsCancellationRequested) return;
@@ -1962,11 +1971,17 @@ public partial class MainWindow : Window
                 string transcribed = localService != null
                     ? await localService.TranscribeAsync(chunk, sessionToken)
                     : await cloudService!.ProcessAudioChunkAsync(chunk, sessionToken);
-                if (sessionToken.IsCancellationRequested || string.IsNullOrWhiteSpace(transcribed)) return;
+                if (sessionToken.IsCancellationRequested) return;
+                transcribed = HallucinationDetector.StripWhisperArtifacts(transcribed);
+                if (string.IsNullOrWhiteSpace(transcribed)) return;
+
+                string rawClause = transcribed;
+                transcribed = SentenceBoundaryDeduplicator.StripOverlapPrefix(previousCloudClause, transcribed);
+                previousCloudClause = rawClause;
 
                 // ── HALLUCINATION FILTER (same as Deepgram path) ──
                 // Groq Whisper also hallucinates "subtitles by...", "спасибо", etc. from noise
-                if (IsWhisperHallucination(transcribed) || HallucinationDetector.IsWhisperArtifact(transcribed)) return;
+                if (string.IsNullOrWhiteSpace(transcribed) || IsWhisperHallucination(transcribed) || HallucinationDetector.IsWhisperArtifact(transcribed)) return;
 
                 // Whisper has no word-level diarization; keep its local estimates explicit.
                 var speaker = AcousticSpeakerDetector.DetectSpeaker(chunk, sessionToken);

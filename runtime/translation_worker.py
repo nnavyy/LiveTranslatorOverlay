@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import sys
 import ctranslate2
 import sentencepiece as spm
@@ -11,6 +12,10 @@ from opencc import OpenCC
 
 _CUDA_DLL_HANDLES = []
 _MAX_CACHE_ENTRIES = 256
+
+_SENTENCE_SPLIT_RE = re.compile(
+    r"(?<!\bMr\.)(?<!\bMs\.)(?<!\bMrs\.)(?<!\bDr\.)(?<!\bSt\.)(?<!\bJr\.)(?<!\bSr\.)(?<!\bvs\.)(?<!\b[A-Z]\.)(?<=[.!?])\s+|(?<=[。！？])\s*"
+)
 
 HASHES = {
     "config.json": "8f6496adfc930cbfecbe8281112197705c488fab47d34b4829b06d7f478909af",
@@ -88,6 +93,64 @@ def load_resources(config_path: Path):
     return model, tokenizer, vocabulary
 
 
+def _effective_len(text: str) -> int:
+    total = 0
+    for ch in text:
+        code = ord(ch)
+        if (
+            0x3040 <= code <= 0x30FF
+            or 0x3400 <= code <= 0x9FFF
+            or 0xF900 <= code <= 0xFAFF
+            or 0xAC00 <= code <= 0xD7AF
+        ):
+            total += 3
+        else:
+            total += 1
+    return total
+
+
+def _join_fragments(left: str, right: str) -> str:
+    if not left:
+        return right
+    if not right:
+        return left
+    sep = "" if left[-1] in "。！？" else " "
+    return f"{left}{sep}{right}"
+
+
+def _split_sentences(text: str) -> list[str]:
+    stripped = text.strip()
+    if not stripped:
+        return []
+    raw_parts = [p.strip() for p in _SENTENCE_SPLIT_RE.split(stripped) if p and p.strip()]
+    if len(raw_parts) <= 1:
+        return [stripped]
+
+    merged: list[str] = []
+    pending = ""
+    for part in raw_parts:
+        if pending:
+            part = _join_fragments(pending, part)
+            pending = ""
+        if _effective_len(part) < 12:
+            if merged:
+                merged[-1] = _join_fragments(merged[-1], part)
+            else:
+                pending = part
+        else:
+            merged.append(part)
+
+    if pending:
+        if merged:
+            merged[-1] = _join_fragments(merged[-1], pending)
+        else:
+            merged.append(pending)
+
+    if len(merged) <= 1:
+        return [stripped]
+    return merged
+
+
 def translate_request(request: dict, model, tokenizer, vocabulary, converters: dict, cache: OrderedDict | None = None) -> str:
     text = request.get("text", "")
     source = request.get("source", "")
@@ -99,6 +162,8 @@ def translate_request(request: dict, model, tokenizer, vocabulary, converters: d
     native_target = "zh" if target == "zh-TW" else target
     if f"__{native_source}__" not in vocabulary or f"__{native_target}__" not in vocabulary:
         raise ValueError("Choose explicit source and target languages supported by the local model; Auto is unsupported")
+    if not text.strip():
+        return ""
 
     cache_key = (source, target, fast, text)
     if cache is not None:
@@ -108,15 +173,38 @@ def translate_request(request: dict, model, tokenizer, vocabulary, converters: d
         if cached is not None:
             return cached
 
-    tokens = [f"__{native_source}__", *tokenizer.encode(text, out_type=str), "</s>"]
-    if len(tokens) > 512:
+    sentences = _split_sentences(text)
+    batch_tokens = [
+        [f"__{native_source}__", *tokenizer.encode(sent, out_type=str), "</s>"]
+        for sent in sentences
+    ]
+    if any(len(toks) > 512 for toks in batch_tokens):
         raise ValueError("Text too long for local translation; split into shorter passages")
+
     prefix = f"__{native_target}__"
     beam_size = 1 if fast else 2
-    result = model.translate_batch([tokens], target_prefix=[[prefix]], beam_size=beam_size, max_decoding_length=256)[0].hypotheses[0]
-    if not result or result[0] != prefix or len(result) >= 256:
-        raise ValueError("Local translation did not complete; use a shorter passage")
-    output = tokenizer.decode(result[1:]).strip()
+    max_tok_len = max(len(t) for t in batch_tokens)
+    max_dec_len = min(256, max(48, int(max_tok_len * 2.5) + 16))
+    batch_results = model.translate_batch(
+        batch_tokens,
+        target_prefix=[[prefix]] * len(batch_tokens),
+        beam_size=beam_size,
+        repetition_penalty=1.15,
+        no_repeat_ngram_size=3,
+        max_decoding_length=max_dec_len,
+    )
+
+    decoded_sentences = []
+    for res in batch_results:
+        hyp = res.hypotheses[0] if res.hypotheses else None
+        if not hyp or hyp[0] != prefix or len(hyp) >= 256:
+            raise ValueError("Local translation did not complete; use a shorter passage")
+        decoded = tokenizer.decode(hyp[1:]).strip()
+        if decoded:
+            decoded_sentences.append(decoded)
+
+    joiner = "" if target in ("ja", "zh", "zh-TW") else " "
+    output = joiner.join(decoded_sentences)
     if target == "zh-TW":
         converter = converters.get("s2twp")
         if converter is None:

@@ -8,6 +8,7 @@ namespace LiveTranslatorOverlay.Core;
 public sealed class LocalSpeechService : IAsyncDisposable
 {
     private readonly LocalSpeechModelTier _requestedTier;
+    private readonly bool _allowGpu;
     private LocalSpeechModelTier _activeTier;
     private WhisperFactory? _factory;
     private WhisperProcessor? _processor;
@@ -26,13 +27,14 @@ public sealed class LocalSpeechService : IAsyncDisposable
     public string ActiveModelLabel => SpeechModelDownload.GetModelDisplayName(_activeTier);
 
     public LocalSpeechService(bool small = false)
-        : this(small ? LocalSpeechModelTier.Small : LocalSpeechModelTier.Base)
+        : this(small ? LocalSpeechModelTier.Small : LocalSpeechModelTier.Base, allowGpu: false)
     {
     }
 
-    public LocalSpeechService(LocalSpeechModelTier tier)
+    public LocalSpeechService(LocalSpeechModelTier tier, bool allowGpu = true)
     {
         _requestedTier = tier;
+        _allowGpu = allowGpu;
     }
 
     public async Task InitializeAsync(string language, CancellationToken cancellationToken, Action<string>? progress = null)
@@ -45,10 +47,12 @@ public sealed class LocalSpeechService : IAsyncDisposable
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_processor != null) throw new InvalidOperationException("Speech is already initialized.");
 
-            bool gpuCandidate = _requestedTier is LocalSpeechModelTier.LargeTurbo or LocalSpeechModelTier.Auto
-                && SpeechModelDownload.HasGpuAccelerationAvailable();
+            bool gpuCandidate = _allowGpu && SpeechModelDownload.HasGpuAccelerationAvailable();
 
-            RuntimeOptions.RuntimeLibraryOrder = BuildRuntimeOrder(gpuCandidate);
+            if (RuntimeOptions.LoadedLibrary == null)
+            {
+                RuntimeOptions.RuntimeLibraryOrder = BuildRuntimeOrder(gpuCandidate);
+            }
 
             string normalized = language == "auto" ? "auto" : language.Split('-')[0].ToLowerInvariant();
             if (normalized != "auto" && !WhisperFactory.GetSupportedLanguages().Contains(normalized))
@@ -78,6 +82,8 @@ public sealed class LocalSpeechService : IAsyncDisposable
                             loadedWithGpu = OperatingSystem.IsMacOS() ||
                                             RuntimeOptions.LoadedLibrary == RuntimeLibrary.Vulkan;
                             if (loadedWithGpu) break;
+                            _factory.Dispose();
+                            _factory = null;
                         }
                         catch
                         {
@@ -90,7 +96,10 @@ public sealed class LocalSpeechService : IAsyncDisposable
 
                 if (_factory == null)
                 {
-                    RuntimeOptions.RuntimeLibraryOrder = BuildRuntimeOrder(allowGpu: false);
+                    if (RuntimeOptions.LoadedLibrary == null)
+                    {
+                        RuntimeOptions.RuntimeLibraryOrder = BuildRuntimeOrder(allowGpu: false);
+                    }
                     _factory = WhisperFactory.FromPath(path, new WhisperFactoryOptions { UseGpu = false });
                     loadedWithGpu = false;
                 }
@@ -100,9 +109,9 @@ public sealed class LocalSpeechService : IAsyncDisposable
                     ? (OperatingSystem.IsMacOS() ? "Metal GPU" : "Vulkan GPU")
                     : "CPU";
 
-                _processor = BuildProcessor(_factory, normalized, singleSegment: false, audioContextSize: null);
-                _streamingShortProcessor = BuildProcessor(_factory, normalized, singleSegment: true, audioContextSize: 256);
-                _streamingMediumProcessor = BuildProcessor(_factory, normalized, singleSegment: true, audioContextSize: 448);
+                _processor = BuildProcessor(_factory, normalized, singleSegment: false, audioContextSize: null, maxTokens: null, useBeamSearch: loadedWithGpu, usingGpu: loadedWithGpu);
+                _streamingShortProcessor = BuildProcessor(_factory, normalized, singleSegment: true, audioContextSize: 256, maxTokens: 96, useBeamSearch: false, usingGpu: loadedWithGpu);
+                _streamingMediumProcessor = BuildProcessor(_factory, normalized, singleSegment: true, audioContextSize: 448, maxTokens: 96, useBeamSearch: false, usingGpu: loadedWithGpu);
 
                 _vadFactory = WhisperVadFactory.FromPath(vadPath, new WhisperFactoryOptions { UseGpu = false });
                 _vad = _vadFactory.CreateBuilder()
@@ -285,10 +294,21 @@ public sealed class LocalSpeechService : IAsyncDisposable
         return false;
     }
 
-    private static WhisperProcessor BuildProcessor(WhisperFactory factory, string normalizedLanguage, bool singleSegment, int? audioContextSize)
+    private static WhisperProcessor BuildProcessor(
+        WhisperFactory factory,
+        string normalizedLanguage,
+        bool singleSegment,
+        int? audioContextSize,
+        int? maxTokens,
+        bool useBeamSearch,
+        bool usingGpu)
     {
+        int threads = usingGpu
+            ? Math.Clamp(Environment.ProcessorCount / 2, 2, 6)
+            : Math.Clamp(Environment.ProcessorCount - 2, 2, 8);
+
         var builder = factory.CreateBuilder()
-            .WithThreads(Math.Clamp(Environment.ProcessorCount - 2, 1, 8))
+            .WithThreads(threads)
             .WithNoContext()
             .WithTemperature(0f)
             .WithTemperatureInc(0f)
@@ -297,10 +317,15 @@ public sealed class LocalSpeechService : IAsyncDisposable
             .WithNoSpeechThreshold(0.60f)
             .WithProbabilities();
 
+        if (useBeamSearch)
+        {
+            builder.WithBeamSearchSamplingStrategy(b => b.WithBeamSize(2));
+        }
+
         if (singleSegment)
         {
             builder.WithSingleSegment();
-            builder.WithMaxTokensPerSegment(96);
+            builder.WithMaxTokensPerSegment(maxTokens ?? 128);
         }
 
         if (audioContextSize is int ctx)

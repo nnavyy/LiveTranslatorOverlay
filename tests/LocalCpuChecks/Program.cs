@@ -34,6 +34,17 @@ if (args.Length >= 2 && args[0] == "--streaming-benchmark")
     return;
 }
 
+if (args.Length >= 2 && args[0] == "--continuous-benchmark")
+{
+    string? outJson = null;
+    for (int i = 2; i < args.Length - 1; i++)
+    {
+        if (args[i] == "--out") outJson = args[i + 1];
+    }
+    await ContinuousDualModelBenchmark.RunAsync(args[1], outJson);
+    return;
+}
+
 if (args.Contains("--ui"))
 {
     Exception? error = null;

@@ -1,0 +1,453 @@
+﻿{
+  "generatedUtc": "2026-11-24T02:53:19.3375082+00:00",
+  "loadedLibrary": "Vulkan",
+  "asrTiers": [
+    {
+      "Tier": "Small",
+      "ModelLabel": "Whisper small",
+      "BackendLabel": "Vulkan GPU",
+      "UsingGpu": true,
+      "InitMs": 5547.8,
+      "MeanDecodeMs": 1042.6,
+      "P50DecodeMs": 1020.6,
+      "P95DecodeMs": 1277.3,
+      "MeanRtf": 0.116,
+      "MixedErrorPct": 15.9,
+      "PerLanguage": [
+        {
+          "language": "en",
+          "metric": "WER",
+          "meanErrorPct": 8.97,
+          "meanDecodeMs": 898.3,
+          "meanRtf": 0.089
+        },
+        {
+          "language": "id",
+          "metric": "WER",
+          "meanErrorPct": 33.51,
+          "meanDecodeMs": 1061,
+          "meanRtf": 0.125
+        },
+        {
+          "language": "ja",
+          "metric": "CER",
+          "meanErrorPct": 17.78,
+          "meanDecodeMs": 1034.1,
+          "meanRtf": 0.119
+        },
+        {
+          "language": "ru",
+          "metric": "WER",
+          "meanErrorPct": 3.33,
+          "meanDecodeMs": 1176.8,
+          "meanRtf": 0.133
+        }
+      ],
+      "Clips": [
+        {
+          "Tier": "Small",
+          "Id": "fleurs-en_us-test-1003119935936341070",
+          "Language": "en",
+          "AudioSeconds": 10.56,
+          "DecodeMs": 876.9,
+          "Rtf": 0.083,
+          "Metric": "WER",
+          "ErrorPct": 5.26,
+          "Reference": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+          "Hypothesis": "However, due to the slow communication channels, styles in the West could lag behind by 25 to 30 years."
+        },
+        {
+          "Tier": "Small",
+          "Id": "fleurs-en_us-test-10052240106321793346",
+          "Language": "en",
+          "AudioSeconds": 8.76,
+          "DecodeMs": 933.9,
+          "Rtf": 0.107,
+          "Metric": "WER",
+          "ErrorPct": 9.52,
+          "Reference": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+          "Hypothesis": "All nouns alongside the words \u0022safe\u0022 for you always begin with a capital letter, even in the middle of a sentence."
+        },
+        {
+          "Tier": "Small",
+          "Id": "fleurs-en_us-test-10167324587744183095",
+          "Language": "en",
+          "AudioSeconds": 11.46,
+          "DecodeMs": 884.2,
+          "Rtf": 0.077,
+          "Metric": "WER",
+          "ErrorPct": 12.12,
+          "Reference": "To the north and within easy reach is the romantic and fascinating town of Sintra and which was made famous to foreigners after a glowing account of its splendours recorded by Lord Byron.",
+          "Hypothesis": "To the north and within easy reach is a romantic and fascinating town of Cintra and which was made famous to foreigners after a glowing account of its splendor is recorded by Lord Byron."
+        },
+        {
+          "Tier": "Small",
+          "Id": "fleurs-id_id-test-10000183170391984234",
+          "Language": "id",
+          "AudioSeconds": 8.58,
+          "DecodeMs": 1122.9,
+          "Rtf": 0.131,
+          "Metric": "WER",
+          "ErrorPct": 26.67,
+          "Reference": "Tim-tim virtual memiliki standar keunggulan yang sama dengan tim konvensional, tetapi ada sedikit perbedaan.",
+          "Hypothesis": "Team-team virtual memiliki standard keunggulan yang sama dengan team konvensional, tetapi ada sedikit perbedaan."
+        },
+        {
+          "Tier": "Small",
+          "Id": "fleurs-id_id-test-10002490060307670158",
+          "Language": "id",
+          "AudioSeconds": 7.68,
+          "DecodeMs": 1089.4,
+          "Rtf": 0.142,
+          "Metric": "WER",
+          "ErrorPct": 44.44,
+          "Reference": "Segera setelah permusuhan pecah, Britania memulai blokade laut Jerman.",
+          "Hypothesis": "Segera setelah permusuhan pecah, Britannia memulai blok adal laut cerman."
+        },
+        {
+          "Tier": "Small",
+          "Id": "fleurs-id_id-test-10030207972417551421",
+          "Language": "id",
+          "AudioSeconds": 9.48,
+          "DecodeMs": 970.7,
+          "Rtf": 0.102,
+          "Metric": "WER",
+          "ErrorPct": 29.41,
+          "Reference": "Semua nomina, di samping kata Sie untuk Anda, selalu dimulai dengan huruf kapital, bahkan di tengah kalimat.",
+          "Hypothesis": "Semua nomina disamping katasih untuk Anda selalu dimulai dengan log kapital bahkan di tengah kalimat"
+        },
+        {
+          "Tier": "Small",
+          "Id": "fleurs-ja_jp-test-10020345318418093976",
+          "Language": "ja",
+          "AudioSeconds": 10.44,
+          "DecodeMs": 1147.1,
+          "Rtf": 0.11,
+          "Metric": "CER",
+          "ErrorPct": 6.67,
+          "Reference": "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u3067\u300C\u6575\u5BFE\u7684\u74B0\u5883\u30B3\u30FC\u30B9\u300D\u306B\u3064\u3044\u3066\u691C\u7D22\u3059\u308B\u3068\u3001\u304A\u305D\u3089\u304F\u73FE\u5730\u4F01\u696D\u306E\u4F4F\u6240\u304C\u51FA\u3066\u304F\u308B\u3067\u3057\u3087\u3046\u3002",
+          "Hypothesis": "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u3067\u9069\u5BFE\u7684\u74B0\u5883\u30B3\u30FC\u30B9\u306B\u3064\u3044\u3066\u691C\u7D22\u3059\u308B\u3068 \u304A\u305D\u3089\u304F\u539F\u5730\u4F01\u696D\u306E\u91CD\u6240\u304C\u51FA\u3066\u304F\u308B\u3067\u3057\u3087\u3046"
+        },
+        {
+          "Tier": "Small",
+          "Id": "fleurs-ja_jp-test-10203675650837159328",
+          "Language": "ja",
+          "AudioSeconds": 6.96,
+          "DecodeMs": 884.7,
+          "Rtf": 0.127,
+          "Metric": "CER",
+          "ErrorPct": 33.33,
+          "Reference": "\u7FA4\u5CF6\u3084\u6E56\u3067\u306F\u3001\u5FC5\u305A\u3057\u3082\u30E8\u30C3\u30C8\u306F\u5FC5\u8981\u3042\u308A\u307E\u305B\u3093\u3002",
+          "Hypothesis": "\u8ECD\u982D\u3084\u6C34\u6D77\u3067\u306F\u5FC5\u305A\u3057\u3082\u3088\u3063\u3068\u306F\u5FC5\u8981\u3042\u308A\u307E\u305B\u3093"
+        },
+        {
+          "Tier": "Small",
+          "Id": "fleurs-ja_jp-test-10214476888438240131",
+          "Language": "ja",
+          "AudioSeconds": 8.88,
+          "DecodeMs": 1070.6,
+          "Rtf": 0.121,
+          "Metric": "CER",
+          "ErrorPct": 13.33,
+          "Reference": "\u30D1\u30EA\u30B8\u30E3\u30F3\u306F\u3001\u81EA\u5DF1\u4E2D\u5FC3\u7684\u3067\u6A2A\u67C4\u3067\u5931\u793C\u306A\u4EBA\u304C\u591A\u3044\u3068\u8A00\u308F\u308C\u3066\u3044\u307E\u3059\u3002",
+          "Hypothesis": "\u30D1\u30EA\u30B8\u30E3\u30F3\u306F\u81EA\u5DF1\u4E2D\u5FC3\u7684\u306A\u5927\u5E73\u3067\u5931\u793C\u306E\u4EBA\u304C\u591A\u3044\u3068\u8A00\u308F\u308C\u3066\u3044\u307E\u3059\u3002"
+        },
+        {
+          "Tier": "Small",
+          "Id": "fleurs-ru_ru-test-10008070632189747443",
+          "Language": "ru",
+          "AudioSeconds": 8.64,
+          "DecodeMs": 965.9,
+          "Rtf": 0.112,
+          "Metric": "WER",
+          "ErrorPct": 10,
+          "Reference": "\u0412\u043E \u0432\u0441\u0435\u0445 \u043D\u0430\u0443\u0447\u043D\u044B\u0445 \u0432\u043E\u043F\u0440\u043E\u0441\u0430\u0445, \u0432\u043A\u043B\u044E\u0447\u0430\u044F \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044E, \u0431\u044B\u043B\u0438 \u043F\u0440\u0438\u043D\u044F\u0442\u044B \u0432\u0437\u0433\u043B\u044F\u0434\u044B \u0410\u0440\u0438\u0441\u0442\u043E\u0442\u0435\u043B\u044F.",
+          "Hypothesis": "\u0412\u043E \u0432\u0441\u0435\u0445 \u043D\u0430\u0443\u0447\u043D\u044B\u0445 \u0432\u043E\u043F\u0440\u043E\u0441\u0430\u0445, \u0432\u043A\u043B\u044E\u0447\u0430\u044F \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044E, \u0431\u044B\u043B\u0438 \u043F\u0440\u0438\u043D\u044F\u0442\u044B \u0432\u0437\u0433\u043B\u044F\u0434\u044B \u0430\u0440\u0435\u0441\u0442\u043E\u0432\u0435\u043B\u044F."
+        },
+        {
+          "Tier": "Small",
+          "Id": "fleurs-ru_ru-test-10011799110630615565",
+          "Language": "ru",
+          "AudioSeconds": 7.92,
+          "DecodeMs": 1331.4,
+          "Rtf": 0.168,
+          "Metric": "WER",
+          "ErrorPct": 0,
+          "Reference": "\u0412 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u044B\u0445 \u043C\u0435\u0441\u0442\u0430\u0445 \u0420\u0438\u043C\u0430 \u0431\u044B\u043B\u0438 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B \u0431\u043E\u043B\u044C\u0448\u0438\u0435 \u0442\u0435\u043B\u0435\u0432\u0438\u0437\u0438\u043E\u043D\u043D\u044B\u0435 \u044D\u043A\u0440\u0430\u043D\u044B, \u0441 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u043A\u043E\u0442\u043E\u0440\u044B\u0445 \u043B\u044E\u0434\u0438 \u043C\u043E\u0433\u043B\u0438 \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0442\u044C \u0437\u0430 \u0446\u0435\u0440\u0435\u043C\u043E\u043D\u0438\u0435\u0439.",
+          "Hypothesis": "\u0412 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u044B\u0445 \u043C\u0435\u0441\u0442\u0430\u0445 \u0420\u0438\u043C\u0430 \u0431\u044B\u043B\u0438 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B \u0431\u043E\u043B\u044C\u0448\u0438\u0435 \u0442\u0435\u043B\u0435\u0432\u0438\u0437\u0438\u043E\u043D\u043D\u044B\u0435 \u044D\u043A\u0440\u0430\u043D\u044B \u0441 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u043A\u043E\u0442\u043E\u0440\u044B\u0445 \u043B\u044E\u0434\u0438 \u043C\u043E\u0433\u043B\u0438 \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0442\u044C \u0437\u0430 \u0446\u0435\u0440\u0435\u043C\u043E\u043D\u0438\u0435\u0439."
+        },
+        {
+          "Tier": "Small",
+          "Id": "fleurs-ru_ru-test-10021068571959461962",
+          "Language": "ru",
+          "AudioSeconds": 10.44,
+          "DecodeMs": 1233.1,
+          "Rtf": 0.118,
+          "Metric": "WER",
+          "ErrorPct": 0,
+          "Reference": "\u0412 1990 \u0433\u043E\u0434\u0443 \u043E\u043D \u0431\u044B\u043B \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D \u0432 \u0441\u043F\u0438\u0441\u043E\u043A \u0432\u0441\u0435\u043C\u0438\u0440\u043D\u043E\u0433\u043E \u043D\u0430\u0441\u043B\u0435\u0434\u0438\u044F, \u043D\u0430\u0445\u043E\u0434\u044F\u0449\u0435\u0433\u043E\u0441\u044F \u043F\u043E\u0434 \u0443\u0433\u0440\u043E\u0437\u043E\u0439 \u0438\u0437-\u0437\u0430 \u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438 \u0441\u043E \u0441\u0442\u043E\u0440\u043E\u043D\u044B \u043F\u0435\u0441\u043A\u043E\u0432 \u043F\u0443\u0441\u0442\u044B\u043D\u0438.",
+          "Hypothesis": "\u0412 1990 \u0433\u043E\u0434\u0443 \u043E\u043D \u0431\u044B\u043B \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D \u0432 \u0441\u043F\u0438\u0441\u043E\u043A \u0432\u0441\u0435\u043C\u0438\u0440\u043D\u043E\u0433\u043E \u043D\u0430\u0441\u043B\u0435\u0434\u0438\u044F, \u043D\u0430\u0445\u043E\u0434\u044F\u0449\u0435\u0433\u043E\u0441\u044F \u043F\u043E\u0434 \u0443\u0433\u0440\u043E\u0437\u043E\u0439 \u0438\u0437-\u0437\u0430 \u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438 \u0441\u043E \u0441\u0442\u043E\u0440\u043E\u043D\u044B \u043F\u0435\u0441\u043A\u043E\u0432 \u043F\u0443\u0441\u0442\u044B\u043D\u0438."
+        }
+      ]
+    },
+    {
+      "Tier": "LargeTurbo",
+      "ModelLabel": "Whisper large-v3-turbo (Q5_0)",
+      "BackendLabel": "Vulkan GPU",
+      "UsingGpu": true,
+      "InitMs": 5789.6,
+      "MeanDecodeMs": 1140.3,
+      "P50DecodeMs": 1129.6,
+      "P95DecodeMs": 1292.9,
+      "MeanRtf": 0.127,
+      "MixedErrorPct": 5.73,
+      "PerLanguage": [
+        {
+          "language": "en",
+          "metric": "WER",
+          "meanErrorPct": 6.95,
+          "meanDecodeMs": 1089.5,
+          "meanRtf": 0.107
+        },
+        {
+          "language": "id",
+          "metric": "WER",
+          "meanErrorPct": 7.62,
+          "meanDecodeMs": 1101.3,
+          "meanRtf": 0.129
+        },
+        {
+          "language": "ja",
+          "metric": "CER",
+          "meanErrorPct": 3.33,
+          "meanDecodeMs": 1187.7,
+          "meanRtf": 0.138
+        },
+        {
+          "language": "ru",
+          "metric": "WER",
+          "meanErrorPct": 5,
+          "meanDecodeMs": 1182.6,
+          "meanRtf": 0.133
+        }
+      ],
+      "Clips": [
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-en_us-test-1003119935936341070",
+          "Language": "en",
+          "AudioSeconds": 10.56,
+          "DecodeMs": 991.6,
+          "Rtf": 0.094,
+          "Metric": "WER",
+          "ErrorPct": 5.26,
+          "Reference": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+          "Hypothesis": "However, due to the slow communication channels, styles in the West could lag behind by 25 to 30 years."
+        },
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-en_us-test-10052240106321793346",
+          "Language": "en",
+          "AudioSeconds": 8.76,
+          "DecodeMs": 1083,
+          "Rtf": 0.124,
+          "Metric": "WER",
+          "ErrorPct": 9.52,
+          "Reference": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+          "Hypothesis": "All nouns alongside the words say for you always begin with a capital letter even in the middle of a sentence."
+        },
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-en_us-test-10167324587744183095",
+          "Language": "en",
+          "AudioSeconds": 11.46,
+          "DecodeMs": 1193.9,
+          "Rtf": 0.104,
+          "Metric": "WER",
+          "ErrorPct": 6.06,
+          "Reference": "To the north and within easy reach is the romantic and fascinating town of Sintra and which was made famous to foreigners after a glowing account of its splendours recorded by Lord Byron.",
+          "Hypothesis": "To the north and within easy reach is the romantic and fascinating town of Cintra and which was made famous to foreigners after a glowing account of its splendorous recorded by Lord Byron."
+        },
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-id_id-test-10000183170391984234",
+          "Language": "id",
+          "AudioSeconds": 8.58,
+          "DecodeMs": 1078.4,
+          "Rtf": 0.126,
+          "Metric": "WER",
+          "ErrorPct": 0,
+          "Reference": "Tim-tim virtual memiliki standar keunggulan yang sama dengan tim konvensional, tetapi ada sedikit perbedaan.",
+          "Hypothesis": "Tim-tim virtual memiliki standar keunggulan yang sama dengan tim konvensional, tetapi ada sedikit perbedaan."
+        },
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-id_id-test-10002490060307670158",
+          "Language": "id",
+          "AudioSeconds": 7.68,
+          "DecodeMs": 1076.4,
+          "Rtf": 0.14,
+          "Metric": "WER",
+          "ErrorPct": 11.11,
+          "Reference": "Segera setelah permusuhan pecah, Britania memulai blokade laut Jerman.",
+          "Hypothesis": "Segera setelah permusuhan pecah, Britania memulai blokade Laut Cerman."
+        },
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-id_id-test-10030207972417551421",
+          "Language": "id",
+          "AudioSeconds": 9.48,
+          "DecodeMs": 1149.2,
+          "Rtf": 0.121,
+          "Metric": "WER",
+          "ErrorPct": 11.76,
+          "Reference": "Semua nomina, di samping kata Sie untuk Anda, selalu dimulai dengan huruf kapital, bahkan di tengah kalimat.",
+          "Hypothesis": "Semua nomina di samping katasi untuk Anda Selalu dimulai dengan huruf kapital bahkan di tengah kalimat"
+        },
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-ja_jp-test-10020345318418093976",
+          "Language": "ja",
+          "AudioSeconds": 10.44,
+          "DecodeMs": 1303.8,
+          "Rtf": 0.125,
+          "Metric": "CER",
+          "ErrorPct": 0,
+          "Reference": "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u3067\u300C\u6575\u5BFE\u7684\u74B0\u5883\u30B3\u30FC\u30B9\u300D\u306B\u3064\u3044\u3066\u691C\u7D22\u3059\u308B\u3068\u3001\u304A\u305D\u3089\u304F\u73FE\u5730\u4F01\u696D\u306E\u4F4F\u6240\u304C\u51FA\u3066\u304F\u308B\u3067\u3057\u3087\u3046\u3002",
+          "Hypothesis": "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u3067\u300C\u6575\u5BFE\u7684\u74B0\u5883\u30B3\u30FC\u30B9\u300D\u306B\u3064\u3044\u3066\u691C\u7D22\u3059\u308B\u3068\u3001\u304A\u305D\u3089\u304F\u73FE\u5730\u4F01\u696D\u306E\u4F4F\u6240\u304C\u51FA\u3066\u304F\u308B\u3067\u3057\u3087\u3046\u3002"
+        },
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-ja_jp-test-10203675650837159328",
+          "Language": "ja",
+          "AudioSeconds": 6.96,
+          "DecodeMs": 1138.4,
+          "Rtf": 0.164,
+          "Metric": "CER",
+          "ErrorPct": 0,
+          "Reference": "\u7FA4\u5CF6\u3084\u6E56\u3067\u306F\u3001\u5FC5\u305A\u3057\u3082\u30E8\u30C3\u30C8\u306F\u5FC5\u8981\u3042\u308A\u307E\u305B\u3093\u3002",
+          "Hypothesis": "\u7FA4\u5CF6\u3084\u6E56\u3067\u306F\u5FC5\u305A\u3057\u3082\u30E8\u30C3\u30C8\u306F\u5FC5\u8981\u3042\u308A\u307E\u305B\u3093"
+        },
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-ja_jp-test-10214476888438240131",
+          "Language": "ja",
+          "AudioSeconds": 8.88,
+          "DecodeMs": 1120.9,
+          "Rtf": 0.126,
+          "Metric": "CER",
+          "ErrorPct": 10,
+          "Reference": "\u30D1\u30EA\u30B8\u30E3\u30F3\u306F\u3001\u81EA\u5DF1\u4E2D\u5FC3\u7684\u3067\u6A2A\u67C4\u3067\u5931\u793C\u306A\u4EBA\u304C\u591A\u3044\u3068\u8A00\u308F\u308C\u3066\u3044\u307E\u3059\u3002",
+          "Hypothesis": "\u30D1\u30EA\u30B8\u30E3\u30F3\u306F\u81EA\u5DF1\u4E2D\u5FC3\u7684\u306A\u738B\u5175\u3067\u5931\u793C\u306A\u4EBA\u304C\u591A\u3044\u3068\u8A00\u308F\u308C\u3066\u3044\u307E\u3059"
+        },
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-ru_ru-test-10008070632189747443",
+          "Language": "ru",
+          "AudioSeconds": 8.64,
+          "DecodeMs": 1084.4,
+          "Rtf": 0.126,
+          "Metric": "WER",
+          "ErrorPct": 0,
+          "Reference": "\u0412\u043E \u0432\u0441\u0435\u0445 \u043D\u0430\u0443\u0447\u043D\u044B\u0445 \u0432\u043E\u043F\u0440\u043E\u0441\u0430\u0445, \u0432\u043A\u043B\u044E\u0447\u0430\u044F \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044E, \u0431\u044B\u043B\u0438 \u043F\u0440\u0438\u043D\u044F\u0442\u044B \u0432\u0437\u0433\u043B\u044F\u0434\u044B \u0410\u0440\u0438\u0441\u0442\u043E\u0442\u0435\u043B\u044F.",
+          "Hypothesis": "\u0412\u043E \u0432\u0441\u0435\u0445 \u043D\u0430\u0443\u0447\u043D\u044B\u0445 \u0432\u043E\u043F\u0440\u043E\u0441\u0430\u0445, \u0432\u043A\u043B\u044E\u0447\u0430\u044F \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044E, \u0431\u044B\u043B\u0438 \u043F\u0440\u0438\u043D\u044F\u0442\u044B \u0432\u0437\u0433\u043B\u044F\u0434\u044B \u0410\u0440\u0438\u0441\u0442\u043E\u0442\u0435\u043B\u044F."
+        },
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-ru_ru-test-10011799110630615565",
+          "Language": "ru",
+          "AudioSeconds": 7.92,
+          "DecodeMs": 1179.3,
+          "Rtf": 0.149,
+          "Metric": "WER",
+          "ErrorPct": 0,
+          "Reference": "\u0412 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u044B\u0445 \u043C\u0435\u0441\u0442\u0430\u0445 \u0420\u0438\u043C\u0430 \u0431\u044B\u043B\u0438 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B \u0431\u043E\u043B\u044C\u0448\u0438\u0435 \u0442\u0435\u043B\u0435\u0432\u0438\u0437\u0438\u043E\u043D\u043D\u044B\u0435 \u044D\u043A\u0440\u0430\u043D\u044B, \u0441 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u043A\u043E\u0442\u043E\u0440\u044B\u0445 \u043B\u044E\u0434\u0438 \u043C\u043E\u0433\u043B\u0438 \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0442\u044C \u0437\u0430 \u0446\u0435\u0440\u0435\u043C\u043E\u043D\u0438\u0435\u0439.",
+          "Hypothesis": "\u0412 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u044B\u0445 \u043C\u0435\u0441\u0442\u0430\u0445 \u0420\u0438\u043C\u0430 \u0431\u044B\u043B\u0438 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B \u0431\u043E\u043B\u044C\u0448\u0438\u0435 \u0442\u0435\u043B\u0435\u0432\u0438\u0437\u0438\u043E\u043D\u043D\u044B\u0435 \u044D\u043A\u0440\u0430\u043D\u044B, \u0441 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u043A\u043E\u0442\u043E\u0440\u044B\u0445 \u043B\u044E\u0434\u0438 \u043C\u043E\u0433\u043B\u0438 \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0442\u044C \u0437\u0430 \u0446\u0435\u0440\u0435\u043C\u043E\u043D\u0438\u0435\u0439."
+        },
+        {
+          "Tier": "LargeTurbo",
+          "Id": "fleurs-ru_ru-test-10021068571959461962",
+          "Language": "ru",
+          "AudioSeconds": 10.44,
+          "DecodeMs": 1284,
+          "Rtf": 0.123,
+          "Metric": "WER",
+          "ErrorPct": 15,
+          "Reference": "\u0412 1990 \u0433\u043E\u0434\u0443 \u043E\u043D \u0431\u044B\u043B \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D \u0432 \u0441\u043F\u0438\u0441\u043E\u043A \u0432\u0441\u0435\u043C\u0438\u0440\u043D\u043E\u0433\u043E \u043D\u0430\u0441\u043B\u0435\u0434\u0438\u044F, \u043D\u0430\u0445\u043E\u0434\u044F\u0449\u0435\u0433\u043E\u0441\u044F \u043F\u043E\u0434 \u0443\u0433\u0440\u043E\u0437\u043E\u0439 \u0438\u0437-\u0437\u0430 \u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438 \u0441\u043E \u0441\u0442\u043E\u0440\u043E\u043D\u044B \u043F\u0435\u0441\u043A\u043E\u0432 \u043F\u0443\u0441\u0442\u044B\u043D\u0438.",
+          "Hypothesis": "\u0412 1990 \u0433\u043E\u0434\u0443 \u043E\u043D \u0431\u044B\u043B \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D \u0432 \u0441\u043F\u0438\u0441\u043E\u043A \u0432\u0441\u0435\u043C\u0438\u0440\u043D\u043E\u0433\u043E \u043D\u0430\u0441\u043B\u0435\u0434\u0438\u044F, \u043D\u0430\u0445\u043E\u0434\u044F\u0449\u0435\u0433\u043E\u0441\u044F \u043F\u043E\u0434 \u0443\u0433\u0440\u043E\u0437\u043E\u0439 \u0438\u0437-\u0437\u0430 \u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438 \u0441\u043E \u0441\u0442\u043E\u0440\u043E\u043D\u044B \u043F\u0435\u0441\u043A\u0430 \u0432 \u043F\u0443\u0441\u0442\u044B\u043D\u0435."
+        }
+      ]
+    }
+  ],
+  "continuousNonstopStreams": {
+    "meanClausesPerStream": 5,
+    "meanClauseWindowSec": 5.09,
+    "maxClauseWindowSec": 6.6,
+    "meanAsrMs": 1120.6,
+    "meanMtMs": 164.3,
+    "meanMixedErrorPct": 15.73,
+    "streams": [
+      {
+        "Language": "en",
+        "TotalSpeechSeconds": 26.58,
+        "ClausesEmitted": 5,
+        "MeanClauseAudioSeconds": 5.41,
+        "MaxClauseAudioSeconds": 6.6,
+        "MeanAsrMs": 1230.2,
+        "MeanMtMs": 213.8,
+        "Metric": "WER",
+        "StreamErrorPct": 13.7,
+        "ReferenceJoined": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year. All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence. To the north and within easy reach is the romantic and fascinating town of Sintra and which was made famous to foreigners after a glowing account of its splendours recorded by Lord Byron.",
+        "HypothesisJoined": "However, due to the slow communication channels, styles in the West could lag behind by 25 to 30 years. All nouns alongside the world say for you. you always begin with a capital letter, even in the middle of a sentence. Within Easy Reach is the romantic and fascinating town of Sintra and which was made famous to foreigners after a glowing account of its splendors recorded by Lord Byer.",
+        "TranslationJoined": "Namun, karena saluran komunikasi yang lambat, gaya di Barat Bisa bertahan 25 sampai 30 tahun. Semua khabar angin di samping dunia mengatakan untuk Anda. Anda selalu memulai dengan surat modal, bahkan di tengah kalimat. Di dalam Easy Reach adalah kota yang romantis dan menarik Sintra dan yang menjadi terkenal bagi orang asing setelah sebuah catatan yang menakjubkan tentang keajaiban-keajaiannya yang dicatatkan oleh Lord Byer."
+      },
+      {
+        "Language": "id",
+        "TotalSpeechSeconds": 23.17,
+        "ClausesEmitted": 5,
+        "MeanClauseAudioSeconds": 4.98,
+        "MaxClauseAudioSeconds": 6.53,
+        "MeanAsrMs": 1073.5,
+        "MeanMtMs": 153.6,
+        "Metric": "WER",
+        "StreamErrorPct": 14.63,
+        "ReferenceJoined": "Tim-tim virtual memiliki standar keunggulan yang sama dengan tim konvensional, tetapi ada sedikit perbedaan. Segera setelah permusuhan pecah, Britania memulai blokade laut Jerman. Semua nomina, di samping kata Sie untuk Anda, selalu dimulai dengan huruf kapital, bahkan di tengah kalimat.",
+        "HypothesisJoined": "Tim-tim virtual memiliki standar keunggulan yang sama dengan tim konvensional Tetapi ada sedikit perbedaan. Segera setelah permusuhan pecah Britannia memulai blokade Laut Cerman Semua nomina di samping katasi untuk Anda selalu dimulai dengan lokal Lenggup kapital bahkan di tengah kalimat",
+        "TranslationJoined": "Virtual teams have the same standard of excellence as conventional teams. But there is a little difference. After the enemy broke out. Britain starts Cerman Sea blockade All nominations in addition to the catation for you always start with local In the middle of the word, even in the middle."
+      },
+      {
+        "Language": "ja",
+        "TotalSpeechSeconds": 24.36,
+        "ClausesEmitted": 5,
+        "MeanClauseAudioSeconds": 5.26,
+        "MaxClauseAudioSeconds": 6.57,
+        "MeanAsrMs": 1017.1,
+        "MeanMtMs": 119.3,
+        "Metric": "CER",
+        "StreamErrorPct": 23.96,
+        "ReferenceJoined": "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u3067\u300C\u6575\u5BFE\u7684\u74B0\u5883\u30B3\u30FC\u30B9\u300D\u306B\u3064\u3044\u3066\u691C\u7D22\u3059\u308B\u3068\u3001\u304A\u305D\u3089\u304F\u73FE\u5730\u4F01\u696D\u306E\u4F4F\u6240\u304C\u51FA\u3066\u304F\u308B\u3067\u3057\u3087\u3046\u3002\u7FA4\u5CF6\u3084\u6E56\u3067\u306F\u3001\u5FC5\u305A\u3057\u3082\u30E8\u30C3\u30C8\u306F\u5FC5\u8981\u3042\u308A\u307E\u305B\u3093\u3002\u30D1\u30EA\u30B8\u30E3\u30F3\u306F\u3001\u81EA\u5DF1\u4E2D\u5FC3\u7684\u3067\u6A2A\u67C4\u3067\u5931\u793C\u306A\u4EBA\u304C\u591A\u3044\u3068\u8A00\u308F\u308C\u3066\u3044\u307E\u3059\u3002",
+        "HypothesisJoined": "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u3067\u6575\u5BFE\u7684\u74B0\u5883\u30B3\u30FC\u30B9\u306B\u3064\u3044\u3066\u691C\u7D22\u3059\u308B\u3068\u3068\u304A\u305D\u3089\u304F\u73FE\u5730\u4F01\u696D\u306E\u4F4F\u6240\u304C \u51FA\u3066\u304F\u308B\u3067\u3057\u3087\u3046\u6E56\u3084\u6E56\u3067\u306F\u30D1\u30EA\u30B8\u30E3\u30F3\u306F\u81EA\u5DF1\u4E2D\u5FC3\u7684\u3060\u30DB\u30A6\u30D8\u30A4\u3067\u5931\u793C\u306A\u4EBA\u304C\u591A\u3044\u3068\u8A00\u308F\u308C\u3066\u3044\u307E\u3059",
+        "TranslationJoined": "Searching for enemy environmental courses on the Internet. Maybe the local company\u2019s address will come out. in the lake and lake. Paris is self-centered. There are many people who say they are unhappy."
+      },
+      {
+        "Language": "ru",
+        "TotalSpeechSeconds": 21.8,
+        "ClausesEmitted": 5,
+        "MeanClauseAudioSeconds": 4.7,
+        "MaxClauseAudioSeconds": 6.16,
+        "MeanAsrMs": 1161.7,
+        "MeanMtMs": 170.5,
+        "Metric": "WER",
+        "StreamErrorPct": 10.64,
+        "ReferenceJoined": "\u0412\u043E \u0432\u0441\u0435\u0445 \u043D\u0430\u0443\u0447\u043D\u044B\u0445 \u0432\u043E\u043F\u0440\u043E\u0441\u0430\u0445, \u0432\u043A\u043B\u044E\u0447\u0430\u044F \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044E, \u0431\u044B\u043B\u0438 \u043F\u0440\u0438\u043D\u044F\u0442\u044B \u0432\u0437\u0433\u043B\u044F\u0434\u044B \u0410\u0440\u0438\u0441\u0442\u043E\u0442\u0435\u043B\u044F. \u0412 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u044B\u0445 \u043C\u0435\u0441\u0442\u0430\u0445 \u0420\u0438\u043C\u0430 \u0431\u044B\u043B\u0438 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B \u0431\u043E\u043B\u044C\u0448\u0438\u0435 \u0442\u0435\u043B\u0435\u0432\u0438\u0437\u0438\u043E\u043D\u043D\u044B\u0435 \u044D\u043A\u0440\u0430\u043D\u044B, \u0441 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u043A\u043E\u0442\u043E\u0440\u044B\u0445 \u043B\u044E\u0434\u0438 \u043C\u043E\u0433\u043B\u0438 \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0442\u044C \u0437\u0430 \u0446\u0435\u0440\u0435\u043C\u043E\u043D\u0438\u0435\u0439. \u0412 1990 \u0433\u043E\u0434\u0443 \u043E\u043D \u0431\u044B\u043B \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D \u0432 \u0441\u043F\u0438\u0441\u043E\u043A \u0432\u0441\u0435\u043C\u0438\u0440\u043D\u043E\u0433\u043E \u043D\u0430\u0441\u043B\u0435\u0434\u0438\u044F, \u043D\u0430\u0445\u043E\u0434\u044F\u0449\u0435\u0433\u043E\u0441\u044F \u043F\u043E\u0434 \u0443\u0433\u0440\u043E\u0437\u043E\u0439 \u0438\u0437-\u0437\u0430 \u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438 \u0441\u043E \u0441\u0442\u043E\u0440\u043E\u043D\u044B \u043F\u0435\u0441\u043A\u043E\u0432 \u043F\u0443\u0441\u0442\u044B\u043D\u0438.",
+        "HypothesisJoined": "\u0432\u043E \u0432\u0441\u0435\u0445 \u043D\u0430\u0443\u0447\u043D\u044B\u0445 \u0432\u043E\u043F\u0440\u043E\u0441\u0430\u0445 \u0432\u043A\u043B\u044E\u0447\u0430\u044F \u043F\u0441\u0438\u0445\u043E\u043B\u043E\u0433\u0438\u044E \u0431\u044B\u043B\u0438 \u043F\u0440\u0438\u043D\u044F\u0442\u044B \u0432\u0437\u0433\u043B\u044F\u0434\u044B \u0430\u0440\u0438\u0441\u0442\u043E\u0442 \u0432 \u0440\u0430\u0437\u043B\u0438\u0447\u043D\u044B\u0445 \u043C\u0435\u0441\u0442\u0430\u0445 \u0440\u0438\u043C\u0430 \u0431\u044B\u043B\u0438 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B \u0431\u043E\u043B\u044C\u0448\u0438\u0435 \u0442\u0435\u043B\u0435\u0432\u0438\u0437\u0438\u043E\u043D\u043D\u044B\u0435 \u044D\u043A\u0440\u0430\u043D\u044B \u0441 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u043A\u043E\u0442\u043E\u0440\u044B\u0445 \u043B\u044E\u0434\u0438 \u043C\u043E\u0433\u043B\u0438 \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0442\u044C \u0437\u0430 \u0446\u0435\u0440\u0435\u043C\u043E\u043D\u0438\u0435\u0439. \u0412 1990 \u0433\u043E\u0434\u0443 \u043E\u043D \u0431\u044B\u043B \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D \u0432 \u0441\u043F\u0438\u0441\u043E\u043A \u0432\u0441\u0435\u043C\u0438\u0440\u043D\u043E\u0433\u043E \u043D\u0430\u0441\u043B\u0435\u0434\u0438\u044F. \u0434\u0435\u0440\u0436\u0430\u0432\u0430 \u043F\u043E\u0434 \u0443\u0433\u0440\u043E\u0437\u043E\u0439 \u0438\u0437-\u0437\u0430 \u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438 \u0441\u043E \u0441\u0442\u043E\u0440\u043E\u043D\u044B \u043F\u0438\u0441\u043A\u0430 \u0432 \u043F\u0443\u0441\u0442\u044B\u043D\u0435.",
+        "TranslationJoined": "In all scientific issues, including psychology, the views were taken. Aristotle in various places of Rome were installed large TV screens using which People could watch the ceremony. In 1990 it was added to the World Heritage List. The power is threatened because of the danger from the pisk in the desert."
+      }
+    ]
+  },
+  "mtMultiSentenceBatchProbe": {
+    "elapsedMs": 288.9,
+    "source": "This is an extraordinary story from an extraordinary recording. Today we are testing continuous speech translation without pauses. Every clause must stay accurate and fast.",
+    "translated": "Ini adalah kisah luar biasa dari rekaman yang luar biasa. Hari ini kita sedang menguji terjemahan ucapan yang berterusan tanpa istirahat. Setiap klausi harus tetap akurat dan cepat."
+  }
+}

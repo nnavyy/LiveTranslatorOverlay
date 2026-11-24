@@ -24,8 +24,17 @@ namespace LiveTranslatorOverlay.Core.Translation
 
         public GoogleFreeTranslateProvider()
         {
-            _httpClient = new HttpClient();
-            _httpClient.Timeout = TimeSpan.FromSeconds(6);
+            _httpClient = new HttpClient(new SocketsHttpHandler
+            {
+                PooledConnectionLifetime = TimeSpan.FromMinutes(10),
+                KeepAlivePingDelay = TimeSpan.FromSeconds(30),
+                KeepAlivePingTimeout = TimeSpan.FromSeconds(15),
+                EnableMultipleHttp2Connections = true,
+                AutomaticDecompression = System.Net.DecompressionMethods.All
+            })
+            {
+                Timeout = TimeSpan.FromSeconds(6)
+            };
             _httpClient.DefaultRequestHeaders.Add("User-Agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36");
         }

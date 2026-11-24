@@ -10,7 +10,7 @@ namespace LiveTranslatorMac;
 public sealed partial class TranslatorWindow
 {
     private readonly ComboBox _audioSource = new() { ItemsSource = new[] { "System audio", "Microphone" }, SelectedIndex = 0 };
-    private readonly ComboBox _speechModel = new() { ItemsSource = new[] { "Balanced (CPU)", "Higher Accuracy (CPU)", "Auto (GPU / CPU)", "High Accuracy (GPU)" }, SelectedIndex = 2 };
+    private readonly ComboBox _speechModel = new() { ItemsSource = new[] { "Balanced (GPU / CPU)", "Higher Accuracy (GPU / CPU)", "Auto (GPU / CPU)", "High Accuracy (GPU)" }, SelectedIndex = 2 };
     private readonly Button _audioToggle = new() { Content = "Start audio" };
     private readonly GuestAudioUsage _usageClock = new(AppSettings.DataDirectory);
     private readonly TextBlock _usageText = new() { Classes = { "secondary" } };
@@ -101,9 +101,16 @@ public sealed partial class TranslatorWindow
             var watchCapture = WatchCaptureAsync();
             try
             {
+                string previousClauseOriginal = "";
                 await foreach (var samples in capture.Chunks.ReadAllAsync(processingToken))
                 {
                     var original = await Task.Run(() => speech.TranscribeAsync(samples, processingToken), processingToken);
+                    original = HallucinationDetector.StripWhisperArtifacts(original);
+                    if (string.IsNullOrWhiteSpace(original) || HallucinationDetector.IsHallucination(original) || HallucinationDetector.IsWhisperArtifact(original))
+                        continue;
+                    string rawClause = original;
+                    original = SentenceBoundaryDeduplicator.StripOverlapPrefix(previousClauseOriginal, original);
+                    previousClauseOriginal = rawClause;
                     if (string.IsNullOrWhiteSpace(original)) continue;
                     int generation = _historyGeneration;
                     var translated = await provider.TranslateAsync(original, targetTag, sourceTag)

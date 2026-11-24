@@ -307,6 +307,70 @@ try
     Check("AudioCaptureService sentence mode suppresses interim updates and emits one finalized sentence on pause",
         gotFinalSentence && interimCount == 0 && finalCount == 1,
         $"interim={interimCount}; final={finalCount}");
+
+    var valleySignal = new float[16000 * 3];
+    for (int i = 0; i < valleySignal.Length; i++) valleySignal[i] = 0.25f;
+    for (int i = 36000; i < 38000; i++) valleySignal[i] = 0.0005f;
+    int splitSample = AudioCaptureService.FindLowestEnergySplitSample(valleySignal, 32000, 1280);
+
+    var nonstopAudio = new AudioCaptureService
+    {
+        EnableStreamingWindows = true,
+        EmitInterimWindows = false,
+        SentenceMinSpeechMs = 600,
+        ContinuousClauseMs = 2000,
+        StreamingMaxWindowMs = 2800
+    };
+    var nonstopQueue = Get<ConcurrentQueue<float>>(nonstopAudio, "_audioBuffer");
+    int nonstopInterim = 0;
+    int nonstopFinal = 0;
+    using var nonstopSecondClause = new SemaphoreSlim(0);
+    nonstopAudio.StreamingWindowHandler = (_, isFinal) =>
+    {
+        if (isFinal)
+        {
+            if (Interlocked.Increment(ref nonstopFinal) == 2)
+                nonstopSecondClause.Release();
+        }
+        else
+        {
+            Interlocked.Increment(ref nonstopInterim);
+        }
+        return Task.CompletedTask;
+    };
+    Set(nonstopAudio, "_isCapturing", true);
+    for (int i = 0; i < 16000 * 6; i++)
+        nonstopQueue.Enqueue((float)(0.12 * Math.Sin(i * 0.09)));
+    var nonstopLoop = (Task)typeof(AudioCaptureService).GetMethod("ChunkEmitterLoop", Fields)!.Invoke(nonstopAudio, null)!;
+    bool gotTwoNonstopClauses = await nonstopSecondClause.WaitAsync(TimeSpan.FromSeconds(5));
+    nonstopAudio.Stop();
+    await nonstopLoop.WaitAsync(TimeSpan.FromSeconds(4));
+    Check("AudioCaptureService splits unbroken nonstop speech at low-energy valleys without waiting for silence",
+        splitSample >= 36000 && splitSample <= 38000 && gotTwoNonstopClauses && nonstopInterim == 0 && nonstopFinal >= 2,
+        $"valleyIdx={splitSample}; interim={nonstopInterim}; final={nonstopFinal}");
+
+    string dedupEn = SentenceBoundaryDeduplicator.StripOverlapPrefix(
+        "However, due to the slow communication channels, styles in the West",
+        "in the West could lag behind by 25 years.");
+    string dedupId = SentenceBoundaryDeduplicator.StripOverlapPrefix(
+        "Tim-tim virtual memiliki standar keunggulan yang sama",
+        "keunggulan yang sama dengan tim konvensional.");
+    string dedupRu = SentenceBoundaryDeduplicator.StripOverlapPrefix(
+        "были приняты взгляды Аристотеля и его школы",
+        "его школы в различных местах Рима");
+    string dedupJa = SentenceBoundaryDeduplicator.StripOverlapPrefix(
+        "インターネットで敵対的環境コースについて検索すると",
+        "検索すると、おそらく現地企業の住所が出てくるでしょう。");
+    string preserveShortWord = SentenceBoundaryDeduplicator.StripOverlapPrefix(
+        "I think that",
+        "that we should continue");
+    Check("SentenceBoundaryDeduplicator removes multi-script clause boundary overlaps while preserving short words",
+        dedupEn == "could lag behind by 25 years."
+        && dedupId == "dengan tim konvensional."
+        && dedupRu == "в различных местах Рима"
+        && dedupJa == "おそらく現地企業の住所が出てくるでしょう。"
+        && preserveShortWord == "that we should continue",
+        $"en='{dedupEn}'; ja='{dedupJa}'; short='{preserveShortWord}'");
 }
 finally
 {

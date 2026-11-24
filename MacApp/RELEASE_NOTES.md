@@ -1,4 +1,11 @@
-# Mac release notes — v1.1.5
+# Mac release notes — v1.1.6
+
+## What's new in v1.1.6
+
+- **All-Tier Metal GPU Acceleration & Beam-2 Speech Accuracy**: Shared `LocalSpeechService` now unlocks Metal GPU acceleration across `Balanced (GPU / CPU)` (`ggml-base.bin`), `Higher Accuracy (GPU / CPU)` (`ggml-small.bin`), `Auto (GPU / CPU)`, and `High Accuracy (GPU)` (`ggml-large-v3-turbo-q5_0.bin`) with automatic CPU fallback and Beam-2 GPU decoding.
+- **Continuous Clause Boundary Deduplication & Faster Translation**: `TranslatorWindow.Audio` applies `HallucinationDetector.StripWhisperArtifacts` and `SentenceBoundaryDeduplicator.StripOverlapPrefix` across consecutive 4-second native audio chunks, paired with batched anti-repetition offline M2M-100 translation (`repetition_penalty=1.15`, `no_repeat_ngram_size=3`) and `SocketsHttpHandler` HTTP/2 pooling on `GoogleFreeTranslateProvider` and `GroqTranslateProvider`.
+
+## What's new in v1.1.5
 
 ## What's new in v1.1.5
 
